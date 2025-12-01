@@ -184,7 +184,7 @@ fn main() {
     app.add_entity(entity);
     app.set_camera_transform(Transform::from_position(0.0, 0.0, 10.0));
     
-    // app.set_light_color([1.0, 1.0, 1.0, 1.0]);
-    // app.set_light_transform(Transform::from_position(10.0, 8.0, 6.0));
+    app.set_light_color([1.0, 1.0, 1.0, 1.0]);
+    app.set_light_transform(Transform::from_position(10.0, 8.0, 6.0));
     app.run();
 }

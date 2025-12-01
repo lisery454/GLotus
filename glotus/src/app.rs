@@ -31,6 +31,7 @@ pub struct App {
     is_first_cursor_move: bool,
     camera: Rc<RefCell<Camera>>,
     entities: Vec<Rc<RefCell<Entity>>>,
+    light: Light,
 }
 
 // main
@@ -47,6 +48,7 @@ impl App {
             is_first_cursor_move: true,
             camera: Rc::new(RefCell::new(Camera::new())),
             entities: Vec::new(),
+            light: Light::new(),
         };
 
         log_builder::setup_logger();
@@ -156,6 +158,14 @@ impl App {
         self.camera.borrow_mut().set_transform(transform);
     }
 
+    pub fn set_light_color(&mut self, color: [f32; 4]) {
+        self.light.set_color(color);
+    }
+
+    pub fn set_light_transform(&mut self, transform: Transform) {
+        self.light.set_transform(transform);
+    }
+
     pub fn run(&mut self) {
         self.is_running = true;
 
@@ -201,6 +211,8 @@ impl App {
             .get_transform()
             .get_position()
             .get_arr();
+        let light_color = self.light.get_color();
+        let light_position = self.light.get_transform().get_position().get_arr();
 
         for (entity) in self.entities.iter() {
             let entity = entity.borrow();
@@ -216,7 +228,6 @@ impl App {
                 .material
                 .borrow_mut()
                 .insert_uniform("model_matrix", UniformValue::Matrix4(model_matrix));
-
             entity
                 .material
                 .borrow_mut()
@@ -229,6 +240,14 @@ impl App {
                 "projection_matrix",
                 UniformValue::Matrix4(projection_matrix),
             );
+            entity
+                .material
+                .borrow_mut()
+                .insert_uniform("light_color", UniformValue::Vector4(light_color));
+            entity
+                .material
+                .borrow_mut()
+                .insert_uniform("light_position", UniformValue::Vector3(light_position));
             // 通知opengl用这个材质，初始化
             entity.material.borrow().bind();
             // 通知opengl进行绘制
