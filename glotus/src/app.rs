@@ -238,36 +238,6 @@ impl App {
         }
     }
 
-    fn bind_material(&self, material: Rc<RefCell<Material>>) {
-        let material = material.borrow();
-        let shader = material.shader.borrow();
-
-        shader.bind();
-        // 给shader设置所有这个材质对应的uniforms
-        for (name, value) in &material.uniforms {
-            match value {
-                UniformValue::Float(v) => shader.set_uniform_f32(name, *v),
-                UniformValue::Int(v) => shader.set_uniform_i32(name, *v),
-                UniformValue::Vector3(v) => shader.set_uniform_vec3(name, v),
-                UniformValue::Vector4(v) => shader.set_uniform_vec4(name, v),
-                UniformValue::Matrix3(m) => shader.set_uniform_mat3(name, m),
-                UniformValue::Matrix4(m) => shader.set_uniform_mat4(name, m),
-                UniformValue::Texture(slot) => shader.set_uniform_i32(name, *slot as i32),
-            }
-        }
-
-        for (texture_slot_id, texture) in &material.textures {
-            unsafe {
-                gl::ActiveTexture(gl::TEXTURE0 + texture_slot_id);
-                gl::BindTexture(gl::TEXTURE_2D, texture.borrow().get_id());
-            }
-        }
-    }
-
-    fn unbind_material(&self, material: Rc<RefCell<Material>>) {
-        material.borrow().shader.borrow().unbind();
-    }
-
     fn handle_window_event(&mut self) {
         for (_, event) in
             glfw::flush_messages(&mut *(self.event_receiver.as_ref().unwrap().borrow_mut()))
