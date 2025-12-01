@@ -1,36 +1,39 @@
 use glotus::{
-    material::UniformValue,
-    mesh::Vertex,
-    texture::{FilteringMode, WrappingMode},
+    entity::entity::Entity,
+    material::{Material, UniformValue},
+    mesh::{Mesh, Vertex},
+    shader::Shader,
+    texture::{FilteringMode, Texture2D, WrappingMode},
     transform::Transform,
 };
 
 fn main() {
     let mut app = glotus::App::new();
     app.init_window(1440, 960);
-    app.create_shader_from_file(
-        "shader_test",
+
+    let shader = Shader::from_files(
         concat!(env!("CARGO_PKG_NAME"), "/assets/shaders/vs.vert"),
         concat!(env!("CARGO_PKG_NAME"), "/assets/shaders/fs.frag"),
-    );
-    app.create_texture(
-        "texture_brick",
+    )
+    .unwrap();
+
+    let texture = Texture2D::from_file(
         concat!(env!("CARGO_PKG_NAME"), "/assets/textures/brick.png"),
         WrappingMode::Repeat,
         WrappingMode::Repeat,
         FilteringMode::LinearMipmapLinear,
         FilteringMode::Linear,
-    );
-    app.create_material(
-        "material_test",
-        "shader_test",
-        [("texture1".to_string(), UniformValue::Texture(0))]
-            .into_iter()
-            .collect(),
-        [("texture_brick".to_string(), 0u32)].into_iter().collect(),
-    );
-    app.create_mesh_from_data(
-        "mesh_test",
+    )
+    .unwrap();
+
+    let material = Material::new(shader.clone());
+
+    material
+        .borrow_mut()
+        .insert_uniform("texture1", UniformValue::Texture(0));
+    material.borrow_mut().insert_textures(0u32, texture.clone());
+
+    let mesh = Mesh::new(
         vec![
             // back
             Vertex::from_position_and_tex_coords(-0.5, -0.5, -0.5, 0.0, 0.0),
@@ -77,12 +80,11 @@ fn main() {
         ],
         vec![],
     );
-    app.create_entity(
-        "entity_test",
-        Transform::default(),
-        "material_test",
-        "mesh_test",
-    );
+
+    let entity = Entity::new(Transform::default(), material.clone(), mesh.clone());
+
+    app.add_entity(entity.clone());
+
     app.set_camera_transform(Transform::from_position(0.0, 0.0, 10.0));
     app.run();
 }

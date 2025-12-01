@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use gl::types::*;
 
 use super::{
@@ -19,7 +21,7 @@ impl Texture2D {
         wrapping_mode_t: WrappingMode,
         filtering_mode_min: FilteringMode,
         filtering_mode_mag: FilteringMode,
-    ) -> Result<Self, TextureError> {
+    ) -> Result<Rc<RefCell<Self>>, TextureError> {
         // 1. 用 `image` 库读取图片
         let img_result = image::open(path);
 
@@ -65,7 +67,7 @@ impl Texture2D {
             gl::BindTexture(gl::TEXTURE_2D, 0);
         }
 
-        Ok(Self { id: texture_id })
+        Ok(Rc::new(RefCell::new(Self { id: texture_id })))
     }
 
     fn set_wrapping_mode(wrap: GLenum, wrapping_mode: WrappingMode) {

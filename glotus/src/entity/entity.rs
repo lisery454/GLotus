@@ -1,17 +1,23 @@
-use crate::transform::Transform;
+use std::{cell::RefCell, rc::Rc};
+
+use crate::{material::Material, mesh::Mesh, transform::Transform};
 
 pub struct Entity {
     pub transform: Transform,
-    pub material_name: String,
-    pub mesh_name: String,
+    pub material: Rc<RefCell<Material>>,
+    pub mesh: Rc<RefCell<Mesh>>,
 }
 
 impl Entity {
-    pub fn new(transform: Transform, material_name: &str, mesh_name: &str) -> Self {
-        Self {
+    pub fn new(
+        transform: Transform,
+        material: Rc<RefCell<Material>>,
+        mesh: Rc<RefCell<Mesh>>,
+    ) -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(Self {
             transform,
-            material_name: material_name.to_string(),
-            mesh_name: mesh_name.to_string(),
-        }
+            material,
+            mesh,
+        }))
     }
 }

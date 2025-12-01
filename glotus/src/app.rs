@@ -1,15 +1,12 @@
 use crate::camera::Camera;
 use crate::camera::CameraMovement;
-use crate::entity::entity_manager::EntityManager;
+use crate::entity::entity::Entity;
 use crate::light::Light;
 use crate::log_builder;
 use crate::material::Material;
-use crate::material::MaterialManager;
 use crate::material::UniformValue;
-use crate::mesh::MeshManager;
 use crate::mesh::Vertex;
-use crate::shader::ShaderManager;
-use crate::texture::{FilteringMode, TextureManager, WrappingMode};
+use crate::texture::{FilteringMode, WrappingMode};
 use crate::transform::Transform;
 use cgmath::Vector2;
 use glfw::SwapInterval;
@@ -32,146 +29,13 @@ pub struct App {
     last_time: f32,
     last_cursor_pos: Vector2<f32>,
     is_first_cursor_move: bool,
-
-    shader_manager: Rc<RefCell<ShaderManager>>,
-    material_manager: Rc<RefCell<MaterialManager>>,
-    mesh_manager: Rc<RefCell<MeshManager>>,
-    texture_manager: Rc<RefCell<TextureManager>>,
-    entity_manager: Rc<RefCell<EntityManager>>,
-
-    light: Rc<RefCell<Light>>,
     camera: Rc<RefCell<Camera>>,
-}
-
-// shader
-impl App {
-    pub fn create_shader_from_source(
-        &self,
-        shader_name: &str,
-        vertex_source: &str,
-        fragment_source: &str,
-    ) {
-        self.shader_manager.borrow_mut().create_shader_from_source(
-            shader_name,
-            vertex_source,
-            fragment_source,
-        );
-    }
-
-    pub fn create_shader_from_file(
-        &self,
-        shader_name: &str,
-        vertex_path: &str,
-        fragment_path: &str,
-    ) {
-        self.shader_manager.borrow_mut().create_shader_from_file(
-            shader_name,
-            vertex_path,
-            fragment_path,
-        );
-    }
-}
-
-// material
-impl App {
-    pub fn create_material(
-        &self,
-        material_name: &str,
-        shader_name: &str,
-        uniforms: HashMap<String, UniformValue>,
-        textures: HashMap<String, u32>,
-    ) {
-        self.material_manager.borrow_mut().create_material(
-            material_name,
-            shader_name,
-            uniforms,
-            textures,
-        );
-    }
-}
-
-// mesh
-impl App {
-    pub fn create_mesh_from_data(&self, mesh_name: &str, vertices: Vec<Vertex>, indices: Vec<u32>) {
-        self.mesh_manager
-            .borrow_mut()
-            .create_mesh_from_data(mesh_name, vertices, indices);
-    }
-}
-
-// texture
-impl App {
-    pub fn create_texture(
-        &mut self,
-        texture_name: &str,
-        path: &str,
-        wrapping_mode_s: WrappingMode,
-        wrapping_mode_t: WrappingMode,
-        filtering_mode_min: FilteringMode,
-        filtering_mode_mag: FilteringMode,
-    ) {
-        self.texture_manager.borrow_mut().create_texture(
-            texture_name,
-            path,
-            wrapping_mode_s,
-            wrapping_mode_t,
-            filtering_mode_min,
-            filtering_mode_mag,
-        );
-    }
-}
-
-// entity
-impl App {
-    pub fn create_entity(
-        &self,
-        entity_name: &str,
-        transform: Transform,
-        material_name: &str,
-        mesh_name: &str,
-    ) {
-        self.entity_manager.borrow_mut().create_entity(
-            entity_name,
-            transform,
-            material_name,
-            mesh_name,
-        );
-    }
-}
-
-// camera
-impl App {
-    pub fn set_camera_transform(&mut self, transform: Transform) {
-        self.camera.borrow_mut().set_transform(transform);
-    }
-}
-
-// light
-impl App {
-    pub fn set_light_transform(&mut self, transform: Transform) {
-        self.light.borrow_mut().set_transform(transform);
-    }
-
-    pub fn set_light_color(&mut self, color: [f32; 4]) {
-        self.light.borrow_mut().set_color(color);
-    }
+    entities: Vec<Rc<RefCell<Entity>>>,
 }
 
 // main
 impl App {
     pub fn new() -> Self {
-        let shader_manager = Rc::new(RefCell::new(ShaderManager::new()));
-        let material_manager = Rc::new(RefCell::new(MaterialManager::new(Rc::downgrade(
-            &shader_manager,
-        ))));
-
-        let mesh_manager = Rc::new(RefCell::new(MeshManager::new()));
-        let texture_manager = Rc::new(RefCell::new(TextureManager::new()));
-        let entity_manager = Rc::new(RefCell::new(EntityManager::new(
-            Rc::downgrade(&mesh_manager),
-            Rc::downgrade(&material_manager),
-        )));
-
         let app = Self {
             is_running: false,
             window: None,
@@ -181,15 +45,8 @@ impl App {
             last_time: 0.0,
             last_cursor_pos: Vector2 { x: 0.0, y: 0.0 },
             is_first_cursor_move: true,
-
-            shader_manager,
-            material_manager,
-            mesh_manager,
-            texture_manager,
-            entity_manager,
-
-            light: Rc::new(RefCell::new(Light::new())),
             camera: Rc::new(RefCell::new(Camera::new())),
+            entities: Vec::new(),
         };
 
         log_builder::setup_logger();
@@ -291,6 +148,14 @@ impl App {
             });
     }
 
+    pub fn add_entity(&mut self, entity: Rc<RefCell<Entity>>) {
+        self.entities.push(entity);
+    }
+
+    pub fn set_camera_transform(&self, transform: Transform) {
+        self.camera.borrow_mut().set_transform(transform);
+    }
+
     pub fn run(&mut self) {
         self.is_running = true;
 
@@ -330,8 +195,6 @@ impl App {
 
             let view_matrix = self.camera.borrow().get_view_matrix();
             let projection_matrix = self.camera.borrow().get_projection_matrix();
-            let light_color = self.light.borrow().get_color();
-            let light_position = self.light.borrow().get_transform().get_position().get_arr();
             let view_position = self
                 .camera
                 .borrow()
@@ -339,100 +202,71 @@ impl App {
                 .get_position()
                 .get_arr();
 
-            for (_entity_name, entity) in self.entity_manager.borrow().iter_entities() {
+            for (entity) in self.entities.iter() {
+                let entity = entity.borrow();
+                // 计算矩阵
                 let model_matrix = entity.transform.to_matrix();
                 let normal_matrix = entity.transform.to_normal_matrix();
-
                 // 给材质注入全局变量，比如mvp
-                let mut material_manager = self.material_manager.borrow_mut();
-                let material = material_manager.get_mut(&entity.material_name);
-                match material {
-                    Some(material) => {
-                        material.insert_uniform("light_color", UniformValue::Vector4(light_color));
-                        material.insert_uniform(
-                            "light_position",
-                            UniformValue::Vector3(light_position),
-                        );
-                        material
-                            .insert_uniform("view_position", UniformValue::Vector3(view_position));
-                        material
-                            .insert_uniform("model_matrix", UniformValue::Matrix4(model_matrix));
+                entity
+                    .material
+                    .borrow_mut()
+                    .insert_uniform("view_position", UniformValue::Vector3(view_position));
+                entity
+                    .material
+                    .borrow_mut()
+                    .insert_uniform("model_matrix", UniformValue::Matrix4(model_matrix));
 
-                        material
-                            .insert_uniform("normal_matrix", UniformValue::Matrix3(normal_matrix));
-                        material.insert_uniform("view_matrix", UniformValue::Matrix4(view_matrix));
-                        material.insert_uniform(
-                            "projection_matrix",
-                            UniformValue::Matrix4(projection_matrix),
-                        );
-
-                        // 通知opengl用这个材质，初始化
-                        self.bind_material(&entity.material_name, material);
-
-                        // 通知opengl进行绘制
-                        let mesh_manager = self.mesh_manager.borrow();
-                        let mesh = mesh_manager.get(&entity.mesh_name);
-                        match mesh {
-                            Some(mesh) => mesh.draw(),
-                            None => warn!("not found mesh: <{}>", &entity.mesh_name),
-                        }
-
-                        // 通知opengl卸载这个材质
-                        self.unbind_material(&material);
-                    }
-                    None => warn!("not found material: <{}>", &entity.material_name),
-                }
+                entity
+                    .material
+                    .borrow_mut()
+                    .insert_uniform("normal_matrix", UniformValue::Matrix3(normal_matrix));
+                entity
+                    .material
+                    .borrow_mut()
+                    .insert_uniform("view_matrix", UniformValue::Matrix4(view_matrix));
+                entity.material.borrow_mut().insert_uniform(
+                    "projection_matrix",
+                    UniformValue::Matrix4(projection_matrix),
+                );
+                // 通知opengl用这个材质，初始化
+                self.bind_material(entity.material.clone());
+                // 通知opengl进行绘制
+                entity.mesh.borrow().draw();
+                // 通知opengl卸载这个材质
+                self.unbind_material(entity.material.clone());
             }
         }
     }
 
-    fn bind_material(&self, material_name: &String, material: &mut Material) {
-        let shader_manager = self.shader_manager.borrow();
-        let shader = shader_manager.get(material.shader_name.as_str());
-        match shader {
-            Some(shader) => {
-                shader.bind();
+    fn bind_material(&self, material: Rc<RefCell<Material>>) {
+        let material = material.borrow();
+        let shader = material.shader.borrow();
 
-                // 给shader设置所有这个材质对应的uniforms
-                for (name, value) in &material.uniforms {
-                    match value {
-                        UniformValue::Float(v) => shader.set_uniform_f32(name, *v),
-                        UniformValue::Int(v) => shader.set_uniform_i32(name, *v),
-                        UniformValue::Vector3(v) => shader.set_uniform_vec3(name, v),
-                        UniformValue::Vector4(v) => shader.set_uniform_vec4(name, v),
-                        UniformValue::Matrix3(m) => shader.set_uniform_mat3(name, m),
-                        UniformValue::Matrix4(m) => shader.set_uniform_mat4(name, m),
-                        UniformValue::Texture(slot) => shader.set_uniform_i32(name, *slot as i32),
-                    }
-                }
-
-                for (texture_name, texture_slot_id) in &material.textures {
-                    let texture_manager = self.texture_manager.borrow();
-                    let texture = texture_manager.get(&texture_name);
-
-                    match texture {
-                        Some(texture) => unsafe {
-                            gl::ActiveTexture(gl::TEXTURE0 + texture_slot_id);
-                            gl::BindTexture(gl::TEXTURE_2D, texture.get_id());
-                        },
-                        None => error!(
-                            "fail use material <{:?}>, because texture <{:?}> not exists",
-                            material_name, texture_name
-                        ),
-                    }
-                }
+        shader.bind();
+        // 给shader设置所有这个材质对应的uniforms
+        for (name, value) in &material.uniforms {
+            match value {
+                UniformValue::Float(v) => shader.set_uniform_f32(name, *v),
+                UniformValue::Int(v) => shader.set_uniform_i32(name, *v),
+                UniformValue::Vector3(v) => shader.set_uniform_vec3(name, v),
+                UniformValue::Vector4(v) => shader.set_uniform_vec4(name, v),
+                UniformValue::Matrix3(m) => shader.set_uniform_mat3(name, m),
+                UniformValue::Matrix4(m) => shader.set_uniform_mat4(name, m),
+                UniformValue::Texture(slot) => shader.set_uniform_i32(name, *slot as i32),
             }
-            None => error!("not find shader: <{}>", material.shader_name.as_str()),
+        }
+
+        for (texture_slot_id, texture) in &material.textures {
+            unsafe {
+                gl::ActiveTexture(gl::TEXTURE0 + texture_slot_id);
+                gl::BindTexture(gl::TEXTURE_2D, texture.borrow().get_id());
+            }
         }
     }
 
-    fn unbind_material(&self, material: &Material) {
-        let shader_manager = self.shader_manager.borrow();
-        let shader = shader_manager.get(material.shader_name.as_str());
-        match shader {
-            Some(shader) => shader.unbind(),
-            None => error!("not find shader: <{}>", material.shader_name.as_str()),
-        }
+    fn unbind_material(&self, material: Rc<RefCell<Material>>) {
+        material.borrow().shader.borrow().unbind();
     }
 
     fn handle_window_event(&mut self) {

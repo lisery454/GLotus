@@ -1,20 +1,23 @@
 use glotus::{
-    material::UniformValue,
-    mesh::Vertex,
-    texture::{FilteringMode, WrappingMode},
+    entity::entity::Entity,
+    material::{Material, UniformValue},
+    mesh::{Mesh, Vertex},
+    shader::Shader,
+    texture::{FilteringMode, Texture2D, WrappingMode},
     transform::Transform,
 };
 
 fn main() {
     let mut app = glotus::App::new();
     app.init_window(1440, 960);
-    app.create_shader_from_file(
-        "shader_test",
+
+    let shader = Shader::from_files(
         concat!(env!("CARGO_PKG_NAME"), "/assets/shaders/vs.vert"),
         concat!(env!("CARGO_PKG_NAME"), "/assets/shaders/fs.frag"),
-    );
-    app.create_texture(
-        "texture_diffuse",
+    )
+    .unwrap();
+
+    let texture_diffuse = Texture2D::from_file(
         concat!(
             env!("CARGO_PKG_NAME"),
             "/assets/textures/texture_diffuse.png"
@@ -23,9 +26,10 @@ fn main() {
         WrappingMode::Repeat,
         FilteringMode::LinearMipmapLinear,
         FilteringMode::Linear,
-    );
-    app.create_texture(
-        "texture_specular",
+    )
+    .unwrap();
+
+    let texture_specular = Texture2D::from_file(
         concat!(
             env!("CARGO_PKG_NAME"),
             "/assets/textures/texture_specular.png"
@@ -34,47 +38,40 @@ fn main() {
         WrappingMode::Repeat,
         FilteringMode::LinearMipmapLinear,
         FilteringMode::Linear,
+    )
+    .unwrap();
+
+    let material = Material::new(shader.clone());
+    material
+        .borrow_mut()
+        .insert_uniform("material.diffuse_texture", UniformValue::Texture(0));
+    material
+        .borrow_mut()
+        .insert_uniform("material.specular_texture", UniformValue::Texture(1));
+    material.borrow_mut().insert_uniform(
+        "material.ambient_factor",
+        UniformValue::Vector3([0.2, 0.2, 0.2]),
     );
-    app.create_material(
-        "material_test",
-        "shader_test",
-        [
-            (
-                "material.diffuse_texture".to_string(),
-                UniformValue::Texture(0),
-            ),
-            (
-                "material.specular_texture".to_string(),
-                UniformValue::Texture(1),
-            ),
-            (
-                "material.ambient_factor".to_string(),
-                UniformValue::Vector3([0.2, 0.2, 0.2]),
-            ),
-            (
-                "material.diffuse_factor".to_string(),
-                UniformValue::Vector3([1.0, 1.0, 1.0]),
-            ),
-            (
-                "material.specular_factor".to_string(),
-                UniformValue::Vector3([0.8, 0.8, 0.8]),
-            ),
-            (
-                "material.specular_shininess".to_string(),
-                UniformValue::Float(256.0),
-            ),
-        ]
-        .into_iter()
-        .collect(),
-        [
-            ("texture_diffuse".to_string(), 0u32),
-            ("texture_specular".to_string(), 1u32),
-        ]
-        .into_iter()
-        .collect(),
+    material.borrow_mut().insert_uniform(
+        "material.diffuse_factor",
+        UniformValue::Vector3([1.0, 1.0, 1.0]),
     );
-    app.create_mesh_from_data(
-        "mesh_test",
+    material.borrow_mut().insert_uniform(
+        "material.specular_factor",
+        UniformValue::Vector3([0.8, 0.8, 0.8]),
+    );
+    material
+        .borrow_mut()
+        .insert_uniform("material.specular_shininess", UniformValue::Float(256.0));
+
+    material
+        .borrow_mut()
+        .insert_textures(0, texture_diffuse.clone());
+    material
+        .borrow_mut()
+        .insert_textures(1, texture_specular.clone());
+
+    let mesh = Mesh::new(
         vec![
             // back
             Vertex::from_position_and_normal_and_tex_coords(
@@ -181,14 +178,13 @@ fn main() {
         ],
         vec![],
     );
-    app.create_entity(
-        "entity_test",
-        Transform::default(),
-        "material_test",
-        "mesh_test",
-    );
+
+    let entity = Entity::new(Transform::default(), material.clone(), mesh.clone());
+
+    app.add_entity(entity);
     app.set_camera_transform(Transform::from_position(0.0, 0.0, 10.0));
-    app.set_light_color([1.0, 1.0, 1.0, 1.0]);
-    app.set_light_transform(Transform::from_position(10.0, 8.0, 6.0));
+    
+    // app.set_light_color([1.0, 1.0, 1.0, 1.0]);
+    // app.set_light_transform(Transform::from_position(10.0, 8.0, 6.0));
     app.run();
 }

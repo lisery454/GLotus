@@ -1,6 +1,8 @@
 use gl::types::*;
+use std::cell::RefCell;
 use std::mem;
 use std::ptr;
+use std::rc::Rc;
 
 use super::vertex::Vertex;
 
@@ -14,7 +16,7 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub fn new(vertices: Vec<Vertex>, indices: Vec<u32>) -> Self {
+    pub fn new(vertices: Vec<Vertex>, indices: Vec<u32>) -> Rc<RefCell<Self>> {
         let mut vao = 0;
         let mut vbo = 0;
         let mut ebo = 0;
@@ -101,13 +103,13 @@ impl Mesh {
             gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         }
 
-        Self {
+        Rc::new(RefCell::new(Self {
             vertices,
             indices,
             vao,
             vbo,
             ebo,
-        }
+        }))
     }
 
     pub fn get_vertices(&self) -> &Vec<Vertex> {

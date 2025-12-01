@@ -1,6 +1,6 @@
 use gl::types::*;
 use log::{info, warn};
-use std::{ffi::CString, fs, path::Path, ptr};
+use std::{cell::RefCell, ffi::CString, fs, path::Path, ptr, rc::Rc};
 
 use super::shader_error::ShaderError;
 #[derive(Debug)]
@@ -17,7 +17,10 @@ fn pre_process_shader(source: &str) -> String {
 
 // create
 impl Shader {
-    pub fn from_files(vertex_path: &Path, fragment_path: &Path) -> Result<Self, ShaderError> {
+    pub fn from_files(
+        vertex_path: &str,
+        fragment_path: &str,
+    ) -> Result<Rc<RefCell<Self>>, ShaderError> {
         let vertex_source = fs::read_to_string(vertex_path)
             .map_err(|e| ShaderError::FileReadError(e.to_string()))?;
         let fragment_source = fs::read_to_string(fragment_path)
@@ -26,8 +29,10 @@ impl Shader {
         Self::from_sources(&vertex_source, &fragment_source)
     }
 
-    pub fn from_sources(vertex_source: &str, fragment_source: &str) -> Result<Self, ShaderError> {
-        info!("{}", pre_process_shader(vertex_source));
+    pub fn from_sources(
+        vertex_source: &str,
+        fragment_source: &str,
+    ) -> Result<Rc<RefCell<Self>>, ShaderError> {
         let vertex_shader_id = Self::compile_shader(
             pre_process_shader(vertex_source).as_str(),
             gl::VERTEX_SHADER,
@@ -44,7 +49,7 @@ impl Shader {
             gl::DeleteShader(fragment_shader_id);
         }
 
-        Ok(Self { id: program_id })
+        Ok(Rc::new(RefCell::new(Self { id: program_id })))
     }
 
     fn compile_shader(source: &str, shader_type: GLenum) -> Result<GLuint, ShaderError> {
