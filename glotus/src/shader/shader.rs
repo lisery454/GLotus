@@ -52,6 +52,10 @@ impl Shader {
         Ok(Rc::new(RefCell::new(Self { id: program_id })))
     }
 
+    pub fn get_id(&self) -> u32 {
+        self.id
+    }
+
     fn compile_shader(source: &str, shader_type: GLenum) -> Result<GLuint, ShaderError> {
         let shader = unsafe { gl::CreateShader(shader_type) };
         let c_str = CString::new(source.as_bytes()).unwrap();

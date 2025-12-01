@@ -192,50 +192,49 @@ impl App {
             gl::Enable(gl::DEPTH_TEST);
             gl::ClearColor(0.2, 0.3, 0.3, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT); // 每帧清除深度缓冲
+        }
+        let view_matrix = self.camera.borrow().get_view_matrix();
+        let projection_matrix = self.camera.borrow().get_projection_matrix();
+        let view_position = self
+            .camera
+            .borrow()
+            .get_transform()
+            .get_position()
+            .get_arr();
 
-            let view_matrix = self.camera.borrow().get_view_matrix();
-            let projection_matrix = self.camera.borrow().get_projection_matrix();
-            let view_position = self
-                .camera
-                .borrow()
-                .get_transform()
-                .get_position()
-                .get_arr();
+        for (entity) in self.entities.iter() {
+            let entity = entity.borrow();
+            // 计算矩阵
+            let model_matrix = entity.transform.to_matrix();
+            let normal_matrix = entity.transform.to_normal_matrix();
+            // 给材质注入全局变量，比如mvp
+            entity
+                .material
+                .borrow_mut()
+                .insert_uniform("view_position", UniformValue::Vector3(view_position));
+            entity
+                .material
+                .borrow_mut()
+                .insert_uniform("model_matrix", UniformValue::Matrix4(model_matrix));
 
-            for (entity) in self.entities.iter() {
-                let entity = entity.borrow();
-                // 计算矩阵
-                let model_matrix = entity.transform.to_matrix();
-                let normal_matrix = entity.transform.to_normal_matrix();
-                // 给材质注入全局变量，比如mvp
-                entity
-                    .material
-                    .borrow_mut()
-                    .insert_uniform("view_position", UniformValue::Vector3(view_position));
-                entity
-                    .material
-                    .borrow_mut()
-                    .insert_uniform("model_matrix", UniformValue::Matrix4(model_matrix));
-
-                entity
-                    .material
-                    .borrow_mut()
-                    .insert_uniform("normal_matrix", UniformValue::Matrix3(normal_matrix));
-                entity
-                    .material
-                    .borrow_mut()
-                    .insert_uniform("view_matrix", UniformValue::Matrix4(view_matrix));
-                entity.material.borrow_mut().insert_uniform(
-                    "projection_matrix",
-                    UniformValue::Matrix4(projection_matrix),
-                );
-                // 通知opengl用这个材质，初始化
-                self.bind_material(entity.material.clone());
-                // 通知opengl进行绘制
-                entity.mesh.borrow().draw();
-                // 通知opengl卸载这个材质
-                self.unbind_material(entity.material.clone());
-            }
+            entity
+                .material
+                .borrow_mut()
+                .insert_uniform("normal_matrix", UniformValue::Matrix3(normal_matrix));
+            entity
+                .material
+                .borrow_mut()
+                .insert_uniform("view_matrix", UniformValue::Matrix4(view_matrix));
+            entity.material.borrow_mut().insert_uniform(
+                "projection_matrix",
+                UniformValue::Matrix4(projection_matrix),
+            );
+            // 通知opengl用这个材质，初始化
+            entity.material.borrow().bind();
+            // 通知opengl进行绘制
+            entity.mesh.borrow().draw();
+            // 通知opengl卸载这个材质
+            entity.material.borrow().unbind();
         }
     }
 
