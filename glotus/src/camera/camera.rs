@@ -50,11 +50,16 @@ impl Camera {
             self.transform.get_position().get_data(),
             self.get_forward(),
             self.get_up(),
-        ).into()
+        )
+        .into()
+    }
+
+    pub(crate) fn get_view_position(&self) -> [f32; 3] {
+        self.get_transform().get_position().get_arr()
     }
 
     pub(crate) fn get_projection_matrix(&self) -> [[f32; 4]; 4] {
-       let matrix :Matrix4<f32>= match self.projection_type {
+        let matrix: Matrix4<f32> = match self.projection_type {
             ProjectionType::Perspective => PerspectiveFov {
                 fovy: Rad::from(self.fov),
                 aspect: self.aspect_ratio,

@@ -30,7 +30,7 @@ fn main() {
 
     let entity = Entity::new(Transform::default(), material.clone(), mesh.clone());
 
-    app.add_entity(entity.clone());
+    app.get_world_mut().add_entity(entity.clone());
 
     app.run();
 }

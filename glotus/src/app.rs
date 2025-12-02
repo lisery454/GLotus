@@ -8,6 +8,7 @@ use crate::material::UniformValue;
 use crate::mesh::Vertex;
 use crate::texture::{FilteringMode, WrappingMode};
 use crate::transform::Transform;
+use crate::world::world::World;
 use cgmath::Vector2;
 use glfw::SwapInterval;
 use glfw::ffi::glfwGetTime;
@@ -25,13 +26,13 @@ pub struct App {
     window: Option<Rc<RefCell<PWindow>>>,
     glfw: Option<Rc<RefCell<Glfw>>>,
     event_receiver: Option<Rc<RefCell<GlfwReceiver<(f64, WindowEvent)>>>>,
+
     delta_time: f32,
     last_time: f32,
     last_cursor_pos: Vector2<f32>,
     is_first_cursor_move: bool,
-    camera: Rc<RefCell<Camera>>,
-    entities: Vec<Rc<RefCell<Entity>>>,
-    light: Light,
+
+    world: World,
 }
 
 // main
@@ -46,9 +47,7 @@ impl App {
             last_time: 0.0,
             last_cursor_pos: Vector2 { x: 0.0, y: 0.0 },
             is_first_cursor_move: true,
-            camera: Rc::new(RefCell::new(Camera::new())),
-            entities: Vec::new(),
-            light: Light::new(),
+            world: World::new(),
         };
 
         log_builder::setup_logger();
@@ -126,10 +125,13 @@ impl App {
         unsafe {
             gl::Viewport(0, 0, width as i32, height as i32);
         }
-        self.camera.borrow_mut().set_aspect_ratio(width, height);
+        self.world
+            .get_camera()
+            .borrow_mut()
+            .set_aspect_ratio(width, height);
 
         // 窗口大小改变时，视口变化
-        let camera_weak = Rc::downgrade(&self.camera);
+        let camera_weak = Rc::downgrade(&self.world.get_camera());
         self.window
             .as_ref()
             .unwrap()
@@ -150,20 +152,12 @@ impl App {
             });
     }
 
-    pub fn add_entity(&mut self, entity: Rc<RefCell<Entity>>) {
-        self.entities.push(entity);
+    pub fn get_world(&self) -> &World {
+        &self.world
     }
 
-    pub fn set_camera_transform(&self, transform: Transform) {
-        self.camera.borrow_mut().set_transform(transform);
-    }
-
-    pub fn set_light_color(&mut self, color: [f32; 4]) {
-        self.light.set_color(color);
-    }
-
-    pub fn set_light_transform(&mut self, transform: Transform) {
-        self.light.set_transform(transform);
+    pub fn get_world_mut(&mut self) -> &mut World {
+        &mut self.world
     }
 
     pub fn run(&mut self) {
@@ -203,18 +197,14 @@ impl App {
             gl::ClearColor(0.2, 0.3, 0.3, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT); // 每帧清除深度缓冲
         }
-        let view_matrix = self.camera.borrow().get_view_matrix();
-        let projection_matrix = self.camera.borrow().get_projection_matrix();
-        let view_position = self
-            .camera
-            .borrow()
-            .get_transform()
-            .get_position()
-            .get_arr();
-        let light_color = self.light.get_color();
-        let light_position = self.light.get_transform().get_position().get_arr();
+        let camera = self.world.get_camera();
+        let view_matrix = camera.borrow().get_view_matrix();
+        let projection_matrix = camera.borrow().get_projection_matrix();
+        let view_position = camera.borrow().get_view_position();
+        // let light_color = self.light.get_color();
+        // let light_position = self.light.get_transform().get_position().get_arr();
 
-        for (entity) in self.entities.iter() {
+        for (entity) in self.world.get_entities().iter() {
             let entity = entity.borrow();
             // 计算矩阵
             let model_matrix = entity.transform.to_matrix();
@@ -240,14 +230,15 @@ impl App {
                 "projection_matrix",
                 UniformValue::Matrix4(projection_matrix),
             );
-            entity
-                .material
-                .borrow_mut()
-                .insert_uniform("light_color", UniformValue::Vector4(light_color));
-            entity
-                .material
-                .borrow_mut()
-                .insert_uniform("light_position", UniformValue::Vector3(light_position));
+            // entity
+            //     .material
+            //     .borrow_mut()
+            //     .insert_uniform("light_color", UniformValue::Vector4(light_color));
+            // entity
+            //     .material
+            //     .borrow_mut()
+            //     .insert_uniform("light_position", UniformValue::Vector3(light_position));
+
             // 通知opengl用这个材质，初始化
             entity.material.borrow().bind();
             // 通知opengl进行绘制
@@ -285,9 +276,11 @@ impl App {
                         _ => None,
                     };
                     if let Some(movement) = movement {
-                        self.camera
-                            .borrow_mut()
-                            .process_move(movement, velocity, self.delta_time);
+                        self.world.get_camera().borrow_mut().process_move(
+                            movement,
+                            velocity,
+                            self.delta_time,
+                        );
                     }
                 }
                 WindowEvent::Close => {
@@ -301,7 +294,7 @@ impl App {
                 }
                 WindowEvent::Scroll(xoffset, yoffset) => {
                     debug!("Trigger Mouse Scroll: X={}, Y={}", xoffset, yoffset);
-                    self.camera
+                    self.world.get_camera()
                         .clone()
                         .borrow_mut()
                         .process_zoom(yoffset as f32, 0.5);
@@ -314,7 +307,7 @@ impl App {
                     } else {
                         let xoffset = xpos as f32 - self.last_cursor_pos.x;
                         let yoffset = ypos as f32 - self.last_cursor_pos.y;
-                        self.camera
+                        self.world.get_camera()
                             .clone()
                             .borrow_mut()
                             .process_turn(xoffset, yoffset, 0.001, true);

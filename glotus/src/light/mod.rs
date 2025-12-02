@@ -1,39 +1,43 @@
-use cgmath::Vector4;
+pub mod directional_light;
+pub mod point_light;
+pub mod spot_light;
+
+use cgmath::Vector3;
 
 use crate::transform::Transform;
 
-#[derive(Debug)]
-pub struct Light {
-    transform: Transform,
-    color: Vector4<f32>,
+#[derive(Clone, Copy)]
+pub enum LightType {
+    Directional,
+    Point,
+    Spot,
+    Area,
+    Custom(u32), // 扩展用
 }
 
-impl Light {
-    pub fn new() -> Self {
-        Self {
-            transform: Transform::default(),
-            color: Vector4 {
-                x: 1f32,
-                y: 1f32,
-                z: 1f32,
-                w: 1f32,
-            },
-        }
-    }
+#[repr(C)]
+pub struct LightShaderData {
+    pub light_type: i32,
+    pub color: [f32; 3],
+    pub position: [f32; 3],
+    pub direction: [f32; 3],
+    pub intensity: f32,
+    pub range: f32,
+    pub inner_cone: f32,
+    pub outer_cone: f32,
+}
 
-    pub fn get_transform(&self) -> &Transform {
-        &self.transform
-    }
+pub trait Light {
+    /// 世界空间位置
+    fn transform(&self) -> &Transform;
 
-    pub fn set_transform(&mut self, transform: Transform) {
-        self.transform = transform;
-    }
+    /// 光强信息
+    fn color(&self) -> Vector3<f32>;
+    fn intensity(&self) -> f32;
 
-    pub fn get_color(&self) -> [f32; 4] {
-        self.color.into()
-    }
+    /// 返回光源类型
+    fn light_type(&self) -> LightType;
 
-    pub fn set_color(&mut self, color: [f32; 4]) {
-        self.color = color.into();
-    }
+    /// 将光源数据打包成 shader 需要的 uniform 结构
+    fn to_shader_data(&self) -> LightShaderData;
 }

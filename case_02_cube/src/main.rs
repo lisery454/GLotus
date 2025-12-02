@@ -83,8 +83,12 @@ fn main() {
 
     let entity = Entity::new(Transform::default(), material.clone(), mesh.clone());
 
-    app.add_entity(entity.clone());
+    app.get_world_mut().add_entity(entity.clone());
 
-    app.set_camera_transform(Transform::from_position(0.0, 0.0, 10.0));
+    app.get_world_mut()
+        .get_camera()
+        .borrow_mut()
+        .set_transform(Transform::from_position(0.0, 0.0, 10.0));
+
     app.run();
 }

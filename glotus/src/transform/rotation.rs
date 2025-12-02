@@ -1,4 +1,4 @@
-use cgmath::{Euler, InnerSpace, Matrix4, Quaternion, Rad};
+use cgmath::{Euler, InnerSpace, Matrix4, Quaternion, Rad, Vector3};
 
 #[derive(Debug)]
 pub struct Rotation {
@@ -13,9 +13,7 @@ impl Default for Rotation {
 
 impl From<Quaternion<f32>> for Rotation {
     fn from(value: Quaternion<f32>) -> Self {
-        Self {
-            data: value
-        }
+        Self { data: value }
     }
 }
 
@@ -44,5 +42,10 @@ impl Rotation {
 
     pub(crate) fn rotate(&mut self, delta: Quaternion<f32>) {
         self.data = (delta * self.data).normalize();
+    }
+
+    pub fn forward(&self) -> Vector3<f32> {
+        let forward = Vector3::new(0.0, 0.0, -1.0);
+        (self.data * forward).normalize()
     }
 }
