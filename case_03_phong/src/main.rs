@@ -4,7 +4,7 @@ use glotus::{
     mesh::{Mesh, Vertex},
     shader::Shader,
     texture::{FilteringMode, Texture2D, WrappingMode},
-    transform::Transform,
+    transform::{Position, Transform},
 };
 
 fn main() {
@@ -181,13 +181,15 @@ fn main() {
 
     let entity = Entity::new(Transform::default(), material.clone(), mesh.clone());
 
-    app.get_world_mut().add_entity(entity.clone());
+    app.get_world().borrow_mut().add_entity(entity.clone());
 
-    app.get_world_mut()
+    app.get_world()
+        .borrow()
         .get_camera()
         .borrow_mut()
-        .set_transform(Transform::from_position(0.0, 0.0, 10.0));
-    
+        .get_transform_mut()
+        .set_position(Position::new(0.0, 0.0, 10.0));
+
     // app.set_light_color([1.0, 1.0, 1.0, 1.0]);
     // app.set_light_transform(Transform::from_position(10.0, 8.0, 6.0));
     app.run();
