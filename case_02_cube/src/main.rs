@@ -5,7 +5,6 @@ use glotus::{
 
 fn main() {
     let app = glotus::App::new();
-    app.borrow_mut().init_window(1400, 960);
 
     let shader = Shader::from_files(
         concat!(env!("CARGO_PKG_NAME"), "/assets/shaders/vs.vert"),

@@ -1,10 +1,11 @@
 use std::{cell::RefCell, rc::Rc};
 
-use cgmath::{Deg, Matrix4, Ortho, PerspectiveFov, Rad, Vector3};
+use cgmath::{Deg, InnerSpace, Matrix4, Ortho, PerspectiveFov, Rad, Vector2, Vector3};
 use glfw::Key;
+use log::{info, log};
 
 use crate::{
-    render::camera::CameraMovement, core::FixedUpdateAble, input::input_state::InputState,
+    core::FixedUpdateAble, input::input_state::InputState, render::camera::CameraMovement,
     render::transform::Transform,
 };
 
@@ -106,7 +107,7 @@ impl Camera {
 
 impl FixedUpdateAble for Camera {
     fn fixed_update(&mut self, delta_time: f32, input_state: Rc<RefCell<InputState>>) {
-        let velocity = 40.0;
+        let velocity = 10.0;
         let movement = if input_state.borrow().is_key_down(Key::W) {
             Some(CameraMovement::Forward)
         } else if input_state.borrow().is_key_down(Key::A) {
@@ -133,6 +134,7 @@ impl FixedUpdateAble for Camera {
 
         let cursor_x_offset = input_state.borrow().get_cursor_delta().x;
         let cursor_y_offset = input_state.borrow().get_cursor_delta().y;
-        self.process_turn(cursor_x_offset as f32, cursor_y_offset as f32, 0.001, true);
+
+        self.process_turn(cursor_x_offset as f32, cursor_y_offset as f32, 0.015, true);
     }
 }

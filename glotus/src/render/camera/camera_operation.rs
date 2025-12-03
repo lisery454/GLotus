@@ -37,32 +37,47 @@ impl Camera {
         sensitivity: f32,
         constrain_pitch: bool,
     ) {
-        // 将偏移量转换为弧度
-        let yaw = Rad(-xoffset * sensitivity);
-        let pitch = Rad(-yoffset * sensitivity);
+        let yaw_delta = Rad(-xoffset * sensitivity);
+        let pitch_delta = Rad(-yoffset * sensitivity);
 
-        // 创建绕Y轴(偏航)和X轴(俯仰)的旋转四元数
-        let yaw_rotation = Quaternion::from_axis_angle(Vector3::unit_y(), yaw);
-        let pitch_rotation = Quaternion::from_axis_angle(Vector3::unit_x(), pitch);
-
-        let mut new_rotation =
+        let current_rotation =
             Quaternion::<f32>::from(self.get_transform().get_rotation().get_data());
 
-        new_rotation = yaw_rotation * new_rotation * pitch_rotation;
+        // 1. 先应用偏航（绕世界Y轴）
+        let yaw_rotation = Quaternion::from_axis_angle(Vector3::unit_y(), yaw_delta);
+        let new_rotation = yaw_rotation * current_rotation;
 
-        // 从新旋转中提取前向向量
-        let forward = new_rotation * Vector3::unit_z();
+        // 2. 计算当前的右向量（用于俯仰旋转）
+        let right = new_rotation * Vector3::unit_x();
 
-        // 计算当前俯仰角(与水平面的夹角)
-        let pitch_angle = forward.y.asin(); // 返回弧度值
+        // 3. 应用俯仰（绕局部X轴/右向量）
+        let pitch_rotation = Quaternion::from_axis_angle(right, pitch_delta);
+        let mut final_rotation = pitch_rotation * new_rotation;
 
+        // 4. 检查俯仰角限制
         if constrain_pitch {
-            // 限制俯仰角度在±89度内
-            if pitch_angle.abs() < 89.0f32.to_radians() {
-                self.transform
-                    .set_rotation(Rotation::from(new_rotation.normalize()));
+            let forward = final_rotation * Vector3::unit_z();
+            let pitch_angle = forward.y.asin();
+
+            const MAX_PITCH: f32 = 89.0;
+            let max_pitch_rad = MAX_PITCH.to_radians();
+
+            if pitch_angle.abs() > max_pitch_rad {
+                // 只限制俯仰，保留偏航
+                // 重新计算限制后的俯仰角
+                let clamped_pitch = pitch_angle.signum() * max_pitch_rad;
+
+                // 从偏航旋转开始，应用限制后的俯仰
+                let clamped_pitch_rotation = Quaternion::from_axis_angle(
+                    right,
+                    Rad(clamped_pitch - (new_rotation * Vector3::unit_z()).y.asin()),
+                );
+                final_rotation = clamped_pitch_rotation * new_rotation;
             }
         }
+
+        self.transform
+            .set_rotation(Rotation::from(final_rotation.normalize()));
     }
 
     pub fn process_zoom(&mut self, yoffset: f32, sensitivity: f32) {

@@ -1,5 +1,3 @@
-#version 460 core
-#include "glotus.glsl"
 out vec4 frag_color;
 
 in vec3 normal_in_world;
@@ -17,86 +15,88 @@ struct Material {
 
 uniform Material material;
 
-vec3 CalcDirectionalLight(Light L, vec3 normal, vec3 view_dir, vec3 diff_tex, vec3 spec_tex) {
-    vec3 light_dir = normalize(-L.direction);
+vec3 CalcDirectionalLight(Light L, vec3 normal, vec3 view_dir, vec3 diff_tex,
+                          vec3 spec_tex) {
+  vec3 light_dir = normalize(-L.direction);
 
-    float diff = max(dot(normal, light_dir), 0.0);
+  float diff = max(dot(normal, light_dir), 0.0);
 
-    vec3 reflect_dir = reflect(-light_dir, normal);
-    float spec = pow(max(dot(view_dir, reflect_dir), 0.0), material.specular_shininess);
+  vec3 reflect_dir = reflect(-light_dir, normal);
+  float spec =
+      pow(max(dot(view_dir, reflect_dir), 0.0), material.specular_shininess);
 
-    return
-        material.ambient_factor  * diff_tex +
-        material.diffuse_factor  * diff  * diff_tex * L.intensity +
-        material.specular_factor * spec * spec_tex * L.intensity;
+  return material.ambient_factor * diff_tex +
+         material.diffuse_factor * diff * diff_tex * L.intensity +
+         material.specular_factor * spec * spec_tex * L.intensity;
 }
 
-vec3 CalcPointLight(Light L, vec3 normal, vec3 view_dir, vec3 diff_tex, vec3 spec_tex) {
-    vec3 light_dir = normalize(L.position - frag_pos_in_world);
+vec3 CalcPointLight(Light L, vec3 normal, vec3 view_dir, vec3 diff_tex,
+                    vec3 spec_tex) {
+  vec3 light_dir = normalize(L.position - frag_pos_in_world);
 
-    float diff = max(dot(normal, light_dir), 0.0);
+  float diff = max(dot(normal, light_dir), 0.0);
 
-    vec3 reflect_dir = reflect(-light_dir, normal);
-    float spec = pow(max(dot(view_dir, reflect_dir), 0.0), material.specular_shininess);
+  vec3 reflect_dir = reflect(-light_dir, normal);
+  float spec =
+      pow(max(dot(view_dir, reflect_dir), 0.0), material.specular_shininess);
 
-    // 距离衰减
-    float distance = length(L.position - frag_pos_in_world);
-    float attenuation = clamp(1.0 - distance / L.range, 0.0, 1.0);
+  // 距离衰减
+  float distance = length(L.position - frag_pos_in_world);
+  float attenuation = clamp(1.0 - distance / L.range, 0.0, 1.0);
 
-    return attenuation * (
-        material.ambient_factor  * diff_tex +
-        material.diffuse_factor  * diff  * diff_tex * L.intensity +
-        material.specular_factor * spec * spec_tex * L.intensity
-    );
+  return attenuation *
+         (material.ambient_factor * diff_tex +
+          material.diffuse_factor * diff * diff_tex * L.intensity +
+          material.specular_factor * spec * spec_tex * L.intensity);
 }
 
-vec3 CalcSpotLight(Light L, vec3 normal, vec3 view_dir, vec3 diff_tex, vec3 spec_tex) {
-    vec3 light_dir = normalize(L.position - frag_pos_in_world);
+vec3 CalcSpotLight(Light L, vec3 normal, vec3 view_dir, vec3 diff_tex,
+                   vec3 spec_tex) {
+  vec3 light_dir = normalize(L.position - frag_pos_in_world);
 
-    float diff = max(dot(normal, light_dir), 0.0);
+  float diff = max(dot(normal, light_dir), 0.0);
 
-    float theta = dot(light_dir, normalize(-L.direction));
-    float epsilon = L.inner_cone - L.outer_cone;
-    float spot_factor = clamp((theta - L.outer_cone) / epsilon, 0.0, 1.0);
+  float theta = dot(light_dir, normalize(-L.direction));
+  float epsilon = L.inner_cone - L.outer_cone;
+  float spot_factor = clamp((theta - L.outer_cone) / epsilon, 0.0, 1.0);
 
-    vec3 reflect_dir = reflect(-light_dir, normal);
-    float spec = pow(max(dot(view_dir, reflect_dir), 0.0), material.specular_shininess);
+  vec3 reflect_dir = reflect(-light_dir, normal);
+  float spec =
+      pow(max(dot(view_dir, reflect_dir), 0.0), material.specular_shininess);
 
-    float distance = length(L.position - frag_pos_in_world);
-    float attenuation = clamp(1.0 - distance / L.range, 0.0, 1.0);
+  float distance = length(L.position - frag_pos_in_world);
+  float attenuation = clamp(1.0 - distance / L.range, 0.0, 1.0);
 
-    return attenuation * spot_factor * (
-        material.ambient_factor  * diff_tex +
-        material.diffuse_factor  * diff  * diff_tex * L.intensity +
-        material.specular_factor * spec * spec_tex * L.intensity
-    );
+  return attenuation * spot_factor *
+         (material.ambient_factor * diff_tex +
+          material.diffuse_factor * diff * diff_tex * L.intensity +
+          material.specular_factor * spec * spec_tex * L.intensity);
 }
-
 
 vec3 CalcPhong(vec3 normal, vec3 view_dir, vec3 diff_tex, vec3 spec_tex) {
-    vec3 result = vec3(0);
+  vec3 result = vec3(0);
 
-    for (int i = 0; i < light_count; ++i) {
-        Light L = lights[i];        
-        if (L.light_type == 0)
-            result += CalcDirectionalLight(L, normal, view_dir, diff_tex, spec_tex);
-        else if (L.light_type == 1)
-            result += CalcPointLight(L, normal, view_dir, diff_tex, spec_tex);
-        else if (L.light_type == 2)
-            result += CalcSpotLight(L, normal, view_dir, diff_tex, spec_tex);
-    }
+  for (int i = 0; i < g_light_count; ++i) {
+    Light L = g_lights[i];
+    if (L.light_type == 0)
+      result += CalcDirectionalLight(L, normal, view_dir, diff_tex, spec_tex);
+    else if (L.light_type == 1)
+      result += CalcPointLight(L, normal, view_dir, diff_tex, spec_tex);
+    else if (L.light_type == 2)
+      result += CalcSpotLight(L, normal, view_dir, diff_tex, spec_tex);
+  }
 
-    return result;
+  return result;
 }
 
 void main() {
-    vec3 normal = normalize(normal_in_world);
-    vec3 view_dir = normalize(view_position - frag_pos_in_world);
+  vec3 normal = normalize(normal_in_world);
+  vec3 view_dir = normalize(g_view_position - frag_pos_in_world);
 
-    vec3 diff_tex = texture(material.diffuse_texture, tex_coord).rgb;
-    vec3 spec_tex = texture(material.specular_texture, tex_coord).rgb;
+  vec3 diff_tex = texture(material.diffuse_texture, tex_coord).rgb;
+  vec3 spec_tex = texture(material.specular_texture, tex_coord).rgb;
 
-    vec3 result = CalcPhong(normal, view_dir, diff_tex, spec_tex);
+  vec3 result = CalcPhong(normal, view_dir, diff_tex, spec_tex);
 
-    frag_color = vec4(result, 1.0);
+  frag_color = vec4(result, 1.0);
 }

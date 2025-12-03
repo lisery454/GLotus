@@ -37,6 +37,24 @@ pub struct AppConfig {
     pub fixed_update_fps: u32,          // e.g. 60
     pub v_sync: bool,
     pub anti_pixel_msaa: Option<u32>, // e.g. 4
+    pub width: u32,
+    pub height: u32,
+    pub bg_color: [f32; 3],
+}
+
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            title: String::from("Rust GLFW opengl"),
+            target_render_fps: None,
+            fixed_update_fps: 60,
+            v_sync: true,
+            anti_pixel_msaa: Some(4),
+            width: 1440,
+            height: 960,
+            bg_color: [0.2, 0.3, 0.3],
+        }
+    }
 }
 
 pub struct App {
@@ -55,18 +73,12 @@ pub struct App {
 // main
 impl App {
     pub fn new() -> Rc<RefCell<Self>> {
-        Self::new_with_config(AppConfig {
-            title: String::from("Rust GLFW opengl"),
-            target_render_fps: Some(60),
-            fixed_update_fps: 30,
-            v_sync: true,
-            anti_pixel_msaa: Some(4),
-        })
+        Self::new_with_config(Default::default())
     }
 
     pub fn new_with_config(config: AppConfig) -> Rc<RefCell<Self>> {
         let app = Self {
-            config: config,
+            config,
             is_running: false,
             window: None,
             glfw: None,
@@ -78,10 +90,16 @@ impl App {
 
         log_builder::setup_logger();
 
-        Rc::new(RefCell::new(app))
+        let app_rc = Rc::new(RefCell::new(app));
+
+        app_rc.borrow_mut().init_window();
+
+        app_rc
     }
 
-    pub fn init_window(&mut self, width: u32, height: u32) {
+    fn init_window(&mut self) {
+        let width = self.config.width;
+        let height = self.config.height;
         // 初始化 GLFW
         let mut glfw = glfw::init(glfw::fail_on_errors).unwrap();
 
@@ -171,6 +189,10 @@ impl App {
         let mut last_render_update_time = last_time;
         let mut last_fixed_update_time = last_time;
 
+        // FPS 统计
+        let mut frame_count = 0;
+        let mut fps_timer = last_time;
+
         while self.is_running {
             // 计算事件
             let now = self.get_current_time();
@@ -193,18 +215,45 @@ impl App {
             // Render 限帧
             if let Some(render_dt) = target_render_dt {
                 let since_last_render = now - last_render_update_time;
-                // 比限制的render间隔少的时间就跑完了一次render，那就休息一会把
-                if since_last_render < render_dt {
-                    // sleep 少量时间减少 CPU 占用
-                    std::thread::sleep(Duration::from_millis(1));
-                    continue;
+                let remaining = render_dt - since_last_render;
+
+                info!("{}", remaining);
+                if remaining > 0.0 {
+                    // 如果剩余时间 > 4ms，睡眠 50% 的时间
+                    if remaining > 0.005 {
+                        std::thread::sleep(Duration::from_secs_f32(remaining * 0.9));
+                    }
+                    // 最后自旋等待，确保精确时间
+                    loop {
+                        let now = self.get_current_time();
+                        if now - last_render_update_time >= render_dt {
+                            break;
+                        }
+
+                        // 让出 CPU 时间片，但不睡眠
+                        std::thread::yield_now();
+                    }
                 }
             }
 
             // 渲染
-            last_render_update_time = self.get_current_time();
             self.render_update();
             self.window.as_ref().unwrap().borrow_mut().swap_buffers();
+
+            last_render_update_time = self.get_current_time();
+
+            // FPS 统计
+            frame_count += 1;
+            if last_render_update_time - fps_timer >= 1.0 {
+                let actual_fps = frame_count as f32 / (last_render_update_time - fps_timer);
+                info!(
+                    "FPS: {:.1} | Frame Time: {:.3}ms",
+                    actual_fps,
+                    1000.0 / actual_fps
+                );
+                frame_count = 0;
+                fps_timer = last_render_update_time;
+            }
         }
 
         info!("app is going to close...");
@@ -289,7 +338,12 @@ impl App {
     fn render_update(&mut self) {
         unsafe {
             gl::Enable(gl::DEPTH_TEST);
-            gl::ClearColor(0.2, 0.3, 0.3, 1.0);
+            gl::ClearColor(
+                self.config.bg_color[0],
+                self.config.bg_color[1],
+                self.config.bg_color[2],
+                1.0,
+            );
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT); // 每帧清除深度缓冲
         }
         let camera = self.get_world().borrow().get_camera();
@@ -314,31 +368,62 @@ impl App {
             entity
                 .material
                 .borrow_mut()
-                .insert_uniform("view_position", UniformValue::Vector3(view_position));
+                .insert_uniform("g_view_position", UniformValue::Vector3(view_position));
             entity
                 .material
                 .borrow_mut()
-                .insert_uniform("model_matrix", UniformValue::Matrix4(model_matrix));
+                .insert_uniform("g_model_matrix", UniformValue::Matrix4(model_matrix));
             entity
                 .material
                 .borrow_mut()
-                .insert_uniform("normal_matrix", UniformValue::Matrix3(normal_matrix));
+                .insert_uniform("g_normal_matrix", UniformValue::Matrix3(normal_matrix));
             entity
                 .material
                 .borrow_mut()
-                .insert_uniform("view_matrix", UniformValue::Matrix4(view_matrix));
+                .insert_uniform("g_view_matrix", UniformValue::Matrix4(view_matrix));
             entity.material.borrow_mut().insert_uniform(
-                "projection_matrix",
+                "g_projection_matrix",
                 UniformValue::Matrix4(projection_matrix),
             );
             entity
                 .material
                 .borrow_mut()
-                .insert_uniform("light_count", UniformValue::Int(light_count));
-            entity
-                .material
-                .borrow_mut()
-                .insert_uniform("lights", UniformValue::LightArray(lights.clone()));
+                .insert_uniform("g_light_count", UniformValue::Int(light_count));
+
+            for (i, v) in lights.iter().enumerate() {
+                entity.material.borrow_mut().insert_uniform(
+                    &format!("g_lights[{}].light_type", i),
+                    UniformValue::Int(v.light_type),
+                );
+                entity.material.borrow_mut().insert_uniform(
+                    &format!("g_lights[{}].color", i),
+                    UniformValue::Vector3(v.color),
+                );
+                entity.material.borrow_mut().insert_uniform(
+                    &format!("g_lights[{}].position", i),
+                    UniformValue::Vector3(v.position),
+                );
+                entity.material.borrow_mut().insert_uniform(
+                    &format!("g_lights[{}].direction", i),
+                    UniformValue::Vector3(v.direction),
+                );
+                entity.material.borrow_mut().insert_uniform(
+                    &format!("g_lights[{}].intensity", i),
+                    UniformValue::Float(v.intensity),
+                );
+                entity.material.borrow_mut().insert_uniform(
+                    &format!("g_lights[{}].range", i),
+                    UniformValue::Float(v.range),
+                );
+                entity.material.borrow_mut().insert_uniform(
+                    &format!("g_lights[{}].inner_cone", i),
+                    UniformValue::Float(v.inner_cone),
+                );
+                entity.material.borrow_mut().insert_uniform(
+                    &format!("g_lights[{}].outer_cone", i),
+                    UniformValue::Float(v.outer_cone),
+                );
+            }
 
             // 通知opengl用这个材质，初始化
             entity.material.borrow().bind();

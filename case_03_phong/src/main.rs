@@ -5,7 +5,6 @@ use glotus::{
 
 fn main() {
     let app = glotus::App::new();
-    app.borrow_mut().init_window(1440, 960);
 
     let shader = Shader::from_files(
         concat!(env!("CARGO_PKG_NAME"), "/assets/shaders/vs.vert"),
@@ -188,7 +187,7 @@ fn main() {
         .get_camera()
         .borrow_mut()
         .get_transform_mut()
-        .set_position(Position::new(0.0, 0.0, 10.0));
+        .set_position(Position::new(0.0, 1.0, 4.0));
 
     let light = PointLight::new();
     light

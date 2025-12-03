@@ -9,10 +9,15 @@ pub struct Shader {
 }
 
 fn pre_process_shader(source: &str) -> String {
-    let replacement = include_str!("./glotus.glsl");
+    format!("{}\n{}", include_str!("./glotus.glsl"), source)
+}
 
-    let re = regex::Regex::new(r#"#include\s*"glotus\.glsl""#).unwrap();
-    re.replace_all(source, replacement).into_owned()
+fn is_uniform_in_glotus_glsl(name: &str) -> bool {
+    if name.starts_with("g_") {
+        return true;
+    }
+
+    false
 }
 
 // create
@@ -143,7 +148,9 @@ impl Shader {
             if location != -1 {
                 gl::UniformMatrix3fv(location, 1, gl::FALSE, value.as_ptr() as *const f32);
             } else {
-                warn!("set shader location failed: {}", name);
+                if !is_uniform_in_glotus_glsl(name) {
+                    warn!("set shader location failed: {}", name);
+                }
             }
         }
     }
@@ -154,7 +161,9 @@ impl Shader {
             if location != -1 {
                 gl::UniformMatrix4fv(location, 1, gl::FALSE, value.as_ptr() as *const f32);
             } else {
-                warn!("set shader location failed: {}", name);
+                if !is_uniform_in_glotus_glsl(name) {
+                    warn!("set shader location failed: {}", name);
+                }
             }
         }
     }
@@ -165,7 +174,9 @@ impl Shader {
             if location != -1 {
                 gl::Uniform3f(location, value[0], value[1], value[2]);
             } else {
-                warn!("set shader location failed: {}", name);
+                if !is_uniform_in_glotus_glsl(name) {
+                    warn!("set shader location failed: {}", name);
+                }
             }
         }
     }
@@ -176,7 +187,9 @@ impl Shader {
             if location != -1 {
                 gl::Uniform4f(location, value[0], value[1], value[2], value[3]);
             } else {
-                warn!("set shader location failed: {}", name);
+                if !is_uniform_in_glotus_glsl(name) {
+                    warn!("set shader location failed: {}", name);
+                }
             }
         }
     }
@@ -187,7 +200,9 @@ impl Shader {
             if location != -1 {
                 gl::Uniform1f(location, value);
             } else {
-                warn!("set shader location failed: {}", name);
+                if !is_uniform_in_glotus_glsl(name) {
+                    warn!("set shader location failed: {}", name);
+                }
             }
         }
     }
@@ -198,7 +213,9 @@ impl Shader {
             if location != -1 {
                 gl::Uniform1i(location, value);
             } else {
-                warn!("set shader location failed: {}", name);
+                if !is_uniform_in_glotus_glsl(name) {
+                    warn!("set shader location failed: {}", name);
+                }
             }
         }
     }
