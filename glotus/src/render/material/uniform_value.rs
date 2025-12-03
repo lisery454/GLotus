@@ -1,3 +1,5 @@
+use crate::render::light::LightShaderData;
+
 #[derive(Debug)]
 pub enum UniformValue {
     Float(f32),
@@ -7,4 +9,5 @@ pub enum UniformValue {
     Matrix3([[f32; 3]; 3]),
     Matrix4([[f32; 4]; 4]),
     Texture(usize), // 纹理槽位
+    LightArray(Vec<LightShaderData>),
 }

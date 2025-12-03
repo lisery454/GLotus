@@ -1,6 +1,9 @@
 use cgmath::Vector3;
 
-use crate::{render::light::{Light, LightShaderData, LightType}, render::transform::Transform};
+use crate::{
+    render::light::{Light, LightShaderData, LightType},
+    render::transform::Transform,
+};
 
 pub struct SpotLight {
     pub transform: Transform,
@@ -39,5 +42,9 @@ impl Light for SpotLight {
 
     fn transform(&self) -> &Transform {
         &self.transform
+    }
+
+    fn transform_mut(&mut self) -> &mut Transform {
+        &mut self.transform
     }
 }

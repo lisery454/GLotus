@@ -30,7 +30,7 @@ impl Material {
     pub(crate) fn bind(&self) {
         let shader = self.shader.borrow();
         shader.bind();
-        
+
         // 给shader设置所有这个材质对应的uniforms
         for (name, value) in &self.uniforms {
             match value {
@@ -41,6 +41,18 @@ impl Material {
                 UniformValue::Matrix3(m) => shader.set_uniform_mat3(name, m),
                 UniformValue::Matrix4(m) => shader.set_uniform_mat4(name, m),
                 UniformValue::Texture(slot) => shader.set_uniform_i32(name, *slot as i32),
+                UniformValue::LightArray(vals) => {
+                    for (i, v) in vals.iter().enumerate() {
+                        shader.set_uniform_i32(&format!("lights[{}].light_type", i), v.light_type);
+                        shader.set_uniform_vec3(&format!("lights[{}].color", i), &v.color);
+                        shader.set_uniform_vec3(&format!("lights[{}].position", i), &v.position);
+                        shader.set_uniform_vec3(&format!("lights[{}].direction", i), &v.direction);
+                        shader.set_uniform_f32(&format!("lights[{}].intensity", i), v.intensity);
+                        shader.set_uniform_f32(&format!("lights[{}].range", i), v.range);
+                        shader.set_uniform_f32(&format!("lights[{}].inner_cone", i), v.inner_cone);
+                        shader.set_uniform_f32(&format!("lights[{}].outer_cone", i), v.outer_cone);
+                    }
+                }
             }
         }
 

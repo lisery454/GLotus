@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use crate::{render::camera::Camera, render::entity::entity::Entity, render::light::Light};
 
 pub struct World {
-    lights: Vec<Box<dyn Light>>,
+    lights: Vec<Rc<RefCell<dyn Light>>>,
     entities: Vec<Rc<RefCell<Entity>>>,
     camera: Rc<RefCell<Camera>>,
 }
@@ -15,6 +15,14 @@ impl World {
             entities: Vec::new(),
             camera: Rc::new(RefCell::new(Camera::new())),
         }
+    }
+
+    pub fn get_lights(&self) -> &Vec<Rc<RefCell<dyn Light>>> {
+        &self.lights
+    }
+
+    pub fn add_light(&mut self, light: Rc<RefCell<dyn Light>>) {
+        self.lights.push(light);
     }
 
     pub fn get_camera(&self) -> Rc<RefCell<Camera>> {

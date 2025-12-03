@@ -17,22 +17,86 @@ struct Material {
 
 uniform Material material;
 
+vec3 CalcDirectionalLight(Light L, vec3 normal, vec3 view_dir, vec3 diff_tex, vec3 spec_tex) {
+    vec3 light_dir = normalize(-L.direction);
+
+    float diff = max(dot(normal, light_dir), 0.0);
+
+    vec3 reflect_dir = reflect(-light_dir, normal);
+    float spec = pow(max(dot(view_dir, reflect_dir), 0.0), material.specular_shininess);
+
+    return
+        material.ambient_factor  * diff_tex +
+        material.diffuse_factor  * diff  * diff_tex * L.intensity +
+        material.specular_factor * spec * spec_tex * L.intensity;
+}
+
+vec3 CalcPointLight(Light L, vec3 normal, vec3 view_dir, vec3 diff_tex, vec3 spec_tex) {
+    vec3 light_dir = normalize(L.position - frag_pos_in_world);
+
+    float diff = max(dot(normal, light_dir), 0.0);
+
+    vec3 reflect_dir = reflect(-light_dir, normal);
+    float spec = pow(max(dot(view_dir, reflect_dir), 0.0), material.specular_shininess);
+
+    // 距离衰减
+    float distance = length(L.position - frag_pos_in_world);
+    float attenuation = clamp(1.0 - distance / L.range, 0.0, 1.0);
+
+    return attenuation * (
+        material.ambient_factor  * diff_tex +
+        material.diffuse_factor  * diff  * diff_tex * L.intensity +
+        material.specular_factor * spec * spec_tex * L.intensity
+    );
+}
+
+vec3 CalcSpotLight(Light L, vec3 normal, vec3 view_dir, vec3 diff_tex, vec3 spec_tex) {
+    vec3 light_dir = normalize(L.position - frag_pos_in_world);
+
+    float diff = max(dot(normal, light_dir), 0.0);
+
+    float theta = dot(light_dir, normalize(-L.direction));
+    float epsilon = L.inner_cone - L.outer_cone;
+    float spot_factor = clamp((theta - L.outer_cone) / epsilon, 0.0, 1.0);
+
+    vec3 reflect_dir = reflect(-light_dir, normal);
+    float spec = pow(max(dot(view_dir, reflect_dir), 0.0), material.specular_shininess);
+
+    float distance = length(L.position - frag_pos_in_world);
+    float attenuation = clamp(1.0 - distance / L.range, 0.0, 1.0);
+
+    return attenuation * spot_factor * (
+        material.ambient_factor  * diff_tex +
+        material.diffuse_factor  * diff  * diff_tex * L.intensity +
+        material.specular_factor * spec * spec_tex * L.intensity
+    );
+}
+
+
+vec3 CalcPhong(vec3 normal, vec3 view_dir, vec3 diff_tex, vec3 spec_tex) {
+    vec3 result = vec3(0);
+
+    for (int i = 0; i < light_count; ++i) {
+        Light L = lights[i];        
+        if (L.light_type == 0)
+            result += CalcDirectionalLight(L, normal, view_dir, diff_tex, spec_tex);
+        else if (L.light_type == 1)
+            result += CalcPointLight(L, normal, view_dir, diff_tex, spec_tex);
+        else if (L.light_type == 2)
+            result += CalcSpotLight(L, normal, view_dir, diff_tex, spec_tex);
+    }
+
+    return result;
+}
+
 void main() {
-  vec3 normal = normalize(normal_in_world);
-  vec3 light_dir = normalize(light_position - frag_pos_in_world);
-  vec3 view_dir = normalize(view_position - frag_pos_in_world);
-  vec3 reflect_dir = reflect(-light_dir, normal);
+    vec3 normal = normalize(normal_in_world);
+    vec3 view_dir = normalize(view_position - frag_pos_in_world);
 
-  vec3 ambient = material.ambient_factor *
-                 texture(material.diffuse_texture, tex_coord).xyz;
-  vec3 diffuse = material.diffuse_factor * max(dot(normal, light_dir), 0.0) *
-                 texture(material.diffuse_texture, tex_coord).xyz;
-  vec3 specular =
-      material.specular_factor *
-      pow(max(dot(view_dir, reflect_dir), 0.0), material.specular_shininess) *
-      texture(material.specular_texture, tex_coord).xyz;
+    vec3 diff_tex = texture(material.diffuse_texture, tex_coord).rgb;
+    vec3 spec_tex = texture(material.specular_texture, tex_coord).rgb;
 
-  // all
-  vec3 result = (ambient + diffuse + specular) * light_color.xyz;
-  frag_color = vec4(result, 1.0);
+    vec3 result = CalcPhong(normal, view_dir, diff_tex, spec_tex);
+
+    frag_color = vec4(result, 1.0);
 }

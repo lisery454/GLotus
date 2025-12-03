@@ -40,4 +40,8 @@ impl Light for DirectionalLight {
     fn transform(&self) -> &Transform {
         &self.transform
     }
+
+    fn transform_mut(&mut self) -> &mut Transform {
+        &mut self.transform
+    }
 }

@@ -1,14 +1,15 @@
-use crate::render::camera::Camera;
-use crate::render::camera::CameraMovement;
 use crate::core::FixedUpdateAble;
-use crate::render::entity::entity::Entity;
 use crate::event::event::AppEvent;
 use crate::event::event_queue;
 use crate::event::event_queue::AppEventQueue;
 use crate::input::input_state;
 use crate::input::input_state::InputState;
-use crate::render::light::Light;
 use crate::log_builder;
+use crate::render::camera::Camera;
+use crate::render::camera::CameraMovement;
+use crate::render::entity::entity::Entity;
+use crate::render::light::Light;
+use crate::render::light::LightShaderData;
 use crate::render::material::Material;
 use crate::render::material::UniformValue;
 use crate::render::mesh::Vertex;
@@ -35,7 +36,7 @@ pub struct AppConfig {
     pub target_render_fps: Option<u32>, // None = Unlimited
     pub fixed_update_fps: u32,          // e.g. 60
     pub v_sync: bool,
-    pub anti_pixel_msaa: Option<u32>,   // e.g. 4
+    pub anti_pixel_msaa: Option<u32>, // e.g. 4
 }
 
 pub struct App {
@@ -295,8 +296,14 @@ impl App {
         let view_matrix = camera.borrow().get_view_matrix();
         let projection_matrix = camera.borrow().get_projection_matrix();
         let view_position = camera.borrow().get_view_position();
-        // let light_color = self.light.get_color();
-        // let light_position = self.light.get_transform().get_position().get_arr();
+        let lights: Vec<LightShaderData> = self
+            .get_world()
+            .borrow()
+            .get_lights()
+            .iter()
+            .map(|light| light.borrow().to_shader_data())
+            .collect();
+        let light_count = lights.len() as i32;
 
         for (entity) in self.get_world().borrow().get_entities().iter() {
             let entity = entity.borrow();
@@ -324,14 +331,14 @@ impl App {
                 "projection_matrix",
                 UniformValue::Matrix4(projection_matrix),
             );
-            // entity
-            //     .material
-            //     .borrow_mut()
-            //     .insert_uniform("light_color", UniformValue::Vector4(light_color));
-            // entity
-            //     .material
-            //     .borrow_mut()
-            //     .insert_uniform("light_position", UniformValue::Vector3(light_position));
+            entity
+                .material
+                .borrow_mut()
+                .insert_uniform("light_count", UniformValue::Int(light_count));
+            entity
+                .material
+                .borrow_mut()
+                .insert_uniform("lights", UniformValue::LightArray(lights.clone()));
 
             // 通知opengl用这个材质，初始化
             entity.material.borrow().bind();

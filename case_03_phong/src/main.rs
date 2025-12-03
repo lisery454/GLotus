@@ -1,6 +1,6 @@
 use glotus::{
     Entity, FilteringMode, Material, Mesh, Position, Shader, Texture2D, Transform, UniformValue,
-    Vertex, WrappingMode,
+    Vertex, WrappingMode, point_light::PointLight,
 };
 
 fn main() {
@@ -190,7 +190,12 @@ fn main() {
         .get_transform_mut()
         .set_position(Position::new(0.0, 0.0, 10.0));
 
-    // app.set_light_color([1.0, 1.0, 1.0, 1.0]);
-    // app.set_light_transform(Transform::from_position(10.0, 8.0, 6.0));
+    let light = PointLight::new();
+    light
+        .borrow_mut()
+        .transform
+        .set_position(Position::new(-10.0, 8.0, -6.0));
+    app.borrow().get_world().borrow_mut().add_light(light);
+
     app.borrow_mut().run();
 }
