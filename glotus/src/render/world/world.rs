@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{camera::Camera, entity::entity::Entity, light::Light};
+use crate::{render::camera::Camera, render::entity::entity::Entity, render::light::Light};
 
 pub struct World {
     lights: Vec<Box<dyn Light>>,

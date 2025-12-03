@@ -1,17 +1,18 @@
 use cgmath::Vector3;
 
-use crate::{light::{Light, LightShaderData, LightType}, transform::Transform};
+use crate::{
+    render::light::{Light, LightShaderData, LightType},
+    render::transform::Transform,
+};
 
-pub struct SpotLight {
+pub struct PointLight {
     pub transform: Transform,
     pub color: Vector3<f32>,
     pub intensity: f32,
     pub range: f32,
-    pub inner: f32,
-    pub outer: f32,
 }
 
-impl Light for SpotLight {
+impl Light for PointLight {
     fn color(&self) -> Vector3<f32> {
         self.color
     }
@@ -21,19 +22,19 @@ impl Light for SpotLight {
     }
 
     fn light_type(&self) -> LightType {
-        LightType::Spot
+        LightType::Point
     }
 
     fn to_shader_data(&self) -> LightShaderData {
         LightShaderData {
-            light_type: 2, // spot
+            light_type: 1, // point
             color: self.color.into(),
             position: self.transform.get_position().get_arr().into(),
-            direction: self.transform.get_rotation().forward().into(),
+            direction: [0.0; 3],
             intensity: self.intensity,
             range: self.range,
-            inner_cone: self.inner,
-            outer_cone: self.outer,
+            inner_cone: 0.0,
+            outer_cone: 0.0,
         }
     }
 

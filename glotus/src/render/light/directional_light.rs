@@ -1,8 +1,8 @@
 use cgmath::Vector3;
 
 use crate::{
-    light::{Light, LightShaderData, LightType},
-    transform::Transform,
+    render::light::{Light, LightShaderData, LightType},
+    render::transform::Transform,
 };
 
 pub struct DirectionalLight {

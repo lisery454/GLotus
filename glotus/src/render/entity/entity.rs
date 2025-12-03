@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{material::Material, mesh::Mesh, transform::Transform};
+use crate::{render::material::Material, render::mesh::Mesh, render::transform::Transform};
 
 pub struct Entity {
     pub transform: Transform,

@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::{shader::Shader, texture::Texture2D};
+use crate::{render::shader::Shader, render::texture::Texture2D};
 
 use super::uniform_value::UniformValue;
 

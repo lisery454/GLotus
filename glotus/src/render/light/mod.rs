@@ -4,7 +4,7 @@ pub mod spot_light;
 
 use cgmath::Vector3;
 
-use crate::transform::Transform;
+use crate::render::transform::Transform;
 
 #[derive(Clone, Copy)]
 pub enum LightType {

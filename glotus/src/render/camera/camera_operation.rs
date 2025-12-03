@@ -1,6 +1,6 @@
 use cgmath::{Deg, InnerSpace, Quaternion, Rad, Rotation3, Vector3};
 
-use crate::transform::Rotation;
+use crate::render::transform::Rotation;
 
 use super::camera::Camera;
 

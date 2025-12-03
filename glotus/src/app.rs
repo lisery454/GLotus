@@ -1,20 +1,20 @@
-use crate::camera::Camera;
-use crate::camera::CameraMovement;
+use crate::render::camera::Camera;
+use crate::render::camera::CameraMovement;
 use crate::core::FixedUpdateAble;
-use crate::entity::entity::Entity;
+use crate::render::entity::entity::Entity;
 use crate::event::event::AppEvent;
 use crate::event::event_queue;
 use crate::event::event_queue::AppEventQueue;
 use crate::input::input_state;
 use crate::input::input_state::InputState;
-use crate::light::Light;
+use crate::render::light::Light;
 use crate::log_builder;
-use crate::material::Material;
-use crate::material::UniformValue;
-use crate::mesh::Vertex;
-use crate::texture::{FilteringMode, WrappingMode};
-use crate::transform::Transform;
-use crate::world::world::World;
+use crate::render::material::Material;
+use crate::render::material::UniformValue;
+use crate::render::mesh::Vertex;
+use crate::render::texture::{FilteringMode, WrappingMode};
+use crate::render::transform::Transform;
+use crate::render::world::world::World;
 use cgmath::Vector2;
 use glfw::Action;
 use glfw::SwapInterval;
@@ -35,7 +35,7 @@ pub struct AppConfig {
     pub target_render_fps: Option<u32>, // None = Unlimited
     pub fixed_update_fps: u32,          // e.g. 60
     pub v_sync: bool,
-    pub anti_pixel_msaa: Option<u32>,
+    pub anti_pixel_msaa: Option<u32>,   // e.g. 4
 }
 
 pub struct App {

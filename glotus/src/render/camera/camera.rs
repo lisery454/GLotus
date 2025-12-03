@@ -4,8 +4,8 @@ use cgmath::{Deg, Matrix4, Ortho, PerspectiveFov, Rad, Vector3};
 use glfw::Key;
 
 use crate::{
-    camera::CameraMovement, core::FixedUpdateAble, input::input_state::InputState,
-    transform::Transform,
+    render::camera::CameraMovement, core::FixedUpdateAble, input::input_state::InputState,
+    render::transform::Transform,
 };
 
 use super::projection_type::ProjectionType;

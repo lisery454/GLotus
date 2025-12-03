@@ -1,10 +1,4 @@
-use glotus::{
-    entity::entity::Entity,
-    material::Material,
-    mesh::{Mesh, Vertex},
-    shader::Shader,
-    transform::Transform,
-};
+use glotus::{Entity, Material, Mesh, Shader, Transform, Vertex};
 
 fn main() {
     let app = glotus::App::new();
@@ -30,7 +24,10 @@ fn main() {
 
     let entity = Entity::new(Transform::default(), material.clone(), mesh.clone());
 
-    app.borrow().get_world().borrow_mut().add_entity(entity.clone());
+    app.borrow()
+        .get_world()
+        .borrow_mut()
+        .add_entity(entity.clone());
 
     app.borrow_mut().run();
 }

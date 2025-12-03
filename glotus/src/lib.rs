@@ -1,16 +1,15 @@
 mod app;
-pub mod camera;
-pub mod entity;
-pub mod light;
 mod log_builder;
-pub mod world;
-pub mod material;
-pub mod mesh;
-pub mod shader;
-pub mod texture;
-pub mod transform;
-pub mod input;
-pub mod event;
+
 pub mod core;
+pub mod event;
+pub mod input;
+pub mod render;
 
 pub use app::App;
+pub use render::entity::entity::Entity;
+pub use render::material::{Material, UniformValue};
+pub use render::mesh::{Mesh, Vertex};
+pub use render::shader::Shader;
+pub use render::texture::{FilteringMode, Texture2D, WrappingMode};
+pub use render::transform::{Position, Rotation, Scale, Transform};

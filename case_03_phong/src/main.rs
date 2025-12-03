@@ -1,10 +1,6 @@
 use glotus::{
-    entity::entity::Entity,
-    material::{Material, UniformValue},
-    mesh::{Mesh, Vertex},
-    shader::Shader,
-    texture::{FilteringMode, Texture2D, WrappingMode},
-    transform::{Position, Transform},
+    Entity, FilteringMode, Material, Mesh, Position, Shader, Texture2D, Transform, UniformValue,
+    Vertex, WrappingMode,
 };
 
 fn main() {
