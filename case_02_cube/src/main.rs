@@ -8,8 +8,8 @@ use glotus::{
 };
 
 fn main() {
-    let mut app = glotus::App::new();
-    app.init_window(1440, 960);
+    let app = glotus::App::new();
+    app.borrow_mut().init_window(1400, 960);
 
     let shader = Shader::from_files(
         concat!(env!("CARGO_PKG_NAME"), "/assets/shaders/vs.vert"),
@@ -83,14 +83,18 @@ fn main() {
 
     let entity = Entity::new(Transform::default(), material.clone(), mesh.clone());
 
-    app.get_world().borrow_mut().add_entity(entity.clone());
+    app.borrow()
+        .get_world()
+        .borrow_mut()
+        .add_entity(entity.clone());
 
-    app.get_world()
+    app.borrow()
+        .get_world()
         .borrow()
         .get_camera()
         .borrow_mut()
         .get_transform_mut()
         .set_position(Position::new(0.0, 0.0, 10.0));
 
-    app.run();
+    app.borrow_mut().run();
 }

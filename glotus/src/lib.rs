@@ -9,5 +9,8 @@ pub mod mesh;
 pub mod shader;
 pub mod texture;
 pub mod transform;
+pub mod input;
+pub mod event;
+pub mod core;
 
 pub use app::App;

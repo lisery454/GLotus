@@ -1,6 +1,12 @@
 use crate::camera::Camera;
 use crate::camera::CameraMovement;
+use crate::core::FixedUpdateAble;
 use crate::entity::entity::Entity;
+use crate::event::event::AppEvent;
+use crate::event::event_queue;
+use crate::event::event_queue::AppEventQueue;
+use crate::input::input_state;
+use crate::input::input_state::InputState;
 use crate::light::Light;
 use crate::log_builder;
 use crate::material::Material;
@@ -10,6 +16,7 @@ use crate::texture::{FilteringMode, WrappingMode};
 use crate::transform::Transform;
 use crate::world::world::World;
 use cgmath::Vector2;
+use glfw::Action;
 use glfw::SwapInterval;
 use glfw::ffi::glfwGetTime;
 use glfw::{Context, Glfw, GlfwReceiver, Key, PWindow, WindowEvent};
@@ -20,39 +27,57 @@ use log::warn;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::time::Duration;
+use std::time::Instant;
+
+pub struct AppConfig {
+    pub title: String,
+    pub target_render_fps: Option<u32>, // None = Unlimited
+    pub fixed_update_fps: u32,          // e.g. 60
+    pub v_sync: bool,
+    pub anti_pixel_msaa: Option<u32>,
+}
 
 pub struct App {
+    config: AppConfig,
+
     is_running: bool,
     window: Option<Rc<RefCell<PWindow>>>,
     glfw: Option<Rc<RefCell<Glfw>>>,
     event_receiver: Option<Rc<RefCell<GlfwReceiver<(f64, WindowEvent)>>>>,
 
-    delta_time: f32,
-    last_time: f32,
-    last_cursor_pos: Vector2<f32>,
-    is_first_cursor_move: bool,
-
     world: Rc<RefCell<World>>,
+    input_state: Rc<RefCell<InputState>>,
+    event_queue: Rc<RefCell<AppEventQueue>>,
 }
 
 // main
 impl App {
-    pub fn new() -> Self {
+    pub fn new() -> Rc<RefCell<Self>> {
+        Self::new_with_config(AppConfig {
+            title: String::from("Rust GLFW opengl"),
+            target_render_fps: Some(60),
+            fixed_update_fps: 30,
+            v_sync: true,
+            anti_pixel_msaa: Some(4),
+        })
+    }
+
+    pub fn new_with_config(config: AppConfig) -> Rc<RefCell<Self>> {
         let app = Self {
+            config: config,
             is_running: false,
             window: None,
             glfw: None,
             event_receiver: None,
-            delta_time: 0.0,
-            last_time: 0.0,
-            last_cursor_pos: Vector2 { x: 0.0, y: 0.0 },
-            is_first_cursor_move: true,
             world: Rc::new(RefCell::new(World::new())),
+            input_state: Rc::new(RefCell::new(InputState::new())),
+            event_queue: Rc::new(RefCell::new(AppEventQueue::new())),
         };
 
         log_builder::setup_logger();
 
-        app
+        Rc::new(RefCell::new(app))
     }
 
     pub fn init_window(&mut self, width: u32, height: u32) {
@@ -64,14 +89,14 @@ impl App {
         glfw.window_hint(glfw::WindowHint::OpenGlProfile(
             glfw::OpenGlProfileHint::Core,
         ));
-        glfw.window_hint(glfw::WindowHint::Samples(Some(4)));
+        glfw.window_hint(glfw::WindowHint::Samples(self.config.anti_pixel_msaa));
 
         // 创建窗口
         let (mut window, events) = glfw
             .create_window(
                 width,
                 height,
-                "Rust GLFW opengl",
+                self.config.title.as_str(),
                 glfw::WindowMode::Windowed,
             )
             .expect("Failed to create GLFW window");
@@ -86,9 +111,11 @@ impl App {
         window.set_close_polling(true);
 
         // 开启垂直同步
-        glfw.set_swap_interval(SwapInterval::Sync(1));
-        // 不限制帧率
-        // glfw.set_swap_interval(SwapInterval::None);
+        if self.config.v_sync {
+            glfw.set_swap_interval(SwapInterval::Sync(1));
+        } else {
+            glfw.set_swap_interval(SwapInterval::None);
+        }
 
         // 加载 OpenGL 函数指针
         gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
@@ -117,40 +144,14 @@ impl App {
         self.event_receiver = Some(Rc::new(RefCell::new(events)));
 
         // 抗锯齿
-        unsafe {
-            gl::Enable(gl::MULTISAMPLE);
+        if self.config.anti_pixel_msaa.is_some() {
+            unsafe {
+                gl::Enable(gl::MULTISAMPLE);
+            }
         }
 
         // 初始化视口
-        unsafe {
-            gl::Viewport(0, 0, width as i32, height as i32);
-        }
-        self.get_world()
-            .borrow()
-            .get_camera()
-            .borrow_mut()
-            .set_aspect_ratio(width, height);
-
-        // 窗口大小改变时，视口变化
-        let camera_weak = Rc::downgrade(&self.get_world().borrow().get_camera());
-        self.window
-            .as_ref()
-            .unwrap()
-            .borrow_mut()
-            .set_framebuffer_size_callback(move |_window, width, height| {
-                debug!(
-                    "window size change: width {:?}, height: {:?}",
-                    width, height
-                );
-                unsafe {
-                    gl::Viewport(0, 0, width, height);
-                }
-                camera_weak
-                    .upgrade()
-                    .unwrap()
-                    .borrow_mut()
-                    .set_aspect_ratio(width as u32, height as u32);
-            });
+        self.resize_view(width, height);
     }
 
     pub fn get_world(&self) -> Rc<RefCell<World>> {
@@ -162,14 +163,46 @@ impl App {
 
         info!("app starts to running...");
 
-        while self.is_running {
-            self.calc_delta_time();
+        let fixed_dt = 1.0 / self.config.fixed_update_fps as f32;
+        let target_render_dt = self.config.target_render_fps.map(|fps| 1.0 / fps as f32);
 
+        let mut last_time = self.get_current_time();
+        let mut last_render_update_time = last_time;
+        let mut last_fixed_update_time = last_time;
+
+        while self.is_running {
+            // 计算事件
+            let now = self.get_current_time();
+            let delta_time = now - last_time;
+            last_time = now;
+
+            // glfw事件
             self.glfw.as_ref().unwrap().borrow_mut().poll_events();
             self.handle_window_event();
 
-            self.render();
+            //处理事件队列
+            self.handle_event_queue();
 
+            // FixedUpdate 循环
+            while now - last_fixed_update_time >= fixed_dt {
+                self.fixed_update(fixed_dt);
+                last_fixed_update_time += fixed_dt
+            }
+
+            // Render 限帧
+            if let Some(render_dt) = target_render_dt {
+                let since_last_render = now - last_render_update_time;
+                // 比限制的render间隔少的时间就跑完了一次render，那就休息一会把
+                if since_last_render < render_dt {
+                    // sleep 少量时间减少 CPU 占用
+                    std::thread::sleep(Duration::from_millis(1));
+                    continue;
+                }
+            }
+
+            // 渲染
+            last_render_update_time = self.get_current_time();
+            self.render_update();
             self.window.as_ref().unwrap().borrow_mut().swap_buffers();
         }
 
@@ -179,16 +212,80 @@ impl App {
 
 // utils
 impl App {
-    fn calc_delta_time(&mut self) {
-        unsafe {
-            let current_time = glfwGetTime() as f32;
-            self.delta_time = (current_time - self.last_time).abs();
-            self.last_time = current_time;
+    fn handle_event_queue(&mut self) {
+        let events = self.event_queue.borrow_mut().drain();
+        for event in events {
+            match event {
+                AppEvent::Resize { width, height } => self.resize_view(width as u32, height as u32),
+                AppEvent::Key { key, action } => match action {
+                    Action::Press => {
+                        self.input_state.borrow_mut().press_key(key);
+                    }
+                    Action::Release => {
+                        self.input_state.borrow_mut().release_key(&key);
+                    }
+                    _ => {}
+                },
+                AppEvent::Close => {
+                    self.close();
+                }
+                AppEvent::Scroll { x, y } => {
+                    self.input_state.borrow_mut().set_scroll_delta(x, y);
+                }
+                AppEvent::CursorPos { x, y } => {
+                    self.input_state.borrow_mut().set_cursor_delta(x, y);
+                }
+                AppEvent::MouseButton { button, action } => match action {
+                    Action::Press => {
+                        self.input_state.borrow_mut().press_mouse_button(button);
+                    }
+                    Action::Release => {
+                        self.input_state.borrow_mut().release_mouse_button(&button);
+                    }
+                    _ => {}
+                },
+            }
         }
-        debug!("fps: {:?}", 1.0 / self.delta_time);
     }
 
-    fn render(&mut self) {
+    fn resize_view(&self, width: u32, height: u32) {
+        unsafe {
+            gl::Viewport(0, 0, width as i32, height as i32);
+        }
+        self.get_world()
+            .borrow()
+            .get_camera()
+            .borrow_mut()
+            .set_aspect_ratio(width, height);
+    }
+
+    fn fixed_update(&mut self, fixed_dt: f32) {
+        if self.input_state.borrow().is_key_down(Key::Escape) {
+            self.window
+                .as_ref()
+                .unwrap()
+                .borrow_mut()
+                .set_should_close(true);
+            self.is_running = false;
+        }
+
+        self.world
+            .borrow()
+            .get_camera()
+            .borrow_mut()
+            .fixed_update(fixed_dt, self.input_state.clone());
+
+        self.input_state.borrow_mut().clear_delta();
+    }
+
+    fn get_current_time(&self) -> f32 {
+        unsafe {
+            let current_time = glfwGetTime() as f32;
+            current_time
+        }
+    }
+
+    fn render_update(&mut self) {
         unsafe {
             gl::Enable(gl::DEPTH_TEST);
             gl::ClearColor(0.2, 0.3, 0.3, 1.0);
@@ -245,76 +342,49 @@ impl App {
         }
     }
 
+    fn close(&mut self) {
+        self.window
+            .as_ref()
+            .unwrap()
+            .borrow_mut()
+            .set_should_close(true);
+        self.is_running = false;
+    }
+
     fn handle_window_event(&mut self) {
+        let input = self.input_state.clone();
         for (_, event) in
             glfw::flush_messages(&mut *(self.event_receiver.as_ref().unwrap().borrow_mut()))
         {
             match event {
                 WindowEvent::Key(key, _, action, _) => {
-                    debug!("Trigger Key {:?} {:?}", key, action);
-                    if key == Key::Escape {
-                        debug!("Trigger WindowClose");
-                        self.window
-                            .as_ref()
-                            .unwrap()
-                            .borrow_mut()
-                            .set_should_close(true);
-                        self.is_running = false;
-                    }
-
-                    let velocity = 40.0;
-                    let movement = match key {
-                        Key::W => Some(CameraMovement::Forward),
-                        Key::A => Some(CameraMovement::Left),
-                        Key::S => Some(CameraMovement::Backward),
-                        Key::D => Some(CameraMovement::Right),
-                        Key::LeftShift => Some(CameraMovement::Down),
-                        Key::Space => Some(CameraMovement::Up),
-                        _ => None,
-                    };
-                    if let Some(movement) = movement {
-                        self.get_world()
-                            .borrow()
-                            .get_camera()
-                            .borrow_mut()
-                            .process_move(movement, velocity, self.delta_time);
-                    }
+                    self.event_queue
+                        .borrow_mut()
+                        .push(AppEvent::Key { key, action });
                 }
                 WindowEvent::Close => {
-                    debug!("Trigger WindowClose");
-                    self.window
-                        .as_ref()
-                        .unwrap()
-                        .borrow_mut()
-                        .set_should_close(true);
-                    self.is_running = false;
+                    self.event_queue.borrow_mut().push(AppEvent::Close);
                 }
                 WindowEvent::Scroll(xoffset, yoffset) => {
-                    debug!("Trigger Mouse Scroll: X={}, Y={}", xoffset, yoffset);
-                    self.get_world()
-                        .borrow()
-                        .get_camera()
-                        .borrow_mut()
-                        .process_zoom(yoffset as f32, 0.5);
+                    self.event_queue.borrow_mut().push(AppEvent::Scroll {
+                        x: xoffset,
+                        y: yoffset,
+                    });
                 }
                 WindowEvent::CursorPos(xpos, ypos) => {
-                    debug!("Trigger Cursor Move: X={}, Y={}", xpos, ypos);
-                    if self.is_first_cursor_move {
-                        self.is_first_cursor_move = false;
-                        self.last_cursor_pos = Vector2::new(xpos as f32, ypos as f32);
-                    } else {
-                        let xoffset = xpos as f32 - self.last_cursor_pos.x;
-                        let yoffset = ypos as f32 - self.last_cursor_pos.y;
-                        self.get_world()
-                            .borrow()
-                            .get_camera()
-                            .borrow_mut()
-                            .process_turn(xoffset, yoffset, 0.001, true);
-                        self.last_cursor_pos = Vector2::new(xpos as f32, ypos as f32);
-                    }
+                    self.event_queue
+                        .borrow_mut()
+                        .push(AppEvent::CursorPos { x: xpos, y: ypos });
                 }
                 WindowEvent::MouseButton(button, action, _) => {
-                    debug!("Trigger Mouse button: {:?}, Action: {:?}", button, action);
+                    self.event_queue
+                        .borrow_mut()
+                        .push(AppEvent::MouseButton { button, action });
+                }
+                WindowEvent::FramebufferSize(width, height) => {
+                    self.event_queue
+                        .borrow_mut()
+                        .push(AppEvent::Resize { width, height });
                 }
                 _ => (),
             };
