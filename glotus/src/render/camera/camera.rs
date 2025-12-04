@@ -1,8 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
-
-use cgmath::{Deg, InnerSpace, Matrix4, Ortho, PerspectiveFov, Rad, Vector2, Vector3};
+use cgmath::{Deg, Matrix4, Ortho, PerspectiveFov, Rad, Vector3};
 use glfw::Key;
-use log::{info, log};
 
 use crate::{
     core::FixedUpdateAble, input::input_state::InputState, render::camera::CameraMovement,

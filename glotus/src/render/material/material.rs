@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::{render::shader::Shader, render::texture::Texture2D};
+use crate::render::{material::GlobalUniform, shader::Shader, texture::Texture2D};
 
 use super::uniform_value::UniformValue;
 
@@ -25,6 +25,68 @@ impl Material {
 
     pub fn insert_textures(&mut self, slot_id: u32, value: Rc<RefCell<Texture2D>>) {
         self.textures.insert(slot_id, value);
+    }
+
+    pub(crate) fn inject_global_uniform(&mut self, global_uniform: &GlobalUniform) {
+        self.insert_uniform(
+            "g_view_position",
+            UniformValue::Vector3(global_uniform.view_position),
+        );
+        self.insert_uniform(
+            "g_model_matrix",
+            UniformValue::Matrix4(global_uniform.model_matrix),
+        );
+        self.insert_uniform(
+            "g_normal_matrix",
+            UniformValue::Matrix3(global_uniform.normal_matrix),
+        );
+        self.insert_uniform(
+            "g_view_matrix",
+            UniformValue::Matrix4(global_uniform.view_matrix),
+        );
+        self.insert_uniform(
+            "g_projection_matrix",
+            UniformValue::Matrix4(global_uniform.projection_matrix),
+        );
+        self.insert_uniform(
+            "g_light_count",
+            UniformValue::Int(global_uniform.light_count),
+        );
+
+        for (i, v) in global_uniform.lights_shader_data.iter().enumerate() {
+            self.insert_uniform(
+                &format!("g_lights[{}].light_type", i),
+                UniformValue::Int(v.light_type),
+            );
+            self.insert_uniform(
+                &format!("g_lights[{}].color", i),
+                UniformValue::Vector3(v.color),
+            );
+            self.insert_uniform(
+                &format!("g_lights[{}].position", i),
+                UniformValue::Vector3(v.position),
+            );
+            self.insert_uniform(
+                &format!("g_lights[{}].direction", i),
+                UniformValue::Vector3(v.direction),
+            );
+            self.insert_uniform(
+                &format!("g_lights[{}].intensity", i),
+                UniformValue::Float(v.intensity),
+            );
+            self.insert_uniform(
+                &format!("g_lights[{}].range", i),
+                UniformValue::Float(v.range),
+            );
+            self.insert_uniform(
+                &format!("g_lights[{}].inner_cone", i),
+                UniformValue::Float(v.inner_cone),
+            );
+            self.insert_uniform(
+                &format!("g_lights[{}].outer_cone", i),
+                UniformValue::Float(v.outer_cone),
+            );
+        }
     }
 
     pub(crate) fn bind(&self) {

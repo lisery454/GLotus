@@ -1,6 +1,10 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{render::camera::Camera, render::entity::entity::Entity, render::light::Light};
+use crate::render::{
+    camera::Camera,
+    entity::entity::Entity,
+    light::{Light, LightShaderData},
+};
 
 pub struct World {
     lights: Vec<Rc<RefCell<dyn Light>>>,
@@ -15,6 +19,13 @@ impl World {
             entities: Vec::new(),
             camera: Rc::new(RefCell::new(Camera::new())),
         }
+    }
+
+    pub fn get_light_shader_data(&self) -> Vec<LightShaderData> {
+        self.get_lights()
+            .iter()
+            .map(|light| light.borrow().to_shader_data())
+            .collect()
     }
 
     pub fn get_lights(&self) -> &Vec<Rc<RefCell<dyn Light>>> {

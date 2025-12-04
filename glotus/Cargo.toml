@@ -21,5 +21,6 @@ regex = "1.11.1"
 gl_generator = "0.14.0"
 
 [lints.rust]
-unused = "allow" # 禁用所有未使用警告
+# unused = "allow" # 禁用所有未使用警告
 # unused_variables = "allow"  # 仅禁用未使用变量
+dead_code = "allow"  

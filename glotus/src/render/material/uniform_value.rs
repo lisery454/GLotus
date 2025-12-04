@@ -1,5 +1,3 @@
-use crate::render::light::LightShaderData;
-
 #[derive(Debug)]
 pub enum UniformValue {
     Float(f32),

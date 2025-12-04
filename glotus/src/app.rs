@@ -1,61 +1,16 @@
-use crate::core::FixedUpdateAble;
-use crate::event::event::AppEvent;
-use crate::event::event_queue;
-use crate::event::event_queue::AppEventQueue;
-use crate::input::input_state;
-use crate::input::input_state::InputState;
-use crate::log_builder;
-use crate::render::camera::Camera;
-use crate::render::camera::CameraMovement;
-use crate::render::entity::entity::Entity;
-use crate::render::light::Light;
-use crate::render::light::LightShaderData;
-use crate::render::material::Material;
-use crate::render::material::UniformValue;
-use crate::render::mesh::Vertex;
-use crate::render::texture::{FilteringMode, WrappingMode};
-use crate::render::transform::Transform;
-use crate::render::world::world::World;
-use cgmath::Vector2;
-use glfw::Action;
-use glfw::SwapInterval;
-use glfw::ffi::glfwGetTime;
-use glfw::{Context, Glfw, GlfwReceiver, Key, PWindow, WindowEvent};
-use log::debug;
-use log::error;
+use crate::{
+    AppConfig,
+    core::FixedUpdateAble,
+    event::{event::AppEvent, event_queue::AppEventQueue},
+    input::input_state::InputState,
+    log_builder,
+    render::{light::LightShaderData, material::GlobalUniform, world::world::World},
+};
+use glfw::{
+    Action, Context, Glfw, GlfwReceiver, Key, PWindow, SwapInterval, WindowEvent, ffi::glfwGetTime,
+};
 use log::info;
-use log::warn;
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::rc::Rc;
-use std::time::Duration;
-use std::time::Instant;
-
-pub struct AppConfig {
-    pub title: String,
-    pub target_render_fps: Option<u32>, // None = Unlimited
-    pub fixed_update_fps: u32,          // e.g. 60
-    pub v_sync: bool,
-    pub anti_pixel_msaa: Option<u32>, // e.g. 4
-    pub width: u32,
-    pub height: u32,
-    pub bg_color: [f32; 3],
-}
-
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            title: String::from("Rust GLFW opengl"),
-            target_render_fps: None,
-            fixed_update_fps: 60,
-            v_sync: true,
-            anti_pixel_msaa: Some(4),
-            width: 1440,
-            height: 960,
-            bg_color: [0.2, 0.3, 0.3],
-        }
-    }
-}
+use std::{cell::RefCell, rc::Rc, time::Duration};
 
 pub struct App {
     config: AppConfig,
@@ -108,7 +63,9 @@ impl App {
         glfw.window_hint(glfw::WindowHint::OpenGlProfile(
             glfw::OpenGlProfileHint::Core,
         ));
-        glfw.window_hint(glfw::WindowHint::Samples(self.config.anti_pixel_msaa));
+        glfw.window_hint(glfw::WindowHint::Samples(
+            self.config.anti_pixel_msaa.to_num(),
+        ));
 
         // 创建窗口
         let (mut window, events) = glfw
@@ -163,7 +120,7 @@ impl App {
         self.event_receiver = Some(Rc::new(RefCell::new(events)));
 
         // 抗锯齿
-        if self.config.anti_pixel_msaa.is_some() {
+        if self.config.anti_pixel_msaa.to_num().is_some() {
             unsafe {
                 gl::Enable(gl::MULTISAMPLE);
             }
@@ -185,7 +142,7 @@ impl App {
         let fixed_dt = 1.0 / self.config.fixed_update_fps as f32;
         let target_render_dt = self.config.target_render_fps.map(|fps| 1.0 / fps as f32);
 
-        let mut last_time = self.get_current_time();
+        let last_time = self.get_current_time();
         let mut last_render_update_time = last_time;
         let mut last_fixed_update_time = last_time;
 
@@ -196,8 +153,6 @@ impl App {
         while self.is_running {
             // 计算事件
             let now = self.get_current_time();
-            let delta_time = now - last_time;
-            last_time = now;
 
             // glfw事件
             self.glfw.as_ref().unwrap().borrow_mut().poll_events();
@@ -217,7 +172,6 @@ impl App {
                 let since_last_render = now - last_render_update_time;
                 let remaining = render_dt - since_last_render;
 
-                info!("{}", remaining);
                 if remaining > 0.0 {
                     // 如果剩余时间 > 4ms，睡眠 50% 的时间
                     if remaining > 0.005 {
@@ -350,80 +304,30 @@ impl App {
         let view_matrix = camera.borrow().get_view_matrix();
         let projection_matrix = camera.borrow().get_projection_matrix();
         let view_position = camera.borrow().get_view_position();
-        let lights: Vec<LightShaderData> = self
-            .get_world()
-            .borrow()
-            .get_lights()
-            .iter()
-            .map(|light| light.borrow().to_shader_data())
-            .collect();
-        let light_count = lights.len() as i32;
+        let lights_shader_data: Vec<LightShaderData> =
+            self.get_world().borrow().get_light_shader_data();
+        let light_count = lights_shader_data.len() as i32;
 
-        for (entity) in self.get_world().borrow().get_entities().iter() {
+        for entity in self.get_world().borrow().get_entities().iter() {
             let entity = entity.borrow();
             // 计算矩阵
             let model_matrix = entity.transform.to_matrix();
             let normal_matrix = entity.transform.to_normal_matrix();
-            // 给材质注入全局变量，比如mvp
-            entity
-                .material
-                .borrow_mut()
-                .insert_uniform("g_view_position", UniformValue::Vector3(view_position));
-            entity
-                .material
-                .borrow_mut()
-                .insert_uniform("g_model_matrix", UniformValue::Matrix4(model_matrix));
-            entity
-                .material
-                .borrow_mut()
-                .insert_uniform("g_normal_matrix", UniformValue::Matrix3(normal_matrix));
-            entity
-                .material
-                .borrow_mut()
-                .insert_uniform("g_view_matrix", UniformValue::Matrix4(view_matrix));
-            entity.material.borrow_mut().insert_uniform(
-                "g_projection_matrix",
-                UniformValue::Matrix4(projection_matrix),
-            );
-            entity
-                .material
-                .borrow_mut()
-                .insert_uniform("g_light_count", UniformValue::Int(light_count));
 
-            for (i, v) in lights.iter().enumerate() {
-                entity.material.borrow_mut().insert_uniform(
-                    &format!("g_lights[{}].light_type", i),
-                    UniformValue::Int(v.light_type),
-                );
-                entity.material.borrow_mut().insert_uniform(
-                    &format!("g_lights[{}].color", i),
-                    UniformValue::Vector3(v.color),
-                );
-                entity.material.borrow_mut().insert_uniform(
-                    &format!("g_lights[{}].position", i),
-                    UniformValue::Vector3(v.position),
-                );
-                entity.material.borrow_mut().insert_uniform(
-                    &format!("g_lights[{}].direction", i),
-                    UniformValue::Vector3(v.direction),
-                );
-                entity.material.borrow_mut().insert_uniform(
-                    &format!("g_lights[{}].intensity", i),
-                    UniformValue::Float(v.intensity),
-                );
-                entity.material.borrow_mut().insert_uniform(
-                    &format!("g_lights[{}].range", i),
-                    UniformValue::Float(v.range),
-                );
-                entity.material.borrow_mut().insert_uniform(
-                    &format!("g_lights[{}].inner_cone", i),
-                    UniformValue::Float(v.inner_cone),
-                );
-                entity.material.borrow_mut().insert_uniform(
-                    &format!("g_lights[{}].outer_cone", i),
-                    UniformValue::Float(v.outer_cone),
-                );
-            }
+            // 给材质注入全局变量，比如mvp
+            let global_uniform = GlobalUniform {
+                view_matrix,
+                projection_matrix,
+                view_position,
+                model_matrix,
+                normal_matrix,
+                light_count,
+                lights_shader_data: &lights_shader_data,
+            };
+            entity
+                .material
+                .borrow_mut()
+                .inject_global_uniform(&global_uniform);
 
             // 通知opengl用这个材质，初始化
             entity.material.borrow().bind();
@@ -444,7 +348,6 @@ impl App {
     }
 
     fn handle_window_event(&mut self) {
-        let input = self.input_state.clone();
         for (_, event) in
             glfw::flush_messages(&mut *(self.event_receiver.as_ref().unwrap().borrow_mut()))
         {

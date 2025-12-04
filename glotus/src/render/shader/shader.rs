@@ -1,6 +1,6 @@
 use gl::types::*;
-use log::{info, warn};
-use std::{cell::RefCell, ffi::CString, fs, path::Path, ptr, rc::Rc};
+use log::warn;
+use std::{cell::RefCell, ffi::CString, fs, ptr, rc::Rc};
 
 use super::shader_error::ShaderError;
 #[derive(Debug)]
