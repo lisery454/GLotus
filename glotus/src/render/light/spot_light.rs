@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use cgmath::Vector3;
 
 use crate::{
@@ -12,6 +14,23 @@ pub struct SpotLight {
     pub range: f32,
     pub inner: f32,
     pub outer: f32,
+}
+
+impl SpotLight {
+    pub fn new() -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(Self {
+            transform: Transform::default(),
+            color: Vector3 {
+                x: 1.0,
+                y: 1.0,
+                z: 1.0,
+            },
+            intensity: 1.0,
+            range: 100.0,
+            inner: 1.0,
+            outer: 0.8,
+        }))
+    }
 }
 
 impl Light for SpotLight {

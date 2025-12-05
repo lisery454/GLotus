@@ -79,11 +79,14 @@ vec3 CalcPhong(vec3 normal, vec3 view_dir, vec3 diff_tex, vec3 spec_tex) {
   for (int i = 0; i < g_light_count; ++i) {
     Light L = g_lights[i];
     if (L.light_type == 0)
-      result += CalcDirectionalLight(L, normal, view_dir, diff_tex, spec_tex);
+      result += L.color *
+                CalcDirectionalLight(L, normal, view_dir, diff_tex, spec_tex);
     else if (L.light_type == 1)
-      result += CalcPointLight(L, normal, view_dir, diff_tex, spec_tex);
+      result +=
+          L.color * CalcPointLight(L, normal, view_dir, diff_tex, spec_tex);
     else if (L.light_type == 2)
-      result += CalcSpotLight(L, normal, view_dir, diff_tex, spec_tex);
+      result +=
+          L.color * CalcSpotLight(L, normal, view_dir, diff_tex, spec_tex);
   }
 
   return result;

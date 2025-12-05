@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use cgmath::Vector3;
 
 use crate::{
@@ -9,6 +11,20 @@ pub struct DirectionalLight {
     pub transform: Transform,
     pub color: Vector3<f32>,
     pub intensity: f32,
+}
+
+impl DirectionalLight {
+    pub fn new() -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(Self {
+            transform: Transform::default(),
+            color: Vector3 {
+                x: 1.0,
+                y: 1.0,
+                z: 1.0,
+            },
+            intensity: 1.0,
+        }))
+    }
 }
 
 impl Light for DirectionalLight {
