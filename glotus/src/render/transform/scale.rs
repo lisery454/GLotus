@@ -1,6 +1,6 @@
 use cgmath::{Matrix4, Vector3};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Scale {
     data: Vector3<f32>,
 }

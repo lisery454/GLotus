@@ -1,7 +1,8 @@
+use std::{cell::RefCell, rc::Rc};
+
 use glotus::{
-    AppConfig, Color, DirectionalLight, Entity, FilteringMode, Material, Mesh, PointLight,
-    Position, Rotation, Shader, SpotLight, Texture2D, Transform, UniformValue, Vertex,
-    WrappingMode,
+    AppConfig, Color, Entity, FilteringMode, ITickable, Material, Mesh, PointLight, Position,
+    Shader, Texture2D, Transform, UniformValue, Vertex, WrappingMode,
 };
 
 fn main() {
@@ -9,6 +10,8 @@ fn main() {
         bg_color: [0.0, 0.0, 0.0],
         ..Default::default()
     });
+
+    app.borrow_mut().init_camera_tickable();
 
     let shader = Shader::from_files(
         concat!(env!("CARGO_PKG_NAME"), "/assets/shaders/vs.vert"),
@@ -178,25 +181,16 @@ fn main() {
         vec![],
     );
 
-    for i in -1..2 {
-        for j in -1..2 {
-            for k in -1..2 {
-                if i == 0 && j == 0 && k == 0 {
-                    continue;
-                }
-                let entity = Entity::new(
-                    Transform::from_position(3.0 * (i as f32), 3.0 * (j as f32), 3.0 * (k as f32)),
-                    material.clone(),
-                    mesh.clone(),
-                );
+    let entity = Entity::new(
+        Transform::from_position(0.0, 0.0, 0.0),
+        material.clone(),
+        mesh.clone(),
+    );
 
-                app.borrow()
-                    .get_world()
-                    .borrow_mut()
-                    .add_entity(entity.clone());
-            }
-        }
-    }
+    app.borrow()
+        .get_world()
+        .borrow_mut()
+        .add_entity(entity.clone());
 
     app.borrow()
         .get_world()
@@ -204,40 +198,64 @@ fn main() {
         .get_camera()
         .borrow_mut()
         .get_transform_mut()
-        .set_position(Position::new(0.0, 1.0, 4.0));
+        .set_position(Position::new(0.0, 0.0, 4.0));
 
     let point_light = PointLight::new();
     point_light.borrow_mut().color = Color::from_rgb(0, 255, 0);
-    point_light.borrow_mut().intensity = 3.0;
+    point_light.borrow_mut().intensity = 1.0;
     point_light.borrow_mut().range = 10.0;
     point_light
         .borrow_mut()
         .transform
-        .set_position(Position::new(0.0, 0.0, 0.0));
-    app.borrow().get_world().borrow_mut().add_light(point_light);
-
-    let directional_light = DirectionalLight::new();
-    directional_light.borrow_mut().color = Color::from_rgb(255, 0, 0);
-    directional_light
-        .borrow_mut()
-        .transform
-        .set_rotation(Rotation::new(0.0, 180.0, 0.0));
+        .set_position(Position::new(5.0, 0.0, 0.0));
     app.borrow()
         .get_world()
         .borrow_mut()
-        .add_light(directional_light);
-
-    let spot_light = SpotLight::new();
-    spot_light.borrow_mut().color = Color::from_rgb(0, 0, 255);
-    spot_light
+        .add_light(point_light.clone());
+    let light_tickable = LightTickable::new(point_light.clone());
+    app.borrow_mut()
+        .get_ticker()
         .borrow_mut()
-        .transform
-        .set_position(Position::new(0.0, 0.0, 8.0));
-    spot_light
-        .borrow_mut()
-        .transform
-        .set_rotation(Rotation::new(0.0, 0.0, 0.0));
-    app.borrow().get_world().borrow_mut().add_light(spot_light);
+        .add_tickable(light_tickable);
 
     app.borrow_mut().run();
+}
+
+struct LightTickable {
+    light: Rc<RefCell<PointLight>>,
+    hue: f32,
+    total_time: f32,
+}
+
+impl LightTickable {
+    pub fn new(light: Rc<RefCell<PointLight>>) -> Box<Self> {
+        Box::new(Self {
+            light,
+            hue: 0.0,
+            total_time: 0.0,
+        })
+    }
+}
+
+impl ITickable for LightTickable {
+    fn tick(
+        &mut self,
+        delta_time: f32,
+        _input_state: Rc<RefCell<glotus::input::input_state::InputState>>,
+    ) {
+        self.total_time += delta_time;
+        self.hue = (self.hue + delta_time * 0.1) % 1.0; // 0.2 = 速度
+        let color = Color::from_hsv(self.hue, 1.0, 1.0);
+        self.light.borrow_mut().color = color;
+
+        let x = self.total_time.cos() * 5.0;
+        let y = self.total_time.sin() * 5.0 * (self.total_time * 0.5).sin();
+        let z = self.total_time.sin() * 5.0 * (self.total_time * 0.5).cos();
+
+        let transform = &mut self.light.borrow_mut().transform;
+
+        transform.get_position_mut().set_x(x);
+        transform.get_position_mut().set_y(y);
+        transform.get_position_mut().set_z(z);
+    }
 }

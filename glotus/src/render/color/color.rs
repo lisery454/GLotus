@@ -21,6 +21,28 @@ impl Color {
     pub fn to_arr(&self) -> [f32; 3] {
         [self.r, self.g, self.b]
     }
+
+    pub fn from_hsv(h: f32, s: f32, v: f32) -> Self {
+        let h = (h * 360.0) % 360.0;
+        let c = v * s;
+        let x = c * (1.0 - ((h / 60.0) % 2.0 - 1.0).abs());
+        let m = v - c;
+
+        let (r1, g1, b1) = match h as i32 {
+            0..=60 => (c, x, 0.0),
+            61..=120 => (x, c, 0.0),
+            121..=180 => (0.0, c, x),
+            181..=240 => (0.0, x, c),
+            241..=300 => (x, 0.0, c),
+            _ => (c, 0.0, x),
+        };
+
+        Color {
+            r: r1 + m,
+            g: g1 + m,
+            b: b1 + m,
+        }
+    }
 }
 
 impl Default for Color {

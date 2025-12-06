@@ -2,7 +2,7 @@ mod app;
 mod app_config;
 mod log_builder;
 
-pub mod core;
+pub mod tick;
 pub mod event;
 pub mod input;
 pub mod render;
@@ -19,3 +19,5 @@ pub use render::shader::Shader;
 pub use render::texture::{FilteringMode, Texture2D, WrappingMode};
 pub use render::transform::{Position, Rotation, Scale, Transform};
 pub use render::color::color::Color;
+pub use tick::ITickable;
+pub use tick::ticker::Ticker;

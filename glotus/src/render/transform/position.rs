@@ -1,6 +1,6 @@
 use cgmath::{EuclideanSpace, Matrix4, Point3, Vector3};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Position {
     data: Point3<f32>,
 }
@@ -28,6 +28,18 @@ impl Position {
         Self {
             data: Point3::new(0.0, 0.0, 0.0),
         }
+    }
+
+    pub fn set_x(&mut self, value: f32) {
+        self.data.x = value;
+    }
+
+    pub fn set_y(&mut self, value: f32) {
+        self.data.y = value;
+    }
+
+    pub fn set_z(&mut self, value: f32) {
+        self.data.z = value;
     }
 
     pub fn get_arr(&self) -> [f32; 3] {

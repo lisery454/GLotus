@@ -1,0 +1,7 @@
+[package]
+name = "case_04_moving_light"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+glotus = { path = "../glotus" }

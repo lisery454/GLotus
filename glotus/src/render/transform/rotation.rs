@@ -1,6 +1,6 @@
 use cgmath::{Euler, InnerSpace, Matrix4, Quaternion, Rad, Vector3};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Rotation {
     data: Quaternion<f32>,
 }

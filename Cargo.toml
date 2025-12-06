@@ -1,3 +1,9 @@
 [workspace]
-members = ["case_01_plane", "case_02_cube", "case_03_phong", "glotus"]
+members = [
+    "case_01_plane",
+    "case_02_cube",
+    "case_03_phong",
+    "case_04_moving_light",
+    "glotus",
+]
 resolver = "3"

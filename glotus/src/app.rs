@@ -1,10 +1,10 @@
 use crate::{
     AppConfig,
-    core::FixedUpdateAble,
     event::{event::AppEvent, event_queue::AppEventQueue},
     input::input_state::InputState,
     log_builder,
     render::{light::LightShaderData, material::GlobalUniform, world::world::World},
+    tick::{camera_tickable::CameraTickable, ticker::Ticker},
 };
 use glfw::{
     Action, Context, Glfw, GlfwReceiver, Key, PWindow, SwapInterval, WindowEvent, ffi::glfwGetTime,
@@ -23,6 +23,7 @@ pub struct App {
     world: Rc<RefCell<World>>,
     input_state: Rc<RefCell<InputState>>,
     event_queue: Rc<RefCell<AppEventQueue>>,
+    ticker: Rc<RefCell<Ticker>>,
 }
 
 // main
@@ -41,6 +42,7 @@ impl App {
             world: Rc::new(RefCell::new(World::new())),
             input_state: Rc::new(RefCell::new(InputState::new())),
             event_queue: Rc::new(RefCell::new(AppEventQueue::new())),
+            ticker: Rc::new(RefCell::new(Ticker::new())),
         };
 
         log_builder::setup_logger();
@@ -132,6 +134,18 @@ impl App {
 
     pub fn get_world(&self) -> Rc<RefCell<World>> {
         self.world.clone()
+    }
+
+    pub fn get_ticker(&self) -> Rc<RefCell<Ticker>> {
+        self.ticker.clone()
+    }
+
+    pub fn init_camera_tickable(&mut self) {
+        self.ticker
+            .borrow_mut()
+            .add_tickable(Box::new(CameraTickable::new(
+                self.world.borrow().get_camera().clone(),
+            )));
     }
 
     pub fn run(&mut self) {
@@ -273,11 +287,9 @@ impl App {
             self.is_running = false;
         }
 
-        self.world
-            .borrow()
-            .get_camera()
+        self.ticker
             .borrow_mut()
-            .fixed_update(fixed_dt, self.input_state.clone());
+            .tick_all(fixed_dt, self.input_state.clone());
 
         self.input_state.borrow_mut().clear_delta();
     }
