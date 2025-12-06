@@ -18,3 +18,4 @@ pub use render::mesh::{Mesh, Vertex};
 pub use render::shader::Shader;
 pub use render::texture::{FilteringMode, Texture2D, WrappingMode};
 pub use render::transform::{Position, Rotation, Scale, Transform};
+pub use render::color::color::Color;

@@ -1,15 +1,16 @@
 use std::{cell::RefCell, rc::Rc};
 
-use cgmath::Vector3;
-
 use crate::{
-    render::light::{Light, LightShaderData, LightType},
-    render::transform::Transform,
+    Color,
+    render::{
+        light::{Light, LightShaderData, LightType},
+        transform::Transform,
+    },
 };
 
 pub struct PointLight {
     pub transform: Transform,
-    pub color: Vector3<f32>,
+    pub color: Color,
     pub intensity: f32,
     pub range: f32,
 }
@@ -18,11 +19,7 @@ impl PointLight {
     pub fn new() -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(Self {
             transform: Transform::default(),
-            color: Vector3 {
-                x: 1.0,
-                y: 1.0,
-                z: 1.0,
-            },
+            color: Default::default(),
             intensity: 1.0,
             range: 100.0,
         }))
@@ -30,7 +27,7 @@ impl PointLight {
 }
 
 impl Light for PointLight {
-    fn color(&self) -> Vector3<f32> {
+    fn color(&self) -> Color {
         self.color
     }
 
@@ -45,7 +42,7 @@ impl Light for PointLight {
     fn to_shader_data(&self) -> LightShaderData {
         LightShaderData {
             light_type: 1, // point
-            color: self.color.into(),
+            color: self.color.to_arr(),
             position: self.transform.get_position().get_arr().into(),
             direction: [0.0; 3],
             intensity: self.intensity,

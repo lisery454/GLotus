@@ -1,6 +1,7 @@
 use glotus::{
-    AppConfig, DirectionalLight, Entity, FilteringMode, Material, Mesh, PointLight, Position,
-    Rotation, Shader, SpotLight, Texture2D, Transform, UniformValue, Vertex, WrappingMode,
+    AppConfig, Color, DirectionalLight, Entity, FilteringMode, Material, Mesh, PointLight,
+    Position, Rotation, Shader, SpotLight, Texture2D, Transform, UniformValue, Vertex,
+    WrappingMode,
 };
 
 fn main() {
@@ -206,9 +207,7 @@ fn main() {
         .set_position(Position::new(0.0, 1.0, 4.0));
 
     let point_light = PointLight::new();
-    point_light.borrow_mut().color.x = 0.0;
-    point_light.borrow_mut().color.y = 1.0;
-    point_light.borrow_mut().color.z = 1.0;
+    point_light.borrow_mut().color = Color::from_rgb(0, 255, 0);
     point_light.borrow_mut().range = 10.0;
     point_light
         .borrow_mut()
@@ -217,19 +216,18 @@ fn main() {
     app.borrow().get_world().borrow_mut().add_light(point_light);
 
     let directional_light = DirectionalLight::new();
-    directional_light.borrow_mut().color.x = 1.0;
-    directional_light.borrow_mut().color.y = 0.5;
-    directional_light.borrow_mut().color.z = 0.5;
+    directional_light.borrow_mut().color = Color::from_rgb(255, 0, 0);
     directional_light
         .borrow_mut()
         .transform
         .set_rotation(Rotation::new(0.0, 180.0, 0.0));
-    app.borrow().get_world().borrow_mut().add_light(directional_light);
+    app.borrow()
+        .get_world()
+        .borrow_mut()
+        .add_light(directional_light);
 
     let spot_light = SpotLight::new();
-    spot_light.borrow_mut().color.x = 0.5;
-    spot_light.borrow_mut().color.y = 0.5;
-    spot_light.borrow_mut().color.z = 1.0;
+    spot_light.borrow_mut().color = Color::from_rgb(0, 0, 255);
     spot_light
         .borrow_mut()
         .transform

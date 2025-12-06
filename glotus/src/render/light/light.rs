@@ -1,6 +1,4 @@
-use cgmath::Vector3;
-
-use crate::render::transform::Transform;
+use crate::{Color, render::transform::Transform};
 
 #[derive(Clone, Copy)]
 pub enum LightType {
@@ -30,7 +28,7 @@ pub trait Light {
     fn transform_mut(&mut self) -> &mut Transform;
 
     /// 光强信息
-    fn color(&self) -> Vector3<f32>;
+    fn color(&self) -> Color;
     fn intensity(&self) -> f32;
 
     /// 返回光源类型
