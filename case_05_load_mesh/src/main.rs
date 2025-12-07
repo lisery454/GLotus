@@ -1,10 +1,11 @@
 use glotus::{
-    AppConfig, Color, Entity, Material, Mesh, PointLight, Position, Shader, Transform, UniformValue
+    AntiPixel, AppConfig, Color, Entity, Material, Mesh, PointLight, Position, Shader, Transform, UniformValue
 };
 
 fn main() {
     let app = glotus::App::new_with_config(AppConfig {
         bg_color: [0.0, 0.0, 0.0],
+        anti_pixel_msaa: AntiPixel::MSAA16,
         ..Default::default()
     });
     

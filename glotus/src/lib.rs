@@ -21,3 +21,4 @@ pub use render::transform::{Position, Rotation, Scale, Transform};
 pub use render::color::color::Color;
 pub use tick::ITickable;
 pub use tick::ticker::Ticker;
+pub use app_config::AntiPixel;
