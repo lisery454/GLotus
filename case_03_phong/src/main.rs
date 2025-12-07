@@ -10,6 +10,8 @@ fn main() {
         ..Default::default()
     });
 
+    app.borrow_mut().init_camera_tickable();
+
     let shader = Shader::from_files(
         concat!(env!("CARGO_PKG_NAME"), "/assets/shaders/vs.vert"),
         concat!(env!("CARGO_PKG_NAME"), "/assets/shaders/fs.frag"),
@@ -175,7 +177,7 @@ fn main() {
                 -0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0,
             ),
         ],
-        vec![],
+        (0..=35).collect(),
     );
 
     for i in -1..2 {

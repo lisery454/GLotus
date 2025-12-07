@@ -1,11 +1,15 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{render::material::Material, render::mesh::Mesh, render::transform::Transform};
+use crate::render::{
+    material::Material,
+    mesh::{Mesh, MeshGPUWrapper},
+    transform::Transform,
+};
 
 pub struct Entity {
     pub transform: Transform,
     pub material: Rc<RefCell<Material>>,
-    pub mesh: Rc<RefCell<Mesh>>,
+    pub mesh: Rc<RefCell<MeshGPUWrapper>>,
 }
 
 impl Entity {
@@ -17,7 +21,7 @@ impl Entity {
         Rc::new(RefCell::new(Self {
             transform,
             material,
-            mesh,
+            mesh: MeshGPUWrapper::from_mesh(mesh),
         }))
     }
 }

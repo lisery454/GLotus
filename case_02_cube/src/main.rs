@@ -73,7 +73,7 @@ fn main() {
             Vertex::from_position_and_tex_coords(-0.5, 0.5, 0.5, 0.0, 0.0),
             Vertex::from_position_and_tex_coords(-0.5, 0.5, -0.5, 0.0, 1.0),
         ],
-        vec![],
+        (0..=35).collect(),
     );
 
     let entity = Entity::new(Transform::default(), material.clone(), mesh.clone());
@@ -90,6 +90,8 @@ fn main() {
         .borrow_mut()
         .get_transform_mut()
         .set_position(Position::new(0.0, 0.0, 10.0));
+
+    app.borrow_mut().init_camera_tickable();
 
     app.borrow_mut().run();
 }

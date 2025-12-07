@@ -54,7 +54,7 @@ impl ITickable for CameraTickable {
         self.camera.borrow_mut().process_turn(
             cursor_x_offset as f32,
             cursor_y_offset as f32,
-            0.015,
+            0.005,
             true,
         );
     }

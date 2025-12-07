@@ -28,5 +28,7 @@ fn main() {
         .borrow_mut()
         .add_entity(entity.clone());
 
+    app.borrow_mut().init_camera_tickable();
+
     app.borrow_mut().run();
 }
