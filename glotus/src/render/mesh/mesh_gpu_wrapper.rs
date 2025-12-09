@@ -1,5 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
+use cgmath::{Vector2, Vector3, Zero};
 use gl::types::GLuint;
 
 use super::Mesh;
@@ -66,8 +67,16 @@ fn build_gpu_mesh(mesh: &Mesh) -> (Vec<Vertex>, Vec<u32>) {
 
     for i in 0..mesh.count {
         let p = mesh.positions[mesh.position_indexs[i]];
-        let n = mesh.normals[mesh.normal_indexs[i]];
-        let t = mesh.texcoords[mesh.texcoord_indexs[i]];
+        let n = if mesh.normal_indexs.len() == mesh.count {
+            mesh.normals[mesh.normal_indexs[i]]
+        } else {
+            Vector3::zero()
+        };
+        let t = if mesh.texcoord_indexs.len() == mesh.count {
+            mesh.texcoords[mesh.texcoord_indexs[i]]
+        } else {
+            Vector2::zero()
+        };
 
         let v = Vertex {
             pos: [p.x, p.y, p.z],
