@@ -63,7 +63,7 @@ impl Shader {
 
     fn compile_shader(source: &str, shader_type: GLenum) -> Result<GLuint, ShaderError> {
         let shader = unsafe { gl::CreateShader(shader_type) };
-        let c_str = CString::new(source.as_bytes()).unwrap();
+        let c_str = CString::new(source.as_bytes()).map_err(|_| ShaderError::TransformCStringFail)?;
         unsafe {
             gl::ShaderSource(shader, 1, &c_str.as_ptr(), ptr::null());
             gl::CompileShader(shader);
@@ -138,13 +138,14 @@ impl Shader {
         }
     }
 
-    fn get_location_of_uniform(&self, name: &str) -> GLint {
-        unsafe { gl::GetUniformLocation(self.id, std::ffi::CString::new(name).unwrap().as_ptr()) }
+    fn get_location_of_uniform(&self, name: &str) -> Result<GLint, ShaderError> {
+        let name = CString::new(name).map_err(|_| ShaderError::TransformCStringFail)?;
+        unsafe { Ok(gl::GetUniformLocation(self.id, name.as_ptr())) }
     }
 
-    pub fn set_uniform_mat3(&self, name: &str, value: &[[f32; 3]; 3]) {
+    pub fn set_uniform_mat3(&self, name: &str, value: &[[f32; 3]; 3]) -> Result<(), ShaderError> {
         unsafe {
-            let location = self.get_location_of_uniform(name);
+            let location = self.get_location_of_uniform(name)?;
             if location != -1 {
                 gl::UniformMatrix3fv(location, 1, gl::FALSE, value.as_ptr() as *const f32);
             } else {
@@ -153,11 +154,13 @@ impl Shader {
                 }
             }
         }
+
+        Ok(())
     }
 
-    pub fn set_uniform_mat4(&self, name: &str, value: &[[f32; 4]; 4]) {
+    pub fn set_uniform_mat4(&self, name: &str, value: &[[f32; 4]; 4]) -> Result<(), ShaderError> {
         unsafe {
-            let location = self.get_location_of_uniform(name);
+            let location = self.get_location_of_uniform(name)?;
             if location != -1 {
                 gl::UniformMatrix4fv(location, 1, gl::FALSE, value.as_ptr() as *const f32);
             } else {
@@ -166,11 +169,13 @@ impl Shader {
                 }
             }
         }
+
+        Ok(())
     }
 
-    pub fn set_uniform_vec3(&self, name: &str, value: &[f32; 3]) {
+    pub fn set_uniform_vec3(&self, name: &str, value: &[f32; 3]) -> Result<(), ShaderError> {
         unsafe {
-            let location = self.get_location_of_uniform(name);
+            let location = self.get_location_of_uniform(name)?;
             if location != -1 {
                 gl::Uniform3f(location, value[0], value[1], value[2]);
             } else {
@@ -179,11 +184,13 @@ impl Shader {
                 }
             }
         }
+
+        Ok(())
     }
 
-    pub fn set_uniform_vec4(&self, name: &str, value: &[f32; 4]) {
+    pub fn set_uniform_vec4(&self, name: &str, value: &[f32; 4]) -> Result<(), ShaderError> {
         unsafe {
-            let location = self.get_location_of_uniform(name);
+            let location = self.get_location_of_uniform(name)?;
             if location != -1 {
                 gl::Uniform4f(location, value[0], value[1], value[2], value[3]);
             } else {
@@ -192,11 +199,13 @@ impl Shader {
                 }
             }
         }
+
+        Ok(())
     }
 
-    pub fn set_uniform_f32(&self, name: &str, value: f32) {
+    pub fn set_uniform_f32(&self, name: &str, value: f32) -> Result<(), ShaderError> {
         unsafe {
-            let location = self.get_location_of_uniform(name);
+            let location = self.get_location_of_uniform(name)?;
             if location != -1 {
                 gl::Uniform1f(location, value);
             } else {
@@ -205,11 +214,13 @@ impl Shader {
                 }
             }
         }
+
+        Ok(())
     }
 
-    pub fn set_uniform_i32(&self, name: &str, value: i32) {
+    pub fn set_uniform_i32(&self, name: &str, value: i32) -> Result<(), ShaderError> {
         unsafe {
-            let location = self.get_location_of_uniform(name);
+            let location = self.get_location_of_uniform(name)?;
             if location != -1 {
                 gl::Uniform1i(location, value);
             } else {
@@ -218,6 +229,8 @@ impl Shader {
                 }
             }
         }
+
+        Ok(())
     }
 }
 

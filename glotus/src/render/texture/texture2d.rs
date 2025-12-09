@@ -35,13 +35,10 @@ impl Texture2D {
         filtering_mode_mag: FilteringMode,
     ) -> Result<Rc<RefCell<Self>>, TextureError> {
         // 1. 用 `image` 库读取图片
-        let img_result = image::open(path);
+        let img_result =
+            image::open(path).map_err(|_| TextureError::FileReadError(path.to_string()))?;
 
-        if img_result.is_err() {
-            return Err(TextureError::FileReadError(path.to_string()));
-        }
-
-        let img = img_result.unwrap().flipv(); // OpenGL 的纹理坐标原点在左下，需要翻转Y轴
+        let img = img_result.flipv(); // OpenGL 的纹理坐标原点在左下，需要翻转Y轴
 
         // 2. 转换为 RGBA 格式
         let rgba = img.to_rgba8();

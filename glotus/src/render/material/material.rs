@@ -1,6 +1,10 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::render::{material::GlobalUniform, shader::Shader, texture::Texture2D};
+use crate::render::{
+    material::{GlobalUniform, MaterialError},
+    shader::Shader,
+    texture::Texture2D,
+};
 
 use super::uniform_value::UniformValue;
 
@@ -92,7 +96,7 @@ impl Material {
         }
     }
 
-    pub(crate) fn bind(&self) {
+    pub(crate) fn bind(&self) -> Result<(), MaterialError> {
         let shader = self.shader.borrow();
         shader.bind();
 
@@ -106,7 +110,7 @@ impl Material {
                 UniformValue::Matrix3(m) => shader.set_uniform_mat3(name, m),
                 UniformValue::Matrix4(m) => shader.set_uniform_mat4(name, m),
                 UniformValue::Texture(slot, _) => shader.set_uniform_i32(name, *slot as i32),
-            }
+            }.map_err(|_| MaterialError::BindFail)?;
         }
 
         for (texture_slot_id, texture) in &self.textures {
@@ -115,6 +119,8 @@ impl Material {
                 gl::BindTexture(gl::TEXTURE_2D, texture.borrow().get_id());
             }
         }
+
+        Ok(())
     }
 
     pub(crate) fn unbind(&self) {

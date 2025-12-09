@@ -9,7 +9,7 @@ use crate::{
 use glfw::{
     Action, Context, Glfw, GlfwReceiver, Key, PWindow, SwapInterval, WindowEvent, ffi::glfwGetTime,
 };
-use log::info;
+use log::{error, info};
 use std::{cell::RefCell, rc::Rc, time::Duration};
 
 pub struct App {
@@ -342,11 +342,17 @@ impl App {
                 .inject_global_uniform(&global_uniform);
 
             // 通知opengl用这个材质，初始化
-            entity.material.borrow().bind();
-            // 通知opengl进行绘制
-            entity.mesh.borrow().draw();
-            // 通知opengl卸载这个材质
-            entity.material.borrow().unbind();
+            match entity.material.borrow().bind() {
+                Ok(_) => {
+                    // 通知opengl进行绘制
+                    entity.mesh.borrow().draw();
+                    // 通知opengl卸载这个材质
+                    entity.material.borrow().unbind();
+                }
+                Err(_) => {
+                    error!("bind material fail");
+                }
+            };
         }
     }
 

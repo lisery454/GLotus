@@ -2,6 +2,8 @@ use std::{cell::RefCell, rc::Rc};
 
 use cgmath::{Vector2, Vector3};
 
+use crate::render::mesh::MeshError;
+
 pub struct Mesh {
     pub positions: Vec<Vector3<f32>>, // 某个位置索引对应的位置
     pub normals: Vec<Vector3<f32>>,   // 某个法线索引对应的法线
@@ -133,7 +135,7 @@ impl Mesh {
         }))
     }
 
-    pub fn load_obj(path: &str) -> Rc<RefCell<Self>> {
+    pub fn load_obj(path: &str) -> Result<Rc<RefCell<Self>>, MeshError> {
         let (models, _) = tobj::load_obj(
             path,
             &tobj::LoadOptions {
@@ -141,17 +143,17 @@ impl Mesh {
                 ..Default::default()
             },
         )
-        .unwrap();
+        .map_err(|_| MeshError::TObjLoadFail)?;
 
         let mesh = &models[0].mesh;
 
-        Self::from_position_normal_texcoord(
+        Ok(Self::from_position_normal_texcoord(
             &mesh.positions,
             &mesh.indices,
             &mesh.normals,
             &mesh.normal_indices,
             &mesh.texcoords,
             &mesh.texcoord_indices,
-        )
+        ))
     }
 }

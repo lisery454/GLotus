@@ -41,16 +41,19 @@ fn main() {
         .borrow_mut()
         .insert_uniform("material.specular_shininess", UniformValue::Float(40.0));
 
-    let mesh = Mesh::load_obj(concat!(env!("CARGO_PKG_NAME"), "/assets/meshes/sphere.obj"));
+    let mesh =
+        Mesh::load_obj(concat!(env!("CARGO_PKG_NAME"), "/assets/meshes/sphere.obj")).unwrap();
     let mesh_2 = Mesh::load_obj(concat!(
         env!("CARGO_PKG_NAME"),
         "/assets/meshes/sphere_no_smooth.obj"
-    ));
-    let mesh_3 = Mesh::load_obj(concat!(env!("CARGO_PKG_NAME"), "/assets/meshes/box.obj"));
+    ))
+    .unwrap();
+    let mesh_3 = Mesh::load_obj(concat!(env!("CARGO_PKG_NAME"), "/assets/meshes/box.obj")).unwrap();
     let mesh_4 = Mesh::load_obj(concat!(
         env!("CARGO_PKG_NAME"),
         "/assets/meshes/suzanne.obj"
-    ));
+    ))
+    .unwrap();
 
     app.borrow()
         .get_world()
