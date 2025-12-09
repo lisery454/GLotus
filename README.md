@@ -2,15 +2,6 @@
 
 这是一个自己在学习 opengl 时练手用的封装库，简单地封装了一些 opengl 的功能。
 
-## TODO
-
-- 输入状态机，支持多键同时输入。
-- 世界树结构
-- 完善camera结构
-- 完善light的管理
-- window manager
-- 相机的移动方式
-
 ## utils
 
 ```shell
@@ -20,19 +11,19 @@ cargo init --bin project_bin
 
 # 运行项目
 cargo run -p <project_name>
-```
 
-## shader uniforms
+# 简单地绘制平面
+cargo run -p case_01_plane
 
-以下是一些 shader 中不用声明就可以使用的全局变量，需要使用`#include "glotus.glsl"`导入即可。
+# 绘制有贴图的立方体
+cargo run -p case_02_cube
 
-```glsl
-uniform mat3 normal_matrix; // 法线从模型空间到世界空间的矩阵
-uniform mat4 model_matrix; // 点从模型空间到世界空间的矩阵
-uniform mat4 view_matrix;   // 点从世界空间到摄像机空间的矩阵
-uniform mat4 projection_matrix; // 点从摄像机空间到透视空间的矩阵
+# 绘制phong光照模型
+cargo run -p case_03_phong
 
-uniform vec3 light_position;  // 光的位置
-uniform vec3 view_position; // 视角（摄像机）的位置
-uniform vec4 light_color;  // 光的颜色
+# 移动光源下的渲染
+cargo run -p case_04_moving_light
+
+# 从obj文件加载模型
+cargo run -p case_05_load_mesh
 ```
