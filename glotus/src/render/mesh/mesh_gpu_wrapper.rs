@@ -1,8 +1,94 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use gl::types::GLuint;
 
-use super::{Mesh, Vertex};
+use super::Mesh;
+
+use std::hash::{Hash, Hasher};
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Vertex {
+    pub pos: [f32; 3],
+    pub normal: [f32; 3],
+    pub uv: [f32; 2],
+}
+
+impl Vertex {
+    pub fn layout() -> Vec<VertexAttribute> {
+        vec![
+            VertexAttribute {
+                index: 0,
+                size: 3,
+                offset: 0,
+            },
+            VertexAttribute {
+                index: 1,
+                size: 3,
+                offset: std::mem::size_of::<[f32; 3]>(),
+            },
+            VertexAttribute {
+                index: 2,
+                size: 2,
+                offset: std::mem::size_of::<[f32; 3]>() * 2,
+            },
+        ]
+    }
+}
+
+impl Eq for Vertex {} // 必须加
+
+impl Hash for Vertex {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for v in self.pos {
+            state.write_u32(v.to_bits());
+        }
+        for v in self.normal {
+            state.write_u32(v.to_bits());
+        }
+        for v in self.uv {
+            state.write_u32(v.to_bits());
+        }
+    }
+}
+
+struct VertexAttribute {
+    pub index: u32,
+    pub size: i32,
+    pub offset: usize,
+}
+
+fn build_gpu_mesh(mesh: &Mesh) -> (Vec<Vertex>, Vec<u32>) {
+    let mut unique_vertices: Vec<Vertex> = Vec::new();
+    let mut indices: Vec<u32> = Vec::new();
+
+    let mut map: HashMap<Vertex, u32> = HashMap::new();
+
+    for i in 0..mesh.count {
+        let p = mesh.positions[mesh.position_indexs[i]];
+        let n = mesh.normals[mesh.normal_indexs[i]];
+        let t = mesh.texcoords[mesh.texcoord_indexs[i]];
+
+        let v = Vertex {
+            pos: [p.x, p.y, p.z],
+            normal: [n.x, n.y, n.z],
+            uv: [t.x, t.y],
+        };
+
+        if let Some(&idx) = map.get(&v) {
+            // 顶点已出现，直接复用索引
+            indices.push(idx);
+        } else {
+            // 新顶点
+            let new_index = unique_vertices.len() as u32;
+            unique_vertices.push(v);
+            map.insert(v, new_index);
+            indices.push(new_index);
+        }
+    }
+
+    (unique_vertices, indices)
+}
 
 pub struct MeshGPUWrapper {
     vao: GLuint,
@@ -13,9 +99,12 @@ pub struct MeshGPUWrapper {
 
 impl MeshGPUWrapper {
     pub fn from_mesh(mesh: Rc<RefCell<Mesh>>) -> Rc<RefCell<Self>> {
-        let (mut vao, mut vbo, mut ebo) = (0, 0, 0);
-
         let mesh = mesh.borrow();
+
+        // Dedup + index buffer
+        let (vertices, indices) = build_gpu_mesh(&mesh);
+
+        let (mut vao, mut vbo, mut ebo) = (0, 0, 0);
 
         unsafe {
             gl::GenVertexArrays(1, &mut vao);
@@ -24,24 +113,24 @@ impl MeshGPUWrapper {
 
             gl::BindVertexArray(vao);
 
-            // Upload vertex data
+            // Upload VBO
             gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
             gl::BufferData(
                 gl::ARRAY_BUFFER,
-                (mesh.vertices.len() * std::mem::size_of::<Vertex>()) as isize,
-                mesh.vertices.as_ptr() as *const _,
+                (vertices.len() * std::mem::size_of::<Vertex>()) as isize,
+                vertices.as_ptr() as *const _,
                 gl::STATIC_DRAW,
             );
 
+            // Upload EBO
             gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
             gl::BufferData(
                 gl::ELEMENT_ARRAY_BUFFER,
-                (mesh.indices.len() * std::mem::size_of::<u32>()) as isize,
-                mesh.indices.as_ptr() as *const _,
+                (indices.len() * std::mem::size_of::<u32>()) as isize,
+                indices.as_ptr() as *const _,
                 gl::STATIC_DRAW,
             );
 
-            // Set vertex attributes
             for attr in Vertex::layout() {
                 gl::EnableVertexAttribArray(attr.index);
                 gl::VertexAttribPointer(
@@ -61,7 +150,7 @@ impl MeshGPUWrapper {
             vao,
             vbo,
             ebo,
-            index_count: mesh.indices.len(),
+            index_count: indices.len(),
         }))
     }
 

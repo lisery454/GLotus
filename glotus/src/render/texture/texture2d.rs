@@ -7,6 +7,7 @@ use super::{
     texture_mode::{FilteringMode, WrappingMode},
 };
 
+#[derive(Debug)]
 pub struct Texture2D {
     id: GLuint,
 }
@@ -15,6 +16,17 @@ impl Texture2D {
     pub fn get_id(&self) -> GLuint {
         self.id
     }
+
+    pub fn from_file_default(path: &str) -> Result<Rc<RefCell<Self>>, TextureError> {
+        Self::from_file(
+            path,
+            WrappingMode::Repeat,
+            WrappingMode::Repeat,
+            FilteringMode::LinearMipmapLinear,
+            FilteringMode::Linear,
+        )
+    }
+
     pub fn from_file(
         path: &str,
         wrapping_mode_s: WrappingMode,

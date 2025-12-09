@@ -1,4 +1,4 @@
-use glotus::{Entity, Material, Mesh, Shader, Transform, Vertex};
+use glotus::*;
 
 fn main() {
     let app = glotus::App::new();
@@ -11,14 +11,11 @@ fn main() {
 
     let material = Material::new(shader.clone());
 
-    let mesh = Mesh::new(
-        vec![
-            Vertex::from_position(1.0, 1.0, -5.0),
-            Vertex::from_position(1.0, -1.0, -5.0),
-            Vertex::from_position(-1.0, -1.0, -5.0),
-            Vertex::from_position(-1.0, 1.0, -5.0),
+    let mesh = Mesh::from_position(
+        &vec![
+            1.0, 1.0, -5.0, 1.0, -1.0, -5.0, -1.0, -1.0, -5.0, -1.0, 1.0, -5.0,
         ],
-        vec![0, 1, 3, 1, 2, 3],
+        &vec![0, 1, 3, 1, 2, 3],
     );
 
     let entity = Entity::new(Transform::default(), material.clone(), mesh.clone());

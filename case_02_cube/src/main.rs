@@ -1,7 +1,4 @@
-use glotus::{
-    Entity, FilteringMode, Material, Mesh, Position, Shader, Texture2D, Transform, UniformValue,
-    Vertex, WrappingMode,
-};
+use glotus::*;
 
 fn main() {
     let app = glotus::App::new();
@@ -12,68 +9,51 @@ fn main() {
     )
     .unwrap();
 
-    let texture = Texture2D::from_file(
-        concat!(env!("CARGO_PKG_NAME"), "/assets/textures/brick.png"),
-        WrappingMode::Repeat,
-        WrappingMode::Repeat,
-        FilteringMode::LinearMipmapLinear,
-        FilteringMode::Linear,
-    )
+    let texture = Texture2D::from_file_default(concat!(
+        env!("CARGO_PKG_NAME"),
+        "/assets/textures/brick.png"
+    ))
     .unwrap();
 
     let material = Material::new(shader.clone());
 
     material
         .borrow_mut()
-        .insert_uniform("texture1", UniformValue::Texture(0));
-    material.borrow_mut().insert_textures(0u32, texture.clone());
+        .insert_uniform("texture1", UniformValue::Texture(0, texture.clone()));
 
-    let mesh = Mesh::new(
-        vec![
-            // back
-            Vertex::from_position_and_tex_coords(-0.5, -0.5, -0.5, 0.0, 0.0),
-            Vertex::from_position_and_tex_coords(0.5, -0.5, -0.5, 1.0, 0.0),
-            Vertex::from_position_and_tex_coords(0.5, 0.5, -0.5, 1.0, 1.0),
-            Vertex::from_position_and_tex_coords(0.5, 0.5, -0.5, 1.0, 1.0),
-            Vertex::from_position_and_tex_coords(-0.5, 0.5, -0.5, 0.0, 1.0),
-            Vertex::from_position_and_tex_coords(-0.5, -0.5, -0.5, 0.0, 0.0),
-            // front
-            Vertex::from_position_and_tex_coords(-0.5, -0.5, 0.5, 0.0, 0.0),
-            Vertex::from_position_and_tex_coords(0.5, -0.5, 0.5, 1.0, 0.0),
-            Vertex::from_position_and_tex_coords(0.5, 0.5, 0.5, 1.0, 1.0),
-            Vertex::from_position_and_tex_coords(0.5, 0.5, 0.5, 1.0, 1.0),
-            Vertex::from_position_and_tex_coords(-0.5, 0.5, 0.5, 0.0, 1.0),
-            Vertex::from_position_and_tex_coords(-0.5, -0.5, 0.5, 0.0, 0.0),
-            // left
-            Vertex::from_position_and_tex_coords(-0.5, 0.5, 0.5, 1.0, 0.0),
-            Vertex::from_position_and_tex_coords(-0.5, 0.5, -0.5, 1.0, 1.0),
-            Vertex::from_position_and_tex_coords(-0.5, -0.5, -0.5, 0.0, 1.0),
-            Vertex::from_position_and_tex_coords(-0.5, -0.5, -0.5, 0.0, 1.0),
-            Vertex::from_position_and_tex_coords(-0.5, -0.5, 0.5, 0.0, 0.0),
-            Vertex::from_position_and_tex_coords(-0.5, 0.5, 0.5, 1.0, 0.0),
-            // right
-            Vertex::from_position_and_tex_coords(0.5, 0.5, 0.5, 1.0, 0.0),
-            Vertex::from_position_and_tex_coords(0.5, 0.5, -0.5, 1.0, 1.0),
-            Vertex::from_position_and_tex_coords(0.5, -0.5, -0.5, 0.0, 1.0),
-            Vertex::from_position_and_tex_coords(0.5, -0.5, -0.5, 0.0, 1.0),
-            Vertex::from_position_and_tex_coords(0.5, -0.5, 0.5, 0.0, 0.0),
-            Vertex::from_position_and_tex_coords(0.5, 0.5, 0.5, 1.0, 0.0),
-            // down
-            Vertex::from_position_and_tex_coords(-0.5, -0.5, -0.5, 0.0, 1.0),
-            Vertex::from_position_and_tex_coords(0.5, -0.5, -0.5, 1.0, 1.0),
-            Vertex::from_position_and_tex_coords(0.5, -0.5, 0.5, 1.0, 0.0),
-            Vertex::from_position_and_tex_coords(0.5, -0.5, 0.5, 1.0, 0.0),
-            Vertex::from_position_and_tex_coords(-0.5, -0.5, 0.5, 0.0, 0.0),
-            Vertex::from_position_and_tex_coords(-0.5, -0.5, -0.5, 0.0, 1.0),
-            // up
-            Vertex::from_position_and_tex_coords(-0.5, 0.5, -0.5, 0.0, 1.0),
-            Vertex::from_position_and_tex_coords(0.5, 0.5, -0.5, 1.0, 1.0),
-            Vertex::from_position_and_tex_coords(0.5, 0.5, 0.5, 1.0, 0.0),
-            Vertex::from_position_and_tex_coords(0.5, 0.5, 0.5, 1.0, 0.0),
-            Vertex::from_position_and_tex_coords(-0.5, 0.5, 0.5, 0.0, 0.0),
-            Vertex::from_position_and_tex_coords(-0.5, 0.5, -0.5, 0.0, 1.0),
+    let mesh = Mesh::from_position_texcoord(
+        &vec![
+            -0.5, -0.5, -0.5, // - - - 0
+            0.5, -0.5, -0.5, // + - - 1
+            0.5, 0.5, -0.5, // + + - 2
+            -0.5, 0.5, -0.5, // - + - 3
+            -0.5, -0.5, 0.5, // - - + 4
+            0.5, -0.5, 0.5, // + - + 5
+            0.5, 0.5, 0.5, // + + + 6
+            -0.5, 0.5, 0.5, // - + + 7
         ],
-        (0..=35).collect(),
+        &vec![
+            0, 1, 2, 2, 3, 0, // back
+            4, 5, 6, 6, 7, 4, // front
+            7, 3, 0, 0, 4, 7, // left
+            1, 2, 6, 6, 5, 1, // right
+            2, 3, 7, 7, 6, 2, // top
+            1, 2, 4, 4, 5, 1, // bottom
+        ],
+        &vec![
+            0.0, 0.0, // 0
+            1.0, 0.0, // 1
+            1.0, 1.0, // 2
+            0.0, 1.0, // 3
+        ],
+        &vec![
+            0, 1, 2, 2, 3, 0, // back
+            0, 1, 2, 2, 3, 0, // front
+            0, 1, 2, 2, 3, 0, // left
+            0, 1, 2, 2, 3, 0, // right
+            0, 1, 2, 2, 3, 0, // top
+            0, 1, 2, 2, 3, 0, // bottom
+        ],
     );
 
     let entity = Entity::new(Transform::default(), material.clone(), mesh.clone());

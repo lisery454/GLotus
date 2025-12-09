@@ -1,8 +1,4 @@
-use glotus::{
-    AppConfig, Color, DirectionalLight, Entity, FilteringMode, Material, Mesh, PointLight,
-    Position, Rotation, Shader, SpotLight, Texture2D, Transform, UniformValue, Vertex,
-    WrappingMode,
-};
+use glotus::*;
 
 fn main() {
     let app = glotus::App::new_with_config(AppConfig {
@@ -18,37 +14,27 @@ fn main() {
     )
     .unwrap();
 
-    let texture_diffuse = Texture2D::from_file(
-        concat!(
-            env!("CARGO_PKG_NAME"),
-            "/assets/textures/texture_diffuse.png"
-        ),
-        WrappingMode::Repeat,
-        WrappingMode::Repeat,
-        FilteringMode::LinearMipmapLinear,
-        FilteringMode::Linear,
-    )
+    let texture_diffuse = Texture2D::from_file_default(concat!(
+        env!("CARGO_PKG_NAME"),
+        "/assets/textures/texture_diffuse.png"
+    ))
     .unwrap();
 
-    let texture_specular = Texture2D::from_file(
-        concat!(
-            env!("CARGO_PKG_NAME"),
-            "/assets/textures/texture_specular.png"
-        ),
-        WrappingMode::Repeat,
-        WrappingMode::Repeat,
-        FilteringMode::LinearMipmapLinear,
-        FilteringMode::Linear,
-    )
+    let texture_specular = Texture2D::from_file_default(concat!(
+        env!("CARGO_PKG_NAME"),
+        "/assets/textures/texture_specular.png"
+    ))
     .unwrap();
 
     let material = Material::new(shader.clone());
-    material
-        .borrow_mut()
-        .insert_uniform("material.diffuse_texture", UniformValue::Texture(0));
-    material
-        .borrow_mut()
-        .insert_uniform("material.specular_texture", UniformValue::Texture(1));
+    material.borrow_mut().insert_uniform(
+        "material.diffuse_texture",
+        UniformValue::Texture(0, texture_diffuse.clone()),
+    );
+    material.borrow_mut().insert_uniform(
+        "material.specular_texture",
+        UniformValue::Texture(1, texture_specular.clone()),
+    );
     material.borrow_mut().insert_uniform(
         "material.ambient_factor",
         UniformValue::Vector3([0.2, 0.2, 0.2]),
@@ -65,119 +51,55 @@ fn main() {
         .borrow_mut()
         .insert_uniform("material.specular_shininess", UniformValue::Float(256.0));
 
-    material
-        .borrow_mut()
-        .insert_textures(0, texture_diffuse.clone());
-    material
-        .borrow_mut()
-        .insert_textures(1, texture_specular.clone());
-
-    let mesh = Mesh::new(
-        vec![
-            // back
-            Vertex::from_position_and_normal_and_tex_coords(
-                -0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 0.0, 0.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 0.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 1.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 1.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                -0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 0.0, 1.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                -0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 0.0, 0.0,
-            ),
-            // front
-            Vertex::from_position_and_normal_and_tex_coords(
-                -0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 0.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 1.0),
-            Vertex::from_position_and_normal_and_tex_coords(0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 1.0),
-            Vertex::from_position_and_normal_and_tex_coords(
-                -0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 1.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                -0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0,
-            ),
-            // left
-            Vertex::from_position_and_normal_and_tex_coords(
-                -0.5, 0.5, 0.5, -1.0, 0.0, 0.0, 1.0, 0.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                -0.5, 0.5, -0.5, -1.0, 0.0, 0.0, 1.0, 1.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                -0.5, -0.5, -0.5, -1.0, 0.0, 0.0, 0.0, 1.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                -0.5, -0.5, -0.5, -1.0, 0.0, 0.0, 0.0, 1.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                -0.5, -0.5, 0.5, -1.0, 0.0, 0.0, 0.0, 0.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                -0.5, 0.5, 0.5, -1.0, 0.0, 0.0, 1.0, 0.0,
-            ),
-            // right
-            Vertex::from_position_and_normal_and_tex_coords(0.5, 0.5, 0.5, 1.0, 0.0, 0.0, 1.0, 0.0),
-            Vertex::from_position_and_normal_and_tex_coords(
-                0.5, 0.5, -0.5, 1.0, 0.0, 0.0, 1.0, 1.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                0.5, -0.5, -0.5, 1.0, 0.0, 0.0, 0.0, 1.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                0.5, -0.5, -0.5, 1.0, 0.0, 0.0, 0.0, 1.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                0.5, -0.5, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(0.5, 0.5, 0.5, 1.0, 0.0, 0.0, 1.0, 0.0),
-            // down
-            Vertex::from_position_and_normal_and_tex_coords(
-                -0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 0.0, 1.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 1.0, 1.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 1.0, 0.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 1.0, 0.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                -0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 0.0, 0.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                -0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 0.0, 1.0,
-            ),
-            // up
-            Vertex::from_position_and_normal_and_tex_coords(
-                -0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 1.0, 1.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 1.0, 0.0),
-            Vertex::from_position_and_normal_and_tex_coords(0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 1.0, 0.0),
-            Vertex::from_position_and_normal_and_tex_coords(
-                -0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 0.0,
-            ),
-            Vertex::from_position_and_normal_and_tex_coords(
-                -0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0,
-            ),
+    let mesh = Mesh::from_position_normal_texcoord(
+        &vec![
+            -0.5, -0.5, -0.5, // - - - 0
+            0.5, -0.5, -0.5, // + - - 1
+            0.5, 0.5, -0.5, // + + - 2
+            -0.5, 0.5, -0.5, // - + - 3
+            -0.5, -0.5, 0.5, // - - + 4
+            0.5, -0.5, 0.5, // + - + 5
+            0.5, 0.5, 0.5, // + + + 6
+            -0.5, 0.5, 0.5, // - + + 7
         ],
-        (0..=35).collect(),
+        &vec![
+            0, 1, 2, 2, 3, 0, // back
+            4, 5, 6, 6, 7, 4, // front
+            7, 3, 0, 0, 4, 7, // left
+            1, 2, 6, 6, 5, 1, // right
+            2, 3, 7, 7, 6, 2, // top
+            1, 2, 4, 4, 5, 1, // bottom
+        ],
+        &vec![
+            0.0, 0.0, -1.0, // back
+            0.0, 0.0, 1.0, // front
+            -1.0, 0.0, 0.0, // left
+            1.0, 0.0, 0.0, // right
+            0.0, 1.0, 0.0, // top
+            0.0, -1.0, 0.0, // bottom
+        ],
+        &vec![
+            0, 0, 0, 0, 0, 0, // back
+            1, 1, 1, 1, 1, 1, // front
+            2, 2, 2, 2, 2, 2, // left
+            3, 3, 3, 3, 3, 3, //right
+            4, 4, 4, 4, 4, 4, //top
+            5, 5, 5, 5, 5, 5, //bottom
+        ],
+        &vec![
+            0.0, 0.0, // 0
+            1.0, 0.0, // 1
+            1.0, 1.0, // 2
+            0.0, 1.0, // 3
+        ],
+        &vec![
+            0, 1, 2, 2, 3, 0, // back
+            0, 1, 2, 2, 3, 0, // front
+            0, 1, 2, 2, 3, 0, // left
+            0, 1, 2, 2, 3, 0, // right
+            0, 1, 2, 2, 3, 0, // top
+            0, 1, 2, 2, 3, 0, // bottom
+        ],
     );
 
     for i in -1..2 {

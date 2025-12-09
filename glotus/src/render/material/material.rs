@@ -20,10 +20,13 @@ impl Material {
     }
 
     pub fn insert_uniform(&mut self, name: &str, value: UniformValue) {
+        if let UniformValue::Texture(slot_id, texture) = &value {
+            self.insert_textures(*slot_id as u32, texture.clone());
+        }
         self.uniforms.insert(name.to_string(), value);
     }
 
-    pub fn insert_textures(&mut self, slot_id: u32, value: Rc<RefCell<Texture2D>>) {
+    fn insert_textures(&mut self, slot_id: u32, value: Rc<RefCell<Texture2D>>) {
         self.textures.insert(slot_id, value);
     }
 
@@ -102,7 +105,7 @@ impl Material {
                 UniformValue::Vector4(v) => shader.set_uniform_vec4(name, v),
                 UniformValue::Matrix3(m) => shader.set_uniform_mat3(name, m),
                 UniformValue::Matrix4(m) => shader.set_uniform_mat4(name, m),
-                UniformValue::Texture(slot) => shader.set_uniform_i32(name, *slot as i32),
+                UniformValue::Texture(slot, _) => shader.set_uniform_i32(name, *slot as i32),
             }
         }
 

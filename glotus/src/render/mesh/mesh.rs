@@ -2,16 +2,135 @@ use std::{cell::RefCell, rc::Rc};
 
 use cgmath::{Vector2, Vector3};
 
-use super::vertex::Vertex;
-
 pub struct Mesh {
-    pub vertices: Vec<Vertex>,
-    pub indices: Vec<u32>,
+    pub positions: Vec<Vector3<f32>>, // 某个位置索引对应的位置
+    pub normals: Vec<Vector3<f32>>,   // 某个法线索引对应的法线
+    pub texcoords: Vec<Vector2<f32>>, // 某个uv索引对应的uv
+    pub position_indexs: Vec<usize>,  // 某个顶点的位置索引
+    pub normal_indexs: Vec<usize>,    // 某个顶点的法线索引
+    pub texcoord_indexs: Vec<usize>,  // 某个顶点的uv索引
+    pub count: usize,                 // 一共多少个顶点
+}
+
+impl Default for Mesh {
+    fn default() -> Self {
+        Self {
+            positions: Default::default(),
+            normals: Default::default(),
+            texcoords: Default::default(),
+            position_indexs: Default::default(),
+            normal_indexs: Default::default(),
+            texcoord_indexs: Default::default(),
+            count: Default::default(),
+        }
+    }
 }
 
 impl Mesh {
-    pub fn new(vertices: Vec<Vertex>, indices: Vec<u32>) -> Rc<RefCell<Self>> {
-        Rc::new(RefCell::new(Self { vertices, indices }))
+    /// example
+    /// ```
+    /// from_position(&vec![
+    ///         1.0, 1.0, -5.0,
+    ///         1.0, -1.0, -5.0,
+    ///        -1.0, -1.0, -5.0,
+    ///        -1.0, 1.0, -5.0,
+    ///     ],
+    ///     &vec![0, 1, 3, 1, 2, 3])
+    /// ```
+    pub fn from_position(positions: &Vec<f32>, position_indexs: &Vec<u32>) -> Rc<RefCell<Self>> {
+        let count = position_indexs.len();
+        Rc::new(RefCell::new(Self {
+            positions: positions
+                .chunks(3)
+                .map(|c| Vector3::new(c[0], c[1], c[2]))
+                .collect(),
+            position_indexs: position_indexs.iter().map(|c| *c as usize).collect(),
+            count,
+            ..Default::default()
+        }))
+    }
+
+    pub fn from_position_normal(
+        positions: &Vec<f32>,
+        position_indexs: &Vec<u32>,
+        normals: &Vec<f32>,
+        normal_indexs: &Vec<u32>,
+    ) -> Rc<RefCell<Self>> {
+        let count = position_indexs.len();
+        assert_eq!(count, normal_indexs.len());
+
+        Rc::new(RefCell::new(Self {
+            positions: positions
+                .chunks(3)
+                .map(|c| Vector3::new(c[0], c[1], c[2]))
+                .collect(),
+            position_indexs: position_indexs.iter().map(|c| *c as usize).collect(),
+            normals: normals
+                .chunks(3)
+                .map(|c| Vector3::new(c[0], c[1], c[2]))
+                .collect(),
+            normal_indexs: normal_indexs.iter().map(|c| *c as usize).collect(),
+            count,
+            ..Default::default()
+        }))
+    }
+
+    pub fn from_position_texcoord(
+        positions: &Vec<f32>,
+        position_indexs: &Vec<u32>,
+        texcoords: &Vec<f32>,
+        texcoord_indexs: &Vec<u32>,
+    ) -> Rc<RefCell<Self>> {
+        let count = position_indexs.len();
+        assert_eq!(count, texcoord_indexs.len());
+
+        Rc::new(RefCell::new(Self {
+            positions: positions
+                .chunks(3)
+                .map(|c| Vector3::new(c[0], c[1], c[2]))
+                .collect(),
+            position_indexs: position_indexs.iter().map(|c| *c as usize).collect(),
+            texcoords: texcoords
+                .chunks(2)
+                .map(|c| Vector2::new(c[0], c[1]))
+                .collect(),
+            texcoord_indexs: texcoord_indexs.iter().map(|c| *c as usize).collect(),
+            count,
+            ..Default::default()
+        }))
+    }
+
+    pub fn from_position_normal_texcoord(
+        positions: &Vec<f32>,
+        position_indexs: &Vec<u32>,
+        normals: &Vec<f32>,
+        normal_indexs: &Vec<u32>,
+        texcoords: &Vec<f32>,
+        texcoord_indexs: &Vec<u32>,
+    ) -> Rc<RefCell<Self>> {
+        let count = position_indexs.len();
+        assert_eq!(count, normal_indexs.len());
+        assert_eq!(count, texcoord_indexs.len());
+
+        Rc::new(RefCell::new(Self {
+            positions: positions
+                .chunks(3)
+                .map(|c| Vector3::new(c[0], c[1], c[2]))
+                .collect(),
+            position_indexs: position_indexs.iter().map(|c| *c as usize).collect(),
+            normals: normals
+                .chunks(3)
+                .map(|c| Vector3::new(c[0], c[1], c[2]))
+                .collect(),
+            normal_indexs: normal_indexs.iter().map(|c| *c as usize).collect(),
+            texcoords: texcoords
+                .chunks(2)
+                .map(|c| Vector2::new(c[0], c[1]))
+                .collect(),
+            texcoord_indexs: texcoord_indexs.iter().map(|c| *c as usize).collect(),
+            count,
+            ..Default::default()
+        }))
     }
 
     pub fn load_obj(path: &str) -> Rc<RefCell<Self>> {
@@ -26,59 +145,13 @@ impl Mesh {
 
         let mesh = &models[0].mesh;
 
-        let mut vertices = Vec::new();
-
-        for i in 0..mesh.indices.len() {
-            let position_index = mesh.indices[i] as usize;
-
-            let position = Vector3::new(
-                mesh.positions[position_index * 3],
-                mesh.positions[position_index * 3 + 1],
-                mesh.positions[position_index * 3 + 2],
-            );
-
-            // 法线要检查是否存在
-            let normal = if !mesh.normals.is_empty() {
-                let normal_index = mesh.normal_indices[i] as usize;
-                Vector3::new(
-                    mesh.normals[normal_index * 3],
-                    mesh.normals[normal_index * 3 + 1],
-                    mesh.normals[normal_index * 3 + 2],
-                )
-            } else {
-                Vector3::new(0.0, 1.0, 0.0)
-            };
-
-            // UV 要检查 size
-            let tex_coord = if !mesh.texcoords.is_empty() {
-                let texture_index = mesh.texcoord_indices[i] as usize;
-                Vector2::new(
-                    mesh.texcoords[texture_index * 2],
-                    mesh.texcoords[texture_index * 2 + 1],
-                )
-            } else {
-                Vector2::new(0.0, 0.0)
-            };
-
-            vertices.push(Vertex {
-                position,
-                normal,
-                tex_coord,
-                tangent: Vector3::new(0.0, 0.0, 0.0),
-                bitangent: Vector3::new(0.0, 0.0, 0.0),
-                color: Vector3::new(1.0, 1.0, 1.0),
-            });
-        }
-
-        Self::new(
-            vertices,
-            (0..mesh.indices.len())
-                .map(|x| x as u32)
-                .collect::<Vec<u32>>(),
+        Self::from_position_normal_texcoord(
+            &mesh.positions,
+            &mesh.indices,
+            &mesh.normals,
+            &mesh.normal_indices,
+            &mesh.texcoords,
+            &mesh.texcoord_indices,
         )
-    }
-
-    pub fn get_vertices(&self) -> &Vec<Vertex> {
-        &self.vertices
     }
 }
