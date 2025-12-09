@@ -4,6 +4,8 @@ use thiserror::Error;
 pub enum ShaderError {
     #[error("Failed to read shader file: {0}")]
     FileReadError(String),
+    #[error("Failed to set shader location: {0}")]
+    SetShaderLocationFail(String),
     #[error("Failed to transform String to CString")]
     TransformCStringFail,
     #[error("Failed to compile shader: {0}")]

@@ -344,15 +344,14 @@ impl App {
             // 通知opengl用这个材质，初始化
             match entity.material.borrow().bind() {
                 Ok(_) => {
-                    // 通知opengl进行绘制
-                    entity.mesh.borrow().draw();
-                    // 通知opengl卸载这个材质
-                    entity.material.borrow().unbind();
+                    entity.mesh.borrow().draw(); // 通知opengl进行绘制
                 }
                 Err(_) => {
                     error!("bind material fail");
                 }
             };
+
+            entity.material.borrow().unbind(); // 通知opengl卸载这个材质
         }
     }
 

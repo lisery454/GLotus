@@ -110,7 +110,8 @@ impl Material {
                 UniformValue::Matrix3(m) => shader.set_uniform_mat3(name, m),
                 UniformValue::Matrix4(m) => shader.set_uniform_mat4(name, m),
                 UniformValue::Texture(slot, _) => shader.set_uniform_i32(name, *slot as i32),
-            }.map_err(|_| MaterialError::BindFail)?;
+            }
+            .map_err(|e| MaterialError::BindFail(e))?;
         }
 
         for (texture_slot_id, texture) in &self.textures {

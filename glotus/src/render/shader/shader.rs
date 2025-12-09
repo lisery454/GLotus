@@ -1,5 +1,4 @@
 use gl::types::*;
-use log::warn;
 use std::{cell::RefCell, ffi::CString, fs, ptr, rc::Rc};
 
 use super::shader_error::ShaderError;
@@ -63,7 +62,8 @@ impl Shader {
 
     fn compile_shader(source: &str, shader_type: GLenum) -> Result<GLuint, ShaderError> {
         let shader = unsafe { gl::CreateShader(shader_type) };
-        let c_str = CString::new(source.as_bytes()).map_err(|_| ShaderError::TransformCStringFail)?;
+        let c_str =
+            CString::new(source.as_bytes()).map_err(|_| ShaderError::TransformCStringFail)?;
         unsafe {
             gl::ShaderSource(shader, 1, &c_str.as_ptr(), ptr::null());
             gl::CompileShader(shader);
@@ -150,7 +150,7 @@ impl Shader {
                 gl::UniformMatrix3fv(location, 1, gl::FALSE, value.as_ptr() as *const f32);
             } else {
                 if !is_uniform_in_glotus_glsl(name) {
-                    warn!("set shader location failed: {}", name);
+                    return Err(ShaderError::SetShaderLocationFail(String::from(name)));
                 }
             }
         }
@@ -165,7 +165,7 @@ impl Shader {
                 gl::UniformMatrix4fv(location, 1, gl::FALSE, value.as_ptr() as *const f32);
             } else {
                 if !is_uniform_in_glotus_glsl(name) {
-                    warn!("set shader location failed: {}", name);
+                    return Err(ShaderError::SetShaderLocationFail(String::from(name)));
                 }
             }
         }
@@ -180,7 +180,7 @@ impl Shader {
                 gl::Uniform3f(location, value[0], value[1], value[2]);
             } else {
                 if !is_uniform_in_glotus_glsl(name) {
-                    warn!("set shader location failed: {}", name);
+                    return Err(ShaderError::SetShaderLocationFail(String::from(name)));
                 }
             }
         }
@@ -195,7 +195,7 @@ impl Shader {
                 gl::Uniform4f(location, value[0], value[1], value[2], value[3]);
             } else {
                 if !is_uniform_in_glotus_glsl(name) {
-                    warn!("set shader location failed: {}", name);
+                    return Err(ShaderError::SetShaderLocationFail(String::from(name)));
                 }
             }
         }
@@ -210,7 +210,7 @@ impl Shader {
                 gl::Uniform1f(location, value);
             } else {
                 if !is_uniform_in_glotus_glsl(name) {
-                    warn!("set shader location failed: {}", name);
+                    return Err(ShaderError::SetShaderLocationFail(String::from(name)));
                 }
             }
         }
@@ -225,7 +225,7 @@ impl Shader {
                 gl::Uniform1i(location, value);
             } else {
                 if !is_uniform_in_glotus_glsl(name) {
-                    warn!("set shader location failed: {}", name);
+                    return Err(ShaderError::SetShaderLocationFail(String::from(name)));
                 }
             }
         }
