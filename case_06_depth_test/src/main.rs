@@ -14,29 +14,6 @@ fn main() {
     .unwrap();
 
     let material = Material::new(shader.clone());
-    material.borrow_mut().insert_uniform(
-        "material.diff_color",
-        UniformValue::Vector3([0.5, 0.5, 0.5]),
-    );
-    material.borrow_mut().insert_uniform(
-        "material.spec_color",
-        UniformValue::Vector3([1.0, 1.0, 1.0]),
-    );
-    material.borrow_mut().insert_uniform(
-        "material.ambient_factor",
-        UniformValue::Vector3([0.1, 0.1, 0.1]),
-    );
-    material.borrow_mut().insert_uniform(
-        "material.diffuse_factor",
-        UniformValue::Vector3([1.0, 1.0, 1.0]),
-    );
-    material.borrow_mut().insert_uniform(
-        "material.specular_factor",
-        UniformValue::Vector3([0.6, 0.6, 0.6]),
-    );
-    material
-        .borrow_mut()
-        .insert_uniform("material.specular_shininess", UniformValue::Float(40.0));
 
     let mesh =
         Mesh::load_obj(concat!(env!("CARGO_PKG_NAME"), "/assets/meshes/sphere.obj")).unwrap();
@@ -46,11 +23,6 @@ fn main() {
     ))
     .unwrap();
     let mesh_3 = Mesh::load_obj(concat!(env!("CARGO_PKG_NAME"), "/assets/meshes/box.obj")).unwrap();
-    let mesh_4 = Mesh::load_obj(concat!(
-        env!("CARGO_PKG_NAME"),
-        "/assets/meshes/suzanne.obj"
-    ))
-    .unwrap();
 
     app.borrow()
         .get_world()
@@ -77,15 +49,6 @@ fn main() {
             Transform::from_position(0.0, 0.0, 3.0),
             material.clone(),
             mesh_3.clone(),
-        ));
-
-    app.borrow()
-        .get_world()
-        .borrow_mut()
-        .add_entity(Entity::new(
-            Transform::from_position(3.0, 0.0, 3.0),
-            material.clone(),
-            mesh_4.clone(),
         ));
 
     app.borrow()

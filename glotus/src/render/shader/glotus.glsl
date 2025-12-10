@@ -108,3 +108,21 @@ vec3 CalcPhong(vec3 normal, vec3 view_dir, vec3 frag_pos, PhongParams pp) {
 
   return result;
 }
+
+struct Camera {
+  int camera_type;
+  vec3 direction;
+  vec3 position;
+  float aspect_ratio;
+  float near_plane;
+  float far_plane;
+};
+
+uniform Camera g_camera;
+
+float LinearizeDepth(float glFragCoordZ) {
+  float near = g_camera.near_plane;
+  float far = g_camera.far_plane;
+  float z = glFragCoordZ * 2.0 - 1.0;
+  return (2.0 * near * far) / (far + near - z * (far - near)) / far;
+}

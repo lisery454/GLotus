@@ -1,0 +1,7 @@
+[package]
+name = "case_06_depth_test"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+glotus = { path = "../glotus" }
