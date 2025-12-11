@@ -7,16 +7,14 @@ use super::{
     texture_mode::{FilteringMode, WrappingMode},
 };
 
+/// 二维贴图
 #[derive(Debug)]
 pub struct Texture2D {
-    id: GLuint,
+    pub(crate) id: GLuint,
 }
 
 impl Texture2D {
-    pub fn get_id(&self) -> GLuint {
-        self.id
-    }
-
+    /// 用默认配置从文件生成贴图
     pub fn from_file_default(path: &str) -> Result<Rc<RefCell<Self>>, TextureError> {
         Self::from_file(
             path,
@@ -27,6 +25,7 @@ impl Texture2D {
         )
     }
 
+    /// 从文件生成贴图
     pub fn from_file(
         path: &str,
         wrapping_mode_s: WrappingMode,
@@ -79,6 +78,7 @@ impl Texture2D {
         Ok(Rc::new(RefCell::new(Self { id: texture_id })))
     }
 
+    /// 设置循环模式
     fn set_wrapping_mode(wrap: GLenum, wrapping_mode: WrappingMode) {
         unsafe {
             match wrapping_mode {
@@ -97,6 +97,7 @@ impl Texture2D {
         }
     }
 
+    /// 设置过滤模式
     fn set_filtering_mode(filter: GLenum, filtering_mode: FilteringMode) {
         unsafe {
             match filtering_mode {

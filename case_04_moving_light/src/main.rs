@@ -121,7 +121,7 @@ fn main() {
         .get_camera()
         .borrow_mut()
         .get_transform_mut()
-        .set_position(Position::new(0.0, 0.0, 4.0));
+        .set_translation(Translation::new(0.0, 0.0, 4.0));
 
     let point_light = PointLight::new();
     point_light.borrow_mut().color = Color::from_rgb(0, 255, 0);
@@ -130,7 +130,7 @@ fn main() {
     point_light
         .borrow_mut()
         .transform
-        .set_position(Position::new(5.0, 0.0, 0.0));
+        .set_translation(Translation::new(5.0, 0.0, 0.0));
     app.borrow()
         .get_world()
         .borrow_mut()
@@ -177,8 +177,8 @@ impl ITickable for LightTickable {
 
         let transform = &mut self.light.borrow_mut().transform;
 
-        transform.get_position_mut().set_x(x);
-        transform.get_position_mut().set_y(y);
-        transform.get_position_mut().set_z(z);
+        transform.get_translation_mut().set_x(x);
+        transform.get_translation_mut().set_y(y);
+        transform.get_translation_mut().set_z(z);
     }
 }

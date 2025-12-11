@@ -151,7 +151,7 @@ impl Material {
         for (texture_slot_id, texture) in &self.textures {
             unsafe {
                 gl::ActiveTexture(gl::TEXTURE0 + texture_slot_id);
-                gl::BindTexture(gl::TEXTURE_2D, texture.borrow().get_id());
+                gl::BindTexture(gl::TEXTURE_2D, texture.borrow().id);
             }
         }
 

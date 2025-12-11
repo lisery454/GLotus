@@ -7,6 +7,7 @@ use super::Mesh;
 
 use std::hash::{Hash, Hasher};
 
+/// 顶点
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Vertex {
@@ -16,6 +17,7 @@ struct Vertex {
 }
 
 impl Vertex {
+    /// 顶点的布局
     pub fn layout() -> Vec<VertexAttribute> {
         vec![
             VertexAttribute {
@@ -59,6 +61,7 @@ struct VertexAttribute {
     pub offset: usize,
 }
 
+/// 构建用来给gpu传输的数据，包含顶点信息，以及用了的顶点，3个一组
 fn build_gpu_mesh(mesh: &Mesh) -> (Vec<Vertex>, Vec<u32>) {
     let mut unique_vertices: Vec<Vertex> = Vec::new();
     let mut indices: Vec<u32> = Vec::new();
@@ -99,14 +102,16 @@ fn build_gpu_mesh(mesh: &Mesh) -> (Vec<Vertex>, Vec<u32>) {
     (unique_vertices, indices)
 }
 
+/// mesh的包装器，用来给GPU传输mesh数据
 pub struct MeshGPUWrapper {
-    vao: GLuint,
-    vbo: GLuint,
-    ebo: GLuint,
-    index_count: usize,
+    pub(crate) vao: GLuint,
+    pub(crate) vbo: GLuint,
+    pub(crate) ebo: GLuint,
+    pub(crate) index_count: usize,
 }
 
 impl MeshGPUWrapper {
+    /// 从mesh生成
     pub fn from_mesh(mesh: Rc<RefCell<Mesh>>) -> Rc<RefCell<Self>> {
         let mesh = mesh.borrow();
 
@@ -163,6 +168,7 @@ impl MeshGPUWrapper {
         }))
     }
 
+    /// 传输数据给GPU进行绘制
     pub fn draw(&self) {
         unsafe {
             gl::BindVertexArray(self.vao);

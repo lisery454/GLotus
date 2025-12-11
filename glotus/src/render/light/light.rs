@@ -1,5 +1,6 @@
 use crate::{Color, render::transform::Transform};
 
+/// 光源类型
 #[derive(Clone, Copy)]
 pub enum LightType {
     Directional,
@@ -9,6 +10,7 @@ pub enum LightType {
     Custom(u32), // 扩展用
 }
 
+/// 光源shader数据
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct LightShaderData {
@@ -22,6 +24,7 @@ pub struct LightShaderData {
     pub outer_cone: f32,
 }
 
+/// 光源的trait
 pub trait Light {
     /// 世界空间位置
     fn transform(&self) -> &Transform;

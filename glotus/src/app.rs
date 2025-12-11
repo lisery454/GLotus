@@ -3,7 +3,7 @@ use crate::{
     event::{event::AppEvent, event_queue::AppEventQueue},
     input::input_state::InputState,
     log_builder,
-    render::{light::LightShaderData, material::GlobalUniform, world::world::World},
+    render::*,
     tick::{camera_tickable::CameraTickable, ticker::Ticker},
 };
 use glfw::{
@@ -328,7 +328,7 @@ impl App {
             let entity = entity.borrow();
             // 计算矩阵
             let model_matrix = entity.transform.to_matrix();
-            let normal_matrix = entity.transform.to_normal_matrix();
+            let normal_matrix = entity.transform.to_normal_matrix().unwrap();
 
             // 给材质注入全局变量，比如mvp
             let global_uniform = GlobalUniform {

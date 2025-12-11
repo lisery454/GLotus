@@ -1,6 +1,6 @@
 use cgmath::{Deg, InnerSpace, Quaternion, Rad, Rotation3, Vector3};
 
-use crate::render::transform::Rotation;
+use crate::{Translation, render::transform::Rotation};
 
 use super::camera::Camera;
 
@@ -26,8 +26,8 @@ impl Camera {
             * delta_time;
 
         self.get_transform_mut()
-            .get_position_mut()
-            .translate(delta_position);
+            .get_translation_mut()
+            .translate(Translation::from_vec(delta_position));
     }
 
     pub fn process_turn(

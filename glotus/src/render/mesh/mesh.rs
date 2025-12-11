@@ -4,14 +4,15 @@ use cgmath::{Vector2, Vector3};
 
 use crate::render::mesh::MeshError;
 
+/// 网格模型
 pub struct Mesh {
-    pub positions: Vec<Vector3<f32>>, // 某个位置索引对应的位置
-    pub normals: Vec<Vector3<f32>>,   // 某个法线索引对应的法线
-    pub texcoords: Vec<Vector2<f32>>, // 某个uv索引对应的uv
-    pub position_indexs: Vec<usize>,  // 某个顶点的位置索引
-    pub normal_indexs: Vec<usize>,    // 某个顶点的法线索引
-    pub texcoord_indexs: Vec<usize>,  // 某个顶点的uv索引
-    pub count: usize,                 // 一共多少个顶点
+    pub(crate) positions: Vec<Vector3<f32>>, // 某个位置索引对应的位置
+    pub(crate) normals: Vec<Vector3<f32>>,   // 某个法线索引对应的法线
+    pub(crate) texcoords: Vec<Vector2<f32>>, // 某个uv索引对应的uv
+    pub(crate) position_indexs: Vec<usize>,  // 某个顶点的位置索引
+    pub(crate) normal_indexs: Vec<usize>,    // 某个顶点的法线索引
+    pub(crate) texcoord_indexs: Vec<usize>,  // 某个顶点的uv索引
+    pub(crate) count: usize,                 // 一共多少个顶点
 }
 
 impl Default for Mesh {
@@ -29,6 +30,7 @@ impl Default for Mesh {
 }
 
 impl Mesh {
+    /// 从位置数组生成
     pub fn from_position(positions: &Vec<f32>, position_indexs: &Vec<u32>) -> Rc<RefCell<Self>> {
         let count = position_indexs.len();
         Rc::new(RefCell::new(Self {
@@ -42,6 +44,7 @@ impl Mesh {
         }))
     }
 
+    /// 从位置数组和法线数组生成
     pub fn from_position_normal(
         positions: &Vec<f32>,
         position_indexs: &Vec<u32>,
@@ -67,6 +70,7 @@ impl Mesh {
         }))
     }
 
+    /// 从位置数组和UV数组生成
     pub fn from_position_texcoord(
         positions: &Vec<f32>,
         position_indexs: &Vec<u32>,
@@ -92,6 +96,7 @@ impl Mesh {
         }))
     }
 
+    /// 从位置，法线，UV数组生成
     pub fn from_position_normal_texcoord(
         positions: &Vec<f32>,
         position_indexs: &Vec<u32>,
@@ -125,6 +130,7 @@ impl Mesh {
         }))
     }
 
+    /// 从obj文件导入
     pub fn load_obj(path: &str) -> Result<Rc<RefCell<Self>>, MeshError> {
         let (models, _) = tobj::load_obj(
             path,

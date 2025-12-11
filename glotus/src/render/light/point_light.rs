@@ -1,13 +1,8 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{
-    Color,
-    render::{
-        light::{Light, LightShaderData, LightType},
-        transform::Transform,
-    },
-};
+use crate::render::*;
 
+/// 点光源
 pub struct PointLight {
     pub transform: Transform,
     pub color: Color,
@@ -43,7 +38,7 @@ impl Light for PointLight {
         LightShaderData {
             light_type: 1, // point
             color: self.color.to_arr(),
-            position: self.transform.get_position().get_arr().into(),
+            position: self.transform.get_translation().get_arr().into(),
             direction: [0.0; 3],
             intensity: self.intensity,
             range: self.range,

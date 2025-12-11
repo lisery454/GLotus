@@ -2,10 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use glfw::Key;
 
-use crate::{
-    input::input_state::InputState,
-    render::camera::{Camera, CameraMovement},
-};
+use crate::{input::input_state::InputState, render::*};
 
 use super::ITickable;
 

@@ -2,15 +2,19 @@ use gl::types::*;
 use std::{cell::RefCell, ffi::CString, fs, ptr, rc::Rc};
 
 use super::shader_error::ShaderError;
+
+/// shader类
 #[derive(Debug)]
 pub struct Shader {
-    id: GLuint,
+    pub(crate) id: GLuint,
 }
 
+/// 预处理shader，加上glotus.glsl
 fn pre_process_shader(source: &str) -> String {
     format!("{}\n{}", include_str!("./glotus.glsl"), source)
 }
 
+/// 是否是glotus中的uniform名称
 fn is_uniform_in_glotus_glsl(name: &str) -> bool {
     if name.starts_with("g_") {
         return true;
@@ -21,6 +25,7 @@ fn is_uniform_in_glotus_glsl(name: &str) -> bool {
 
 // create
 impl Shader {
+    /// 从文件生成shader
     pub fn from_files(
         vertex_path: &str,
         fragment_path: &str,
@@ -33,6 +38,7 @@ impl Shader {
         Self::from_sources(&vertex_source, &fragment_source)
     }
 
+    /// 从代码生成shader
     pub fn from_sources(
         vertex_source: &str,
         fragment_source: &str,
@@ -56,10 +62,7 @@ impl Shader {
         Ok(Rc::new(RefCell::new(Self { id: program_id })))
     }
 
-    pub fn get_id(&self) -> u32 {
-        self.id
-    }
-
+    /// 编译shader
     fn compile_shader(source: &str, shader_type: GLenum) -> Result<GLuint, ShaderError> {
         let shader = unsafe { gl::CreateShader(shader_type) };
         let c_str =
@@ -90,6 +93,7 @@ impl Shader {
         Ok(shader)
     }
 
+    /// link shader program
     fn link_program(vertex_shader: GLuint, fragment_shader: GLuint) -> Result<GLuint, ShaderError> {
         unsafe {
             let program = gl::CreateProgram();
@@ -126,24 +130,32 @@ impl Shader {
 
 // use && set uniform
 impl Shader {
+    /// 绑定shader程序
     pub fn bind(&self) {
         unsafe {
             gl::UseProgram(self.id);
         }
     }
 
+    /// 取消绑定
     pub fn unbind(&self) {
         unsafe {
             gl::UseProgram(0);
         }
     }
 
+    /// 获取某个uniform的位置
     fn get_location_of_uniform(&self, name: &str) -> Result<GLint, ShaderError> {
         let name = CString::new(name).map_err(|_| ShaderError::TransformCStringFail)?;
         unsafe { Ok(gl::GetUniformLocation(self.id, name.as_ptr())) }
     }
 
-    pub fn set_uniform_mat3(&self, name: &str, value: &[[f32; 3]; 3]) -> Result<(), ShaderError> {
+    /// 设置3*3矩阵uniform
+    pub(crate) fn set_uniform_mat3(
+        &self,
+        name: &str,
+        value: &[[f32; 3]; 3],
+    ) -> Result<(), ShaderError> {
         unsafe {
             let location = self.get_location_of_uniform(name)?;
             if location != -1 {
@@ -158,7 +170,12 @@ impl Shader {
         Ok(())
     }
 
-    pub fn set_uniform_mat4(&self, name: &str, value: &[[f32; 4]; 4]) -> Result<(), ShaderError> {
+    /// 设置4*4矩阵uniform
+    pub(crate) fn set_uniform_mat4(
+        &self,
+        name: &str,
+        value: &[[f32; 4]; 4],
+    ) -> Result<(), ShaderError> {
         unsafe {
             let location = self.get_location_of_uniform(name)?;
             if location != -1 {
@@ -173,7 +190,8 @@ impl Shader {
         Ok(())
     }
 
-    pub fn set_uniform_vec3(&self, name: &str, value: &[f32; 3]) -> Result<(), ShaderError> {
+    /// 设置vec3矩阵uniform
+    pub(crate) fn set_uniform_vec3(&self, name: &str, value: &[f32; 3]) -> Result<(), ShaderError> {
         unsafe {
             let location = self.get_location_of_uniform(name)?;
             if location != -1 {
@@ -188,7 +206,8 @@ impl Shader {
         Ok(())
     }
 
-    pub fn set_uniform_vec4(&self, name: &str, value: &[f32; 4]) -> Result<(), ShaderError> {
+    /// 设置vec4矩阵uniform
+    pub(crate) fn set_uniform_vec4(&self, name: &str, value: &[f32; 4]) -> Result<(), ShaderError> {
         unsafe {
             let location = self.get_location_of_uniform(name)?;
             if location != -1 {
@@ -203,7 +222,8 @@ impl Shader {
         Ok(())
     }
 
-    pub fn set_uniform_f32(&self, name: &str, value: f32) -> Result<(), ShaderError> {
+    /// 设置f32矩阵uniform
+    pub(crate) fn set_uniform_f32(&self, name: &str, value: f32) -> Result<(), ShaderError> {
         unsafe {
             let location = self.get_location_of_uniform(name)?;
             if location != -1 {
@@ -218,7 +238,8 @@ impl Shader {
         Ok(())
     }
 
-    pub fn set_uniform_i32(&self, name: &str, value: i32) -> Result<(), ShaderError> {
+    /// 设置i32矩阵uniform
+    pub(crate) fn set_uniform_i32(&self, name: &str, value: i32) -> Result<(), ShaderError> {
         unsafe {
             let location = self.get_location_of_uniform(name)?;
             if location != -1 {

@@ -1,11 +1,8 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::render::{
-    material::Material,
-    mesh::{Mesh, MeshGPUWrapper},
-    transform::Transform,
-};
+use crate::render::*;
 
+/// 实体对象
 pub struct Entity {
     pub transform: Transform,
     pub material: Rc<RefCell<Material>>,
@@ -13,6 +10,7 @@ pub struct Entity {
 }
 
 impl Entity {
+    /// 新建
     pub fn new(
         transform: Transform,
         material: Rc<RefCell<Material>>,

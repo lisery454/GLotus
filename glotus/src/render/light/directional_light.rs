@@ -1,13 +1,8 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{
-    Color,
-    render::{
-        light::{Light, LightShaderData, LightType},
-        transform::Transform,
-    },
-};
+use crate::render::*;
 
+/// 直射光
 pub struct DirectionalLight {
     pub transform: Transform,
     pub color: Color,

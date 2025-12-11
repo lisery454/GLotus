@@ -1,118 +1,124 @@
 use cgmath::{Matrix, Matrix3, Matrix4, SquareMatrix};
 
-use super::position::Position;
+use super::TransformError;
 use super::rotation::Rotation;
-use super::scale::Scale;
+use super::scaling::Scaling;
+use super::translation::Translation;
 
+/// 描述一个物体的位置旋转和缩放
 #[derive(Debug)]
 pub struct Transform {
-    position: Position,
-    rotation: Rotation,
-    scale: Scale,
+    pub(crate) translation: Translation,
+    pub(crate) rotation: Rotation,
+    pub(crate) scaling: Scaling,
 }
 
 impl Default for Transform {
     fn default() -> Self {
         Self {
-            position: Default::default(),
+            translation: Default::default(),
             rotation: Default::default(),
-            scale: Default::default(),
+            scaling: Default::default(),
         }
     }
 }
 
 impl Transform {
-    pub fn new(position: Position, rotation: Rotation, scale: Scale) -> Self {
+    /// 从平移旋转和缩放新建
+    pub fn new(translation: Translation, rotation: Rotation, scaling: Scaling) -> Self {
         Self {
-            position,
+            translation,
             rotation,
-            scale,
+            scaling,
         }
     }
 
+    /// 从位置的xyz生成，其他为默认
     pub fn from_position(x: f32, y: f32, z: f32) -> Self {
         Self {
-            position: Position::new(x, y, z),
+            translation: Translation::new(x, y, z),
             rotation: Rotation::default(),
-            scale: Scale::default(),
+            scaling: Scaling::default(),
         }
     }
 
-    fn get_model_matrix(&self) -> Matrix4<f32> {
-        // 1. 生成缩放矩阵
-        let scale_matrix = self.scale.get_scale_matrix();
-
-        // 2. 生成旋转矩阵（从四元数转换）
+    /// 获取变换矩阵
+    fn get_matrix(&self) -> Matrix4<f32> {
+        let scaling_matrix = self.scaling.get_scale_matrix();
         let rotation_matrix = self.rotation.get_rotation_matrix();
-
-        // 3. 生成平移矩阵
-        let translation_matrix = self.position.get_translation_matrix();
-
-        // 4. 组合变换：T * R * S（注意顺序！）
-        let matrix = translation_matrix * rotation_matrix * scale_matrix;
+        let translation_matrix = self.translation.get_translation_matrix();
+        let matrix = translation_matrix * rotation_matrix * scaling_matrix;
         matrix
     }
 
-    pub fn to_matrix(&self) -> [[f32; 4]; 4] {
-        self.get_model_matrix().into()
+    /// 获取变换矩阵，用多维数组表示
+    pub(crate) fn to_matrix(&self) -> [[f32; 4]; 4] {
+        self.get_matrix().into()
     }
 
-    pub fn to_normal_matrix(&self) -> [[f32; 3]; 3] {
-        // 1. 计算模型矩阵的逆矩阵
-        let inverse_model_matrix = self
-            .get_model_matrix()
+    /// 获取法线变化矩阵
+    pub(crate) fn to_normal_matrix(&self) -> Result<[[f32; 3]; 3], TransformError> {
+        let inverse_matrix = self
+            .get_matrix()
             .invert()
-            .expect("Model matrix must be invertible for normal transformation");
+            .ok_or(TransformError::InverseMatrixFail)?;
 
-        // 2. 取逆矩阵的左上 3x3 部分
         let inverse_model_3x3 = Matrix3::new(
-            inverse_model_matrix[0][0],
-            inverse_model_matrix[0][1],
-            inverse_model_matrix[0][2],
-            inverse_model_matrix[1][0],
-            inverse_model_matrix[1][1],
-            inverse_model_matrix[1][2],
-            inverse_model_matrix[2][0],
-            inverse_model_matrix[2][1],
-            inverse_model_matrix[2][2],
+            inverse_matrix[0][0],
+            inverse_matrix[0][1],
+            inverse_matrix[0][2],
+            inverse_matrix[1][0],
+            inverse_matrix[1][1],
+            inverse_matrix[1][2],
+            inverse_matrix[2][0],
+            inverse_matrix[2][1],
+            inverse_matrix[2][2],
         );
 
-        // 3. 转置 3x3 矩阵得到法线矩阵
-        inverse_model_3x3.transpose().into()
+        Ok(inverse_model_3x3.transpose().into())
     }
 
-    pub fn get_position(&self) -> &Position {
-        &self.position
+    /// 获取平移引用
+    pub fn get_translation(&self) -> &Translation {
+        &self.translation
     }
 
-    pub fn get_position_mut(&mut self) -> &mut Position {
-        &mut self.position
+    /// 获取平移的可变引用
+    pub fn get_translation_mut(&mut self) -> &mut Translation {
+        &mut self.translation
     }
 
-    pub fn set_position(&mut self, position: Position) {
-        self.position = position;
+    /// 设置平移
+    pub fn set_translation(&mut self, translation: Translation) {
+        self.translation = translation;
     }
 
-    pub fn get_scale(&self) -> &Scale {
-        &self.scale
+    /// 获取缩放引用
+    pub fn get_scaling(&self) -> &Scaling {
+        &self.scaling
     }
 
-    pub fn get_scale_mut(&mut self) -> &mut Scale {
-        &mut self.scale
+    /// 获取缩放的可变引用
+    pub fn get_scaling_mut(&mut self) -> &mut Scaling {
+        &mut self.scaling
     }
 
-    pub fn set_scale(&mut self, scale: Scale) {
-        self.scale = scale;
+    /// 设置缩放
+    pub fn set_scaling(&mut self, scaling: Scaling) {
+        self.scaling = scaling;
     }
 
+    /// 获取旋转
     pub fn get_rotation(&self) -> &Rotation {
         &self.rotation
     }
 
+    /// 获取旋转的可变引用
     pub fn get_rotation_mut(&mut self) -> &mut Rotation {
         &mut self.rotation
     }
 
+    /// 设置旋转
     pub fn set_rotation(&mut self, rotation: Rotation) {
         self.rotation = rotation;
     }

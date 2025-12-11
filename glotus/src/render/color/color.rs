@@ -1,3 +1,4 @@
+/// **颜色**
 #[derive(Clone, Copy)]
 pub struct Color {
     r: f32,
@@ -6,6 +7,7 @@ pub struct Color {
 }
 
 impl Color {
+    /// 从rgb三维生成，默认是0到255范围之间
     pub fn from_rgb(r: u32, g: u32, b: u32) -> Self {
         let r = r.clamp(0, 255);
         let g = g.clamp(0, 255);
@@ -18,10 +20,12 @@ impl Color {
         Self { r, g, b }
     }
 
+    /// 返回rgb三维数组的值，范围在0~1
     pub fn to_arr(&self) -> [f32; 3] {
         [self.r, self.g, self.b]
     }
 
+    /// 从hsv三维生成，h是0~360，s
     pub fn from_hsv(h: f32, s: f32, v: f32) -> Self {
         let h = (h * 360.0) % 360.0;
         let c = v * s;
@@ -46,6 +50,7 @@ impl Color {
 }
 
 impl Default for Color {
+    /// 默认是白色
     fn default() -> Self {
         Self {
             r: 1.0,

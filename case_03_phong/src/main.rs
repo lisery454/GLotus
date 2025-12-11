@@ -128,7 +128,7 @@ fn main() {
         .get_camera()
         .borrow_mut()
         .get_transform_mut()
-        .set_position(Position::new(0.0, 1.0, 4.0));
+        .set_translation(Translation::new(0.0, 1.0, 4.0));
 
     let point_light = PointLight::new();
     point_light.borrow_mut().color = Color::from_rgb(0, 255, 0);
@@ -137,7 +137,7 @@ fn main() {
     point_light
         .borrow_mut()
         .transform
-        .set_position(Position::new(0.0, 0.0, 0.0));
+        .set_translation(Translation::new(0.0, 0.0, 0.0));
     app.borrow().get_world().borrow_mut().add_light(point_light);
 
     let directional_light = DirectionalLight::new();
@@ -156,7 +156,7 @@ fn main() {
     spot_light
         .borrow_mut()
         .transform
-        .set_position(Position::new(0.0, 0.0, 8.0));
+        .set_translation(Translation::new(0.0, 0.0, 8.0));
     spot_light
         .borrow_mut()
         .transform

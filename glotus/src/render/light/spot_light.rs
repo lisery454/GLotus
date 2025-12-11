@@ -1,13 +1,8 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{
-    Color,
-    render::{
-        light::{Light, LightShaderData, LightType},
-        transform::Transform,
-    },
-};
+use crate::render::*;
 
+/// 聚光灯
 pub struct SpotLight {
     pub transform: Transform,
     pub color: Color,
@@ -47,7 +42,7 @@ impl Light for SpotLight {
         LightShaderData {
             light_type: 2, // spot
             color: self.color.to_arr(),
-            position: self.transform.get_position().get_arr().into(),
+            position: self.transform.get_translation().get_arr().into(),
             direction: self.transform.get_rotation().forward().into(),
             intensity: self.intensity,
             range: self.range,

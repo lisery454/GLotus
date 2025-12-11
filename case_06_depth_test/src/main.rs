@@ -47,9 +47,9 @@ fn main() {
         .borrow_mut()
         .add_entity(Entity::new(
             Transform::new(
-                Position::new(0.0, -0.5, 0.0),
+                Translation::new(0.0, -0.5, 0.0),
                 Rotation::default(),
-                Scale::new(100.0, 0.1, 100.0),
+                Scaling::new(100.0, 0.1, 100.0),
             ),
             material.clone(),
             mesh_3.clone(),
@@ -61,7 +61,7 @@ fn main() {
         .get_camera()
         .borrow_mut()
         .get_transform_mut()
-        .set_position(Position::new(1.5, 0.0, 6.0));
+        .set_translation(Translation::new(1.5, 0.0, 6.0));
 
     let point_light = PointLight::new();
     point_light.borrow_mut().color = Color::from_rgb(255, 255, 255);
@@ -70,7 +70,7 @@ fn main() {
     point_light
         .borrow_mut()
         .transform
-        .set_position(Position::new(5.0, 6.0, 3.0));
+        .set_translation(Translation::new(5.0, 6.0, 3.0));
     app.borrow()
         .get_world()
         .borrow_mut()

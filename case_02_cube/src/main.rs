@@ -69,7 +69,7 @@ fn main() {
         .get_camera()
         .borrow_mut()
         .get_transform_mut()
-        .set_position(Position::new(0.0, 0.0, 10.0));
+        .set_translation(Translation::new(0.0, 0.0, 10.0));
 
     app.borrow_mut().init_camera_tickable();
 

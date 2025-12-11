@@ -1,9 +1,11 @@
-mod position;
+mod translation;
 mod rotation;
-mod scale;
+mod scaling;
 mod transform;
+mod transform_error;
 
-pub use position::Position;
+pub use translation::Translation;
 pub use rotation::Rotation;
-pub use scale::Scale;
+pub use scaling::Scaling;
 pub use transform::Transform;
+pub use transform_error::TransformError;
