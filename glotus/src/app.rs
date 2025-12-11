@@ -128,6 +128,10 @@ impl App {
             }
         }
 
+        unsafe {
+            gl::Enable(gl::DEPTH_TEST);
+        }
+
         // 初始化视口
         self.resize_view(width, height);
     }
@@ -303,7 +307,6 @@ impl App {
 
     fn render_update(&mut self) {
         unsafe {
-            gl::Enable(gl::DEPTH_TEST);
             gl::ClearColor(
                 self.config.bg_color[0],
                 self.config.bg_color[1],
@@ -319,6 +322,7 @@ impl App {
         let lights_shader_data: Vec<LightShaderData> =
             self.get_world().borrow().get_light_shader_data();
         let light_count = lights_shader_data.len() as i32;
+        let camera_shader_data = self.get_world().borrow().get_camera_shader_data();
 
         for entity in self.get_world().borrow().get_entities().iter() {
             let entity = entity.borrow();
@@ -335,6 +339,7 @@ impl App {
                 normal_matrix,
                 light_count,
                 lights_shader_data: &lights_shader_data,
+                camera_shader_data: &camera_shader_data,
             };
             entity
                 .material

@@ -29,16 +29,6 @@ impl Default for Mesh {
 }
 
 impl Mesh {
-    /// example
-    /// ```
-    /// from_position(&vec![
-    ///         1.0, 1.0, -5.0,
-    ///         1.0, -1.0, -5.0,
-    ///        -1.0, -1.0, -5.0,
-    ///        -1.0, 1.0, -5.0,
-    ///     ],
-    ///     &vec![0, 1, 3, 1, 2, 3])
-    /// ```
     pub fn from_position(positions: &Vec<f32>, position_indexs: &Vec<u32>) -> Rc<RefCell<Self>> {
         let count = position_indexs.len();
         Rc::new(RefCell::new(Self {

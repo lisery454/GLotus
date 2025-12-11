@@ -94,6 +94,40 @@ impl Material {
                 UniformValue::Float(v.outer_cone),
             );
         }
+
+        //         struct Camera {
+        //   int camera_type;
+        //   vec3 direction;
+        //   vec3 position;
+        //   float aspect_ratio;
+        //   float near_plane;
+        //   float far_plane;
+        // }
+
+        self.insert_uniform(
+            "g_camera.camera_type",
+            UniformValue::Int(global_uniform.camera_shader_data.camera_type),
+        );
+        self.insert_uniform(
+            "g_camera.direction",
+            UniformValue::Vector3(global_uniform.camera_shader_data.direction),
+        );
+        self.insert_uniform(
+            "g_camera.position",
+            UniformValue::Vector3(global_uniform.camera_shader_data.position),
+        );
+        self.insert_uniform(
+            "g_camera.aspect_ratio",
+            UniformValue::Float(global_uniform.camera_shader_data.aspect_ratio),
+        );
+        self.insert_uniform(
+            "g_camera.near_plane",
+            UniformValue::Float(global_uniform.camera_shader_data.near_plane),
+        );
+        self.insert_uniform(
+            "g_camera.far_plane",
+            UniformValue::Float(global_uniform.camera_shader_data.far_plane),
+        );
     }
 
     pub(crate) fn bind(&self) -> Result<(), MaterialError> {

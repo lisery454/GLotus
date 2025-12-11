@@ -1,8 +1,6 @@
 use cgmath::{Deg, Matrix4, Ortho, PerspectiveFov, Rad, Vector3};
 
-use crate::
-    render::transform::Transform
-;
+use crate::render::transform::Transform;
 
 use super::projection_type::ProjectionType;
 
@@ -100,3 +98,32 @@ impl Camera {
     }
 }
 
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+pub struct CameraShaderData {
+    pub camera_type: i32,
+    pub fov: f32,
+    pub direction: [f32; 3],
+    pub position: [f32; 3],
+    pub aspect_ratio: f32,
+    pub near_plane: f32,
+    pub far_plane: f32,
+}
+
+impl Camera {
+    pub fn to_shader_data(&self) -> CameraShaderData {
+        CameraShaderData {
+            camera_type: if self.projection_type == ProjectionType::Perspective {
+                0
+            } else {
+                1
+            },
+            fov: self.fov.0, // Deg<f32> 解包成 f32
+            position: self.transform.get_position().get_arr().into(),
+            direction: self.transform.get_rotation().forward().into(),
+            aspect_ratio: self.aspect_ratio,
+            near_plane: self.near_plane,
+            far_plane: self.far_plane,
+        }
+    }
+}

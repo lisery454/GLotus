@@ -1,7 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::render::{
-    camera::Camera,
+    camera::{Camera, CameraShaderData},
     entity::entity::Entity,
     light::{Light, LightShaderData},
 };
@@ -26,6 +26,10 @@ impl World {
             .iter()
             .map(|light| light.borrow().to_shader_data())
             .collect()
+    }
+
+    pub fn get_camera_shader_data(&self) -> CameraShaderData {
+        self.get_camera().borrow().to_shader_data()
     }
 
     pub fn get_lights(&self) -> &Vec<Rc<RefCell<dyn Light>>> {
