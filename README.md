@@ -26,4 +26,7 @@ cargo run -p case_04_moving_light
 
 # 从obj文件加载模型
 cargo run -p case_05_load_mesh
+
+# 显示深度测试的结果
+cargo run -p case_05_depth_test
 ```

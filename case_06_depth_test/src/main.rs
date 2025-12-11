@@ -46,7 +46,11 @@ fn main() {
         .get_world()
         .borrow_mut()
         .add_entity(Entity::new(
-            Transform::from_position(0.0, 0.0, 3.0),
+            Transform::new(
+                Position::new(0.0, -0.5, 0.0),
+                Rotation::default(),
+                Scale::new(100.0, 0.1, 100.0),
+            ),
             material.clone(),
             mesh_3.clone(),
         ));
