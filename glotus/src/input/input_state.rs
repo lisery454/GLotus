@@ -4,6 +4,7 @@ use cgmath::Vector2;
 use glfw::{Key, MouseButton};
 use log::debug;
 
+/// 输入状态
 pub struct InputState {
     pressed_keys: HashSet<Key>,
 
@@ -17,6 +18,7 @@ pub struct InputState {
 }
 
 impl InputState {
+    /// 空的输入状态
     pub fn new() -> Self {
         Self {
             pressed_keys: HashSet::new(),
@@ -28,48 +30,57 @@ impl InputState {
         }
     }
 
-    pub fn clear_delta(&mut self) {
+    /// 清空偏移的数据
+    pub(crate) fn clear_delta(&mut self) {
         self.cursor_delta.x = 0.0;
         self.cursor_delta.y = 0.0;
         self.scroll_delta.x = 0.0;
         self.scroll_delta.y = 0.0;
     }
 
+    /// 是否按下某个按键
     pub fn is_key_down(&self, k: Key) -> bool {
         self.pressed_keys.contains(&k)
     }
 
-    pub fn press_key(&mut self, k: Key) {
+    /// 按下按键
+    pub(crate) fn press_key(&mut self, k: Key) {
         debug!("Trigger Key {:?} Press", k);
 
         self.pressed_keys.insert(k);
     }
 
-    pub fn release_key(&mut self, k: &Key) {
+    /// 释放按键
+    pub(crate) fn release_key(&mut self, k: &Key) {
         debug!("Trigger Key {:?} Release", k);
         self.pressed_keys.remove(k);
     }
 
+    /// 获取滚动的delta数据
     pub fn get_scroll_delta(&self) -> &Vector2<f64> {
         &self.scroll_delta
     }
 
-    pub fn set_scroll_delta(&mut self, x: f64, y: f64) {
+    /// 设置滚动的delta数据
+    pub(crate) fn set_scroll_delta(&mut self, x: f64, y: f64) {
         debug!("Trigger Mouse Scroll: X={}, Y={}", x, y);
 
         self.scroll_delta.x = x;
         self.scroll_delta.y = y;
     }
 
+    /// 获取鼠标的位移
     pub fn get_cursor_delta(&self) -> &Vector2<f64> {
         &self.cursor_delta
     }
 
+    /// 获取鼠标的位置
     pub fn get_cursor_pos(&self) -> &Vector2<f64> {
         &self.cursor_pos
     }
 
-    pub fn set_cursor_delta(&mut self, x: f64, y: f64) {
+    /// 设置鼠标的delta值
+    pub(crate) fn set_cursor_delta(&mut self, x: f64, y: f64) {
         debug!("Trigger Cursor Move: X={}, Y={}", x, y);
 
         if self.is_first_cursor_move {
@@ -82,12 +93,14 @@ impl InputState {
         }
     }
 
-    pub fn press_mouse_button(&mut self, b: MouseButton) {
+    /// 按下鼠标按键
+    pub(crate) fn press_mouse_button(&mut self, b: MouseButton) {
         debug!("Trigger Mouse button: {:?}, Action: Press", b);
         self.pressed_mouse_buttons.insert(b);
     }
 
-    pub fn release_mouse_button(&mut self, b: &MouseButton) {
+    /// 抬起鼠标按钮
+    pub(crate) fn release_mouse_button(&mut self, b: &MouseButton) {
         debug!("Trigger Mouse button: {:?}, Action: Release", b);
         self.pressed_mouse_buttons.remove(b);
     }

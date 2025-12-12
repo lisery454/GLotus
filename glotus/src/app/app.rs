@@ -1,10 +1,10 @@
 use crate::{
     AppConfig,
-    event::{event::AppEvent, event_queue::AppEventQueue},
-    input::input_state::InputState,
-    log_builder,
+    event::*,
+    input::*,
     render::*,
-    tick::{camera_tickable::CameraTickable, ticker::Ticker},
+    tick::*,
+    utils::{self},
 };
 use glfw::{
     Action, Context, Glfw, GlfwReceiver, Key, PWindow, SwapInterval, WindowEvent, ffi::glfwGetTime,
@@ -45,7 +45,7 @@ impl App {
             ticker: Rc::new(RefCell::new(Ticker::new())),
         };
 
-        log_builder::setup_logger();
+        utils::setup_logger();
 
         let app_rc = Rc::new(RefCell::new(app));
 
@@ -147,9 +147,9 @@ impl App {
     pub fn init_camera_tickable(&mut self) {
         self.ticker
             .borrow_mut()
-            .add_tickable(Box::new(CameraTickable::new(
+            .add_tickable(Rc::new(RefCell::new(CameraTickable::new(
                 self.world.borrow().get_camera().clone(),
-            )));
+            ))));
     }
 
     pub fn run(&mut self) {

@@ -1,15 +1,12 @@
 mod app;
-mod app_config;
-mod log_builder;
+mod event;
+mod input;
+mod render;
+mod tick;
+mod utils;
 
-pub mod event;
-pub mod input;
-pub mod render;
-pub mod tick;
-
-pub use app::App;
-pub use app_config::AntiPixel;
-pub use app_config::AppConfig;
+pub use app::*;
+pub use event::*;
+pub use input::*;
 pub use render::*;
-pub use tick::ITickable;
-pub use tick::ticker::Ticker;
+pub use tick::*;

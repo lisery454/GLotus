@@ -1,11 +1,12 @@
 use std::{cell::RefCell, ptr, rc::Rc};
 
-use crate::input::input_state::InputState;
+use crate::InputState;
 
-use super::ITickable;
+use super::Tickable;
 
+/// 间隔执行管理器
 pub struct Ticker {
-    tickable: Vec<Box<dyn ITickable>>,
+    tickable: Vec<Rc<RefCell<dyn Tickable>>>,
 }
 
 impl Ticker {
@@ -15,19 +16,26 @@ impl Ticker {
         }
     }
 
-    pub fn add_tickable(&mut self, tickable: Box<dyn ITickable>) {
+    /// 增加一个执行任务
+    pub fn add_tickable(&mut self, tickable: Rc<RefCell<dyn Tickable>>) {
         self.tickable.push(tickable);
     }
 
-    pub fn remove_tickable(&mut self, tickable: &Box<dyn ITickable>) {
-        if let Some(pos) = self.tickable.iter().position(|x| ptr::eq(x, tickable)) {
+    /// 移除一个执行任务
+    pub fn remove_tickable(&mut self, tickable: Rc<RefCell<dyn Tickable>>) {
+        if let Some(pos) = self
+            .tickable
+            .iter()
+            .position(|x| ptr::eq(x.as_ptr(), tickable.as_ptr()))
+        {
             self.tickable.remove(pos);
         }
     }
 
+    /// 执行所有的任务
     pub(crate) fn tick_all(&mut self, delta_time: f32, input: Rc<RefCell<InputState>>) {
         for t in self.tickable.iter_mut() {
-            t.tick(delta_time, input.clone());
+            t.borrow_mut().tick(delta_time, input.clone());
         }
     }
 }

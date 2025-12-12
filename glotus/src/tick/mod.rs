@@ -1,10 +1,7 @@
-use std::{cell::RefCell, rc::Rc};
+mod camera_tickable;
+mod ticker;
+mod tickable;
 
-use crate::input::input_state::InputState;
-
-pub mod ticker;
-pub mod camera_tickable;
-
-pub trait ITickable {
-    fn tick(&mut self, delta_time: f32, input_state: Rc<RefCell<InputState>>);
-}
+pub use camera_tickable::CameraTickable;
+pub use ticker::Ticker;
+pub use tickable::Tickable;

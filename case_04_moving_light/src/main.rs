@@ -151,21 +151,17 @@ struct LightTickable {
 }
 
 impl LightTickable {
-    pub fn new(light: Rc<RefCell<PointLight>>) -> Box<Self> {
-        Box::new(Self {
+    pub fn new(light: Rc<RefCell<PointLight>>) -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(Self {
             light,
             hue: 0.0,
             total_time: 0.0,
-        })
+        }))
     }
 }
 
-impl ITickable for LightTickable {
-    fn tick(
-        &mut self,
-        delta_time: f32,
-        _input_state: Rc<RefCell<glotus::input::input_state::InputState>>,
-    ) {
+impl Tickable for LightTickable {
+    fn tick(&mut self, delta_time: f32, _input_state: Rc<RefCell<glotus::InputState>>) {
         self.total_time += delta_time;
         self.hue = (self.hue + delta_time * 0.1) % 1.0; // 0.2 = 速度
         let color = Color::from_hsv(self.hue, 1.0, 1.0);

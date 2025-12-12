@@ -3,7 +3,7 @@ use std::fs::File;
 use env_logger::{Builder, Target};
 use log::LevelFilter;
 
-pub fn setup_logger() {
+pub(crate) fn setup_logger() {
     // 创建或打开当前目录的日志文件
     let log_file = File::create("app.log").expect("Failed to create log file");
 

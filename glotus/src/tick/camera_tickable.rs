@@ -2,10 +2,9 @@ use std::{cell::RefCell, rc::Rc};
 
 use glfw::Key;
 
-use crate::{input::input_state::InputState, render::*};
+use crate::{input::InputState, render::*};
 
-use super::ITickable;
-
+/// 相机的移动
 pub struct CameraTickable {
     camera: Rc<RefCell<Camera>>,
 }
@@ -14,7 +13,7 @@ impl CameraTickable {
         Self { camera }
     }
 }
-impl ITickable for CameraTickable {
+impl super::Tickable for CameraTickable {
     fn tick(&mut self, delta_time: f32, input_state: Rc<RefCell<InputState>>) {
         let velocity = 10.0;
         let movement = if input_state.borrow().is_key_down(Key::W) {
