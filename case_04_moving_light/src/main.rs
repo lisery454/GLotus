@@ -10,23 +10,19 @@ fn main() {
 
     app.borrow_mut().init_camera_tickable();
 
-    let shader = Shader::from_files(
-        concat!(env!("CARGO_PKG_NAME"), "/assets/shaders/vs.vert"),
-        concat!(env!("CARGO_PKG_NAME"), "/assets/shaders/fs.frag"),
+    let shader = Shader::from_sources(
+        include_str!("../assets/shaders/vs.vert"),
+        include_str!("../assets/shaders/fs.frag"),
     )
     .unwrap();
 
-    let texture_diffuse = Texture2D::from_file_default(concat!(
-        env!("CARGO_PKG_NAME"),
-        "/assets/textures/texture_diffuse.png"
-    ))
-    .unwrap();
+    let texture_diffuse =
+        Texture2D::from_byte_default(include_bytes!("../assets/textures/texture_diffuse.png"))
+            .unwrap();
 
-    let texture_specular = Texture2D::from_file_default(concat!(
-        env!("CARGO_PKG_NAME"),
-        "/assets/textures/texture_specular.png"
-    ))
-    .unwrap();
+    let texture_specular =
+        Texture2D::from_byte_default(include_bytes!("../assets/textures/texture_specular.png"))
+            .unwrap();
 
     let material = Material::new(shader.clone());
     material.borrow_mut().insert_uniform(

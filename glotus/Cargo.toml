@@ -24,4 +24,9 @@ gl_generator = "0.14.0"
 [lints.rust]
 # unused = "allow" # 禁用所有未使用警告
 # unused_variables = "allow"  # 仅禁用未使用变量
-dead_code = "allow"  
+dead_code = "allow"
+
+[lib]
+# dylib: 生成 Rust 专用的动态库（包含 Rust 特有的元数据）
+# cdylib: 生成 C 风格的动态库（通常用于跨语言调用，体积更小）
+crate-type = ["dylib"]

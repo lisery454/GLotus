@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, io::Cursor, rc::Rc};
 
 use cgmath::{Vector2, Vector3};
 
@@ -140,6 +140,35 @@ impl Mesh {
             },
         )
         .map_err(|_| MeshError::TObjLoadFail)?;
+
+        let mesh = &models[0].mesh;
+
+        Ok(Self::from_position_normal_texcoord(
+            &mesh.positions,
+            &mesh.indices,
+            &mesh.normals,
+            &mesh.normal_indices,
+            &mesh.texcoords,
+            &mesh.texcoord_indices,
+        ))
+    }
+
+    /// 从内存的byte加载
+    pub fn load_obj_from_memory(data: &[u8]) -> Result<Rc<RefCell<Self>>, MeshError> {
+        // 使用 load_obj_buf 处理字节流
+        let (models, _) = tobj::load_obj_buf(
+            &mut Cursor::new(data),
+            &tobj::LoadOptions {
+                triangulate: true,
+                ..Default::default()
+            },
+            |_mtl_path| Err(tobj::LoadError::MaterialParseError), // 默认不处理材质
+        )
+        .map_err(|_| MeshError::TObjLoadFail)?;
+
+        if models.is_empty() {
+            return Err(MeshError::TObjLoadFail);
+        }
 
         let mesh = &models[0].mesh;
 

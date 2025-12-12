@@ -7,9 +7,9 @@ fn main() {
         ..Default::default()
     });
 
-    let shader = Shader::from_files(
-        concat!(env!("CARGO_PKG_NAME"), "/assets/shaders/vs_0.vert"),
-        concat!(env!("CARGO_PKG_NAME"), "/assets/shaders/fs_0.frag"),
+    let shader = Shader::from_sources(
+        include_str!("../assets/shaders/vs_0.vert"),
+        include_str!("../assets/shaders/fs_0.frag"),
     )
     .unwrap();
 
@@ -38,19 +38,13 @@ fn main() {
         .borrow_mut()
         .insert_uniform("material.specular_shininess", UniformValue::Float(40.0));
 
-    let mesh =
-        Mesh::load_obj(concat!(env!("CARGO_PKG_NAME"), "/assets/meshes/sphere.obj")).unwrap();
-    let mesh_2 = Mesh::load_obj(concat!(
-        env!("CARGO_PKG_NAME"),
-        "/assets/meshes/sphere_no_smooth.obj"
-    ))
-    .unwrap();
-    let mesh_3 = Mesh::load_obj(concat!(env!("CARGO_PKG_NAME"), "/assets/meshes/box.obj")).unwrap();
-    let mesh_4 = Mesh::load_obj(concat!(
-        env!("CARGO_PKG_NAME"),
-        "/assets/meshes/suzanne.obj"
-    ))
-    .unwrap();
+    let mesh = Mesh::load_obj_from_memory(include_bytes!("../assets/meshes/sphere.obj")).unwrap();
+    let mesh_2 =
+        Mesh::load_obj_from_memory(include_bytes!("../assets/meshes/sphere_no_smooth.obj"))
+            .unwrap();
+    let mesh_3 = Mesh::load_obj_from_memory(include_bytes!("../assets/meshes/box.obj")).unwrap();
+    let mesh_4 =
+        Mesh::load_obj_from_memory(include_bytes!("../assets/meshes/suzanne.obj")).unwrap();
 
     app.borrow()
         .get_world()

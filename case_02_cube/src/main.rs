@@ -3,17 +3,14 @@ use glotus::*;
 fn main() {
     let app = glotus::App::new();
 
-    let shader = Shader::from_files(
-        concat!(env!("CARGO_PKG_NAME"), "/assets/shaders/vs.vert"),
-        concat!(env!("CARGO_PKG_NAME"), "/assets/shaders/fs.frag"),
+    let shader = Shader::from_sources(
+        include_str!("../assets/shaders/vs.vert"),
+        include_str!("../assets/shaders/fs.frag"),
     )
     .unwrap();
 
-    let texture = Texture2D::from_file_default(concat!(
-        env!("CARGO_PKG_NAME"),
-        "/assets/textures/brick.png"
-    ))
-    .unwrap();
+    let texture =
+        Texture2D::from_byte_default(include_bytes!("../assets/textures/brick.png")).unwrap();
 
     let material = Material::new(shader.clone());
 

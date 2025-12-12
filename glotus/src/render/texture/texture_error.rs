@@ -4,4 +4,6 @@ use thiserror::Error;
 pub enum TextureError {
     #[error("Failed to read texture file: {0}")]
     FileReadError(String),
+    #[error("Failed to read texture from byte data")]
+    ByteReadError,
 }

@@ -1,6 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use gl::types::*;
+use image::DynamicImage;
 
 use super::{
     texture_error::TextureError,
@@ -25,6 +26,36 @@ impl Texture2D {
         )
     }
 
+    /// 用默认配置从2进制数据生成贴图
+    pub fn from_byte_default(data: &[u8]) -> Result<Rc<RefCell<Self>>, TextureError> {
+        Self::from_byte(
+            data,
+            WrappingMode::Repeat,
+            WrappingMode::Repeat,
+            FilteringMode::LinearMipmapLinear,
+            FilteringMode::Linear,
+        )
+    }
+
+    /// 从2进制数据生成贴图
+    pub fn from_byte(
+        data: &[u8],
+        wrapping_mode_s: WrappingMode,
+        wrapping_mode_t: WrappingMode,
+        filtering_mode_min: FilteringMode,
+        filtering_mode_mag: FilteringMode,
+    ) -> Result<Rc<RefCell<Self>>, TextureError> {
+        let img = image::load_from_memory(data).map_err(|_| TextureError::ByteReadError)?;
+
+        Self::load(
+            img,
+            wrapping_mode_s,
+            wrapping_mode_t,
+            filtering_mode_min,
+            filtering_mode_mag,
+        )
+    }
+
     /// 从文件生成贴图
     pub fn from_file(
         path: &str,
@@ -33,11 +64,27 @@ impl Texture2D {
         filtering_mode_min: FilteringMode,
         filtering_mode_mag: FilteringMode,
     ) -> Result<Rc<RefCell<Self>>, TextureError> {
-        // 1. 用 `image` 库读取图片
-        let img_result =
-            image::open(path).map_err(|_| TextureError::FileReadError(path.to_string()))?;
+        let img = image::open(path).map_err(|_| TextureError::FileReadError(path.to_string()))?;
 
-        let img = img_result.flipv(); // OpenGL 的纹理坐标原点在左下，需要翻转Y轴
+        Self::load(
+            img,
+            wrapping_mode_s,
+            wrapping_mode_t,
+            filtering_mode_min,
+            filtering_mode_mag,
+        )
+    }
+
+    /// 加载贴图
+    fn load(
+        img: DynamicImage,
+        wrapping_mode_s: WrappingMode,
+        wrapping_mode_t: WrappingMode,
+        filtering_mode_min: FilteringMode,
+        filtering_mode_mag: FilteringMode,
+    ) -> Result<Rc<RefCell<Self>>, TextureError> {
+        // 1. 翻转
+        let img = img.flipv(); // OpenGL 的纹理坐标原点在左下，需要翻转Y轴
 
         // 2. 转换为 RGBA 格式
         let rgba = img.to_rgba8();

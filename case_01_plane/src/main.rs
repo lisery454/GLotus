@@ -3,9 +3,9 @@ use glotus::*;
 fn main() {
     let app = glotus::App::new();
 
-    let shader = Shader::from_files(
-        concat!(env!("CARGO_PKG_NAME"), "/assets/shaders/vs_0.vert"),
-        concat!(env!("CARGO_PKG_NAME"), "/assets/shaders/fs_0.frag"),
+    let shader = Shader::from_sources(
+        include_str!("../assets/shaders/vs_0.vert"),
+        include_str!("../assets/shaders/fs_0.frag"),
     )
     .unwrap();
 
