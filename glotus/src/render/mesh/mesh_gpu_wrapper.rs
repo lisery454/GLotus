@@ -68,15 +68,15 @@ fn build_gpu_mesh(mesh: &Mesh) -> (Vec<Vertex>, Vec<u32>) {
 
     let mut map: HashMap<Vertex, u32> = HashMap::new();
 
-    for i in 0..mesh.count {
-        let p = mesh.positions[mesh.position_indexs[i]];
-        let n = if mesh.normal_indexs.len() == mesh.count {
-            mesh.normals[mesh.normal_indexs[i]]
+    for i in 0..mesh.indices.len() {
+        let p = mesh.positions[mesh.indices[i]];
+        let n = if mesh.normals.len() > 0 {
+            mesh.normals[mesh.indices[i]]
         } else {
             Vector3::zero()
         };
-        let t = if mesh.texcoord_indexs.len() == mesh.count {
-            mesh.texcoords[mesh.texcoord_indexs[i]]
+        let t = if mesh.texcoords.len() > 0 {
+            mesh.texcoords[mesh.indices[i]]
         } else {
             Vector2::zero()
         };

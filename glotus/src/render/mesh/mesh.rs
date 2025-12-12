@@ -9,10 +9,7 @@ pub struct Mesh {
     pub(crate) positions: Vec<Vector3<f32>>, // 某个位置索引对应的位置
     pub(crate) normals: Vec<Vector3<f32>>,   // 某个法线索引对应的法线
     pub(crate) texcoords: Vec<Vector2<f32>>, // 某个uv索引对应的uv
-    pub(crate) position_indexs: Vec<usize>,  // 某个顶点的位置索引
-    pub(crate) normal_indexs: Vec<usize>,    // 某个顶点的法线索引
-    pub(crate) texcoord_indexs: Vec<usize>,  // 某个顶点的uv索引
-    pub(crate) count: usize,                 // 一共多少个顶点
+    pub(crate) indices: Vec<usize>,          // 所有顶点
 }
 
 impl Default for Mesh {
@@ -21,111 +18,108 @@ impl Default for Mesh {
             positions: Default::default(),
             normals: Default::default(),
             texcoords: Default::default(),
-            position_indexs: Default::default(),
-            normal_indexs: Default::default(),
-            texcoord_indexs: Default::default(),
-            count: Default::default(),
+            indices: Default::default(),
         }
     }
 }
 
 impl Mesh {
     /// 从位置数组生成
-    pub fn from_position(positions: &Vec<f32>, position_indexs: &Vec<u32>) -> Rc<RefCell<Self>> {
-        let count = position_indexs.len();
+    pub fn from_position(indices: &Vec<usize>, positions: &Vec<f32>) -> Rc<RefCell<Self>> {
+        let count = positions.len();
+        assert_eq!(count % 3, 0);
         Rc::new(RefCell::new(Self {
+            indices: indices.clone(),
             positions: positions
                 .chunks(3)
                 .map(|c| Vector3::new(c[0], c[1], c[2]))
                 .collect(),
-            position_indexs: position_indexs.iter().map(|c| *c as usize).collect(),
-            count,
             ..Default::default()
         }))
     }
 
     /// 从位置数组和法线数组生成
     pub fn from_position_normal(
+        indices: &Vec<usize>,
         positions: &Vec<f32>,
-        position_indexs: &Vec<u32>,
         normals: &Vec<f32>,
-        normal_indexs: &Vec<u32>,
     ) -> Rc<RefCell<Self>> {
-        let count = position_indexs.len();
-        assert_eq!(count, normal_indexs.len());
+        let positions_count = positions.len();
+        assert_eq!(positions_count % 3, 0);
+        let normals_count = normals.len();
+        assert_eq!(normals_count % 3, 0);
+        assert_eq!(normals_count / 3, positions_count / 3);
 
         Rc::new(RefCell::new(Self {
+            indices: indices.clone(),
             positions: positions
                 .chunks(3)
                 .map(|c| Vector3::new(c[0], c[1], c[2]))
                 .collect(),
-            position_indexs: position_indexs.iter().map(|c| *c as usize).collect(),
             normals: normals
                 .chunks(3)
                 .map(|c| Vector3::new(c[0], c[1], c[2]))
                 .collect(),
-            normal_indexs: normal_indexs.iter().map(|c| *c as usize).collect(),
-            count,
             ..Default::default()
         }))
     }
 
     /// 从位置数组和UV数组生成
     pub fn from_position_texcoord(
+        indices: &Vec<usize>,
         positions: &Vec<f32>,
-        position_indexs: &Vec<u32>,
         texcoords: &Vec<f32>,
-        texcoord_indexs: &Vec<u32>,
     ) -> Rc<RefCell<Self>> {
-        let count = position_indexs.len();
-        assert_eq!(count, texcoord_indexs.len());
+        let positions_count = positions.len();
+        assert_eq!(positions_count % 3, 0);
+        let texcoords_count = texcoords.len();
+        assert_eq!(texcoords_count % 2, 0);
+        assert_eq!(texcoords_count / 2, positions_count / 3);
 
         Rc::new(RefCell::new(Self {
+            indices: indices.clone(),
             positions: positions
                 .chunks(3)
                 .map(|c| Vector3::new(c[0], c[1], c[2]))
                 .collect(),
-            position_indexs: position_indexs.iter().map(|c| *c as usize).collect(),
             texcoords: texcoords
                 .chunks(2)
                 .map(|c| Vector2::new(c[0], c[1]))
                 .collect(),
-            texcoord_indexs: texcoord_indexs.iter().map(|c| *c as usize).collect(),
-            count,
             ..Default::default()
         }))
     }
 
     /// 从位置，法线，UV数组生成
     pub fn from_position_normal_texcoord(
+        indices: &Vec<usize>,
         positions: &Vec<f32>,
-        position_indexs: &Vec<u32>,
         normals: &Vec<f32>,
-        normal_indexs: &Vec<u32>,
         texcoords: &Vec<f32>,
-        texcoord_indexs: &Vec<u32>,
     ) -> Rc<RefCell<Self>> {
-        let count = position_indexs.len();
-        assert_eq!(count, normal_indexs.len());
-        assert_eq!(count, texcoord_indexs.len());
+        let positions_count = positions.len();
+        assert_eq!(positions_count % 3, 0);
+        let normals_count = normals.len();
+        assert_eq!(normals_count % 3, 0);
+        let texcoords_count = texcoords.len();
+        assert_eq!(texcoords_count % 2, 0);
+        assert_eq!(texcoords_count / 2, positions_count / 3);
+        assert_eq!(texcoords_count / 2, normals_count / 3);
 
         Rc::new(RefCell::new(Self {
+            indices: indices.clone(),
             positions: positions
                 .chunks(3)
                 .map(|c| Vector3::new(c[0], c[1], c[2]))
                 .collect(),
-            position_indexs: position_indexs.iter().map(|c| *c as usize).collect(),
             normals: normals
                 .chunks(3)
                 .map(|c| Vector3::new(c[0], c[1], c[2]))
                 .collect(),
-            normal_indexs: normal_indexs.iter().map(|c| *c as usize).collect(),
             texcoords: texcoords
                 .chunks(2)
                 .map(|c| Vector2::new(c[0], c[1]))
                 .collect(),
-            texcoord_indexs: texcoord_indexs.iter().map(|c| *c as usize).collect(),
-            count,
             ..Default::default()
         }))
     }
@@ -136,6 +130,7 @@ impl Mesh {
             path,
             &tobj::LoadOptions {
                 triangulate: true,
+                single_index: true,
                 ..Default::default()
             },
         )
@@ -144,12 +139,10 @@ impl Mesh {
         let mesh = &models[0].mesh;
 
         Ok(Self::from_position_normal_texcoord(
+            &mesh.indices.iter().map(|&x| x as usize).collect(),
             &mesh.positions,
-            &mesh.indices,
             &mesh.normals,
-            &mesh.normal_indices,
             &mesh.texcoords,
-            &mesh.texcoord_indices,
         ))
     }
 
@@ -160,6 +153,7 @@ impl Mesh {
             &mut Cursor::new(data),
             &tobj::LoadOptions {
                 triangulate: true,
+                single_index: true,
                 ..Default::default()
             },
             |_mtl_path| Err(tobj::LoadError::MaterialParseError), // 默认不处理材质
@@ -171,14 +165,11 @@ impl Mesh {
         }
 
         let mesh = &models[0].mesh;
-
         Ok(Self::from_position_normal_texcoord(
+            &mesh.indices.iter().map(|&x| x as usize).collect(),
             &mesh.positions,
-            &mesh.indices,
             &mesh.normals,
-            &mesh.normal_indices,
             &mesh.texcoords,
-            &mesh.texcoord_indices,
         ))
     }
 }
