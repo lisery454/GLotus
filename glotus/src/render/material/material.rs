@@ -1,10 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::render::{
-    material::{GlobalUniform, MaterialError},
-    shader::Shader,
-    texture::Texture2D,
-};
+use crate::*;
 
 use super::uniform_value::UniformValue;
 
@@ -12,6 +8,8 @@ pub struct Material {
     pub shader: Rc<RefCell<Shader>>,
     pub uniforms: HashMap<String, UniformValue>,
     pub textures: HashMap<u32, Rc<RefCell<Texture2D>>>,
+
+    pub override_state: Option<RenderState>,
 }
 
 impl Material {
@@ -20,6 +18,7 @@ impl Material {
             shader,
             uniforms: HashMap::new(),
             textures: HashMap::new(),
+            override_state: None,
         }))
     }
 
@@ -37,27 +36,27 @@ impl Material {
     pub(crate) fn inject_global_uniform(&mut self, global_uniform: &GlobalUniform) {
         self.insert_uniform(
             "g_view_position",
-            UniformValue::Vector3(global_uniform.view_position),
+            UniformValue::Vector3(global_uniform.view_position.clone()),
         );
         self.insert_uniform(
             "g_model_matrix",
-            UniformValue::Matrix4(global_uniform.model_matrix),
+            UniformValue::Matrix4(global_uniform.model_matrix.clone()),
         );
         self.insert_uniform(
             "g_normal_matrix",
-            UniformValue::Matrix3(global_uniform.normal_matrix),
+            UniformValue::Matrix3(global_uniform.normal_matrix.clone()),
         );
         self.insert_uniform(
             "g_view_matrix",
-            UniformValue::Matrix4(global_uniform.view_matrix),
+            UniformValue::Matrix4(global_uniform.view_matrix.clone()),
         );
         self.insert_uniform(
             "g_projection_matrix",
-            UniformValue::Matrix4(global_uniform.projection_matrix),
+            UniformValue::Matrix4(global_uniform.projection_matrix.clone()),
         );
         self.insert_uniform(
             "g_light_count",
-            UniformValue::Int(global_uniform.light_count),
+            UniformValue::Int(global_uniform.light_count.clone()),
         );
 
         for (i, v) in global_uniform.lights_shader_data.iter().enumerate() {
@@ -94,15 +93,6 @@ impl Material {
                 UniformValue::Float(v.outer_cone),
             );
         }
-
-        //         struct Camera {
-        //   int camera_type;
-        //   vec3 direction;
-        //   vec3 position;
-        //   float aspect_ratio;
-        //   float near_plane;
-        //   float far_plane;
-        // }
 
         self.insert_uniform(
             "g_camera.camera_type",
@@ -160,5 +150,37 @@ impl Material {
 
     pub(crate) fn unbind(&self) {
         self.shader.borrow().unbind();
+    }
+}
+
+impl Material {
+    /// 合并 Pass 的默认状态和 Material 的覆盖状态
+    pub fn final_state(&self, pass_state: &RenderState) -> RenderState {
+        if let Some(override_state) = &self.override_state {
+            RenderState {
+                depth_test: override_state.depth_test,
+                depth_write: override_state.depth_write,
+                stencil_test: override_state.stencil_test,
+                stencil_func: override_state
+                    .stencil_func
+                    .clone()
+                    .or_else(|| pass_state.stencil_func.clone()),
+                stencil_op: override_state
+                    .stencil_op
+                    .clone()
+                    .or_else(|| pass_state.stencil_op.clone()),
+                blend: override_state
+                    .blend
+                    .clone()
+                    .or_else(|| pass_state.blend.clone()),
+                cull_face: override_state
+                    .cull_face
+                    .clone()
+                    .or_else(|| pass_state.cull_face.clone()),
+                polygon_mode: override_state.polygon_mode.clone(),
+            }
+        } else {
+            pass_state.clone()
+        }
     }
 }

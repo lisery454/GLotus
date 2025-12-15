@@ -10,6 +10,8 @@ fn main() {
     .unwrap();
 
     let material = Material::new(shader.clone());
+    let pass_name = get_default_pipeline_default_pass_name();
+    let material_group = MaterialGroup::single(pass_name, material.clone());
 
     let mesh = Mesh::from_position(
         &vec![0, 1, 3, 1, 2, 3],
@@ -21,7 +23,7 @@ fn main() {
         ],
     );
 
-    let entity = Entity::new(Transform::default(), material.clone(), mesh.clone());
+    let entity = Entity::new(Transform::default(), material_group.clone(), mesh.clone());
 
     app.borrow()
         .get_world()

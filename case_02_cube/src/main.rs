@@ -13,6 +13,8 @@ fn main() {
         Texture2D::from_byte_default(include_bytes!("../assets/textures/brick.png")).unwrap();
 
     let material = Material::new(shader.clone());
+    let pass_name = get_default_pipeline_default_pass_name();
+    let material_group = MaterialGroup::single(pass_name, material.clone());
 
     material
         .borrow_mut()
@@ -75,7 +77,7 @@ fn main() {
         .repeat(6),
     );
 
-    let entity = Entity::new(Transform::default(), material.clone(), mesh.clone());
+    let entity = Entity::new(Transform::default(), material_group.clone(), mesh.clone());
 
     app.borrow()
         .get_world()

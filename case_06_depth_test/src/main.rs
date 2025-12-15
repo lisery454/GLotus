@@ -14,6 +14,8 @@ fn main() {
     .unwrap();
 
     let material = Material::new(shader.clone());
+    let pass_name = get_default_pipeline_default_pass_name();
+    let material_group = MaterialGroup::single(pass_name, material.clone());
 
     let mesh = Mesh::load_obj_from_memory(include_bytes!("../assets/meshes/sphere.obj")).unwrap();
     let mesh_2 =
@@ -26,7 +28,7 @@ fn main() {
         .borrow_mut()
         .add_entity(Entity::new(
             Transform::from_position(0.0, 0.0, 0.0),
-            material.clone(),
+            material_group.clone(),
             mesh.clone(),
         ));
 
@@ -35,7 +37,7 @@ fn main() {
         .borrow_mut()
         .add_entity(Entity::new(
             Transform::from_position(3.0, 0.0, 0.0),
-            material.clone(),
+            material_group.clone(),
             mesh_2.clone(),
         ));
 
@@ -48,7 +50,7 @@ fn main() {
                 Rotation::default(),
                 Scaling::new(100.0, 0.1, 100.0),
             ),
-            material.clone(),
+            material_group.clone(),
             mesh_3.clone(),
         ));
 
