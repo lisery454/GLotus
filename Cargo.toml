@@ -6,6 +6,7 @@ members = [
     "case_04_moving_light",
     "case_05_load_mesh",
     "case_06_depth_test",
+    "case_07_outline",
     "glotus",
 ]
 resolver = "3"

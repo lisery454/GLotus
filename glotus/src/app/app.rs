@@ -35,6 +35,7 @@ impl App {
     }
 
     pub fn new_with_config(config: AppConfig) -> Rc<RefCell<Self>> {
+        let pipeline = Rc::new(RefCell::new((*config.pipeline_builder)()));
         let app = Self {
             config,
             is_running: false,
@@ -45,7 +46,7 @@ impl App {
             input_state: Rc::new(RefCell::new(InputState::new())),
             event_queue: Rc::new(RefCell::new(AppEventQueue::new())),
             ticker: Rc::new(RefCell::new(Ticker::new())),
-            pipeline: DefaultPipeline::build_defalut_pipeline(),
+            pipeline,
         };
 
         utils::setup_logger();

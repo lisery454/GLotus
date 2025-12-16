@@ -5,12 +5,9 @@ use crate::{Material, MaterialGroup, Pass, Pipeline, Shader};
 pub struct DefaultPipeline {}
 
 impl DefaultPipeline {
-    pub fn build_defalut_pipeline() -> Rc<RefCell<Pipeline>> {
-        let pipeline = Rc::new(RefCell::new(Pipeline::new()));
-        pipeline.borrow_mut().insert(Pass::new(
-            Self::get_default_pass_name(),
-            Default::default(),
-        ));
+    pub fn build_defalut_pipeline() -> Pipeline {
+        let mut pipeline = Pipeline::new();
+        pipeline.insert(Pass::new(Self::get_default_pass_name(), Default::default()));
         pipeline
     }
 

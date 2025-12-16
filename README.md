@@ -29,4 +29,7 @@ cargo run -p case_05_load_mesh
 
 # 显示深度测试的结果
 cargo run -p case_05_depth_test
+
+# 模板测试实现的外边缘线
+cargo run -p case_07_outline
 ```

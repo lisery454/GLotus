@@ -9,7 +9,7 @@ pub struct Material {
     pub uniforms: HashMap<String, UniformValue>,
     pub textures: HashMap<u32, Rc<RefCell<Texture2D>>>,
 
-    pub override_state: Option<RenderState>,
+    pub override_state: PartialRenderState,
 }
 
 impl Material {
@@ -18,7 +18,7 @@ impl Material {
             shader,
             uniforms: HashMap::new(),
             textures: HashMap::new(),
-            override_state: None,
+            override_state: PartialRenderState::new(),
         }))
     }
 
@@ -156,31 +156,6 @@ impl Material {
 impl Material {
     /// 合并 Pass 的默认状态和 Material 的覆盖状态
     pub fn final_state(&self, pass_state: &RenderState) -> RenderState {
-        if let Some(override_state) = &self.override_state {
-            RenderState {
-                depth_test: override_state.depth_test,
-                depth_write: override_state.depth_write,
-                stencil_test: override_state.stencil_test,
-                stencil_func: override_state
-                    .stencil_func
-                    .clone()
-                    .or_else(|| pass_state.stencil_func.clone()),
-                stencil_op: override_state
-                    .stencil_op
-                    .clone()
-                    .or_else(|| pass_state.stencil_op.clone()),
-                blend: override_state
-                    .blend
-                    .clone()
-                    .or_else(|| pass_state.blend.clone()),
-                cull_face: override_state
-                    .cull_face
-                    .clone()
-                    .or_else(|| pass_state.cull_face.clone()),
-                polygon_mode: override_state.polygon_mode.clone(),
-            }
-        } else {
-            pass_state.clone()
-        }
+        pass_state.merge(&self.override_state)
     }
 }
