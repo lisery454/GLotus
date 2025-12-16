@@ -6,8 +6,48 @@ fn main() {
         anti_pixel_msaa: AntiPixel::MSAA16,
         pipeline_builder: Box::new(|| {
             let mut pipeline = Pipeline::new();
-            pipeline.insert(Pass::new("main", Default::default()));
-            pipeline.insert(Pass::new("outline", Default::default()));
+            pipeline.insert(Pass::new(
+                "main",
+                RenderState {
+                    depth_test: true,
+                    depth_write: true,
+                    stencil_test: true,
+                    stencil_func: Some(StencilFunc {
+                        func: StencilFuncType::Always,
+                        ref_value: 1,
+                        mask: 0xFF,
+                    }),
+                    stencil_op: Some(StencilOp {
+                        sfail: StencilOpType::Keep,
+                        dpfail: StencilOpType::Keep,
+                        dppass: StencilOpType::Replace,
+                    }),
+                    stencil_write_mask: Some(0xFF),
+                    ..Default::default()
+                },
+            ));
+            pipeline.insert(Pass::new(
+                "outline",
+                RenderState {
+                    depth_test: true,
+                    depth_write: false,
+                    depth_func: DepthFunc::LessEqual,
+                    stencil_test: true,
+                    stencil_func: Some(StencilFunc {
+                        func: StencilFuncType::NotEqual,
+                        ref_value: 1,
+                        mask: 0xFF,
+                    }),
+                    stencil_op: Some(StencilOp {
+                        sfail: StencilOpType::Keep,
+                        dpfail: StencilOpType::Keep,
+                        dppass: StencilOpType::Keep,
+                    }),
+                    stencil_write_mask: Some(0x00),       // 禁止写入
+                    cull_face: Some(CullFaceMode::Front), // 剔除正面
+                    ..Default::default()
+                },
+            ));
             pipeline
         }),
         ..Default::default()
@@ -43,24 +83,29 @@ fn main() {
 
     app.borrow()
         .get_world()
+        .borrow_mut()
+        .add_entity(Entity::new(
+            Transform::from_position(1.5, 0.0, 0.0),
+            material_group.clone(),
+            mesh.clone(),
+        ));
+
+    app.borrow()
+        .get_world()
+        .borrow_mut()
+        .add_entity(Entity::new(
+            Transform::from_position(1.0, 0.0, 1.5),
+            material_group.clone(),
+            mesh.clone(),
+        ));
+
+    app.borrow()
+        .get_world()
         .borrow()
         .get_camera()
         .borrow_mut()
         .get_transform_mut()
         .set_translation(Translation::new(0.0, 0.0, 6.0));
-
-    let point_light = PointLight::new();
-    point_light.borrow_mut().color = Color::from_rgb(255, 255, 255);
-    point_light.borrow_mut().intensity = 4.0;
-    point_light.borrow_mut().range = 20.0;
-    point_light
-        .borrow_mut()
-        .transform
-        .set_translation(Translation::new(5.0, 6.0, 3.0));
-    app.borrow()
-        .get_world()
-        .borrow_mut()
-        .add_light(point_light.clone());
 
     app.borrow_mut().init_camera_tickable();
 

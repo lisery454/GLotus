@@ -4,12 +4,16 @@ pub struct RenderState {
     pub depth_test: bool,
     /// 是否启用深度写入，也就是是否在深度测试判断时，会写入当前frag的深度到深度缓冲区
     pub depth_write: bool,
+    /// 深度测试函数
+    pub depth_func: DepthFunc,
     /// 是否开启模板测试
     pub stencil_test: bool,
     /// 模板测试函数
     pub stencil_func: Option<StencilFunc>,
     /// 模板缓冲修改操作
     pub stencil_op: Option<StencilOp>,
+    /// 模板写入mask锁 1为可以写，0不能写，一共8位
+    pub stencil_write_mask: Option<u32>,
     /// 混合模式
     pub blend: Option<BlendMode>,
     /// 剔除面模式
@@ -23,8 +27,10 @@ impl Default for RenderState {
         Self {
             depth_test: true,
             depth_write: true,
+            depth_func: DepthFunc::Less,
             stencil_test: false,
             stencil_func: Default::default(),
+            stencil_write_mask: Some(0xFF),
             stencil_op: Default::default(),
             blend: Default::default(),
             cull_face: Default::default(),
@@ -43,7 +49,13 @@ impl RenderState {
             } else {
                 gl::Disable(gl::DEPTH_TEST);
             }
-            gl::DepthMask(self.depth_write as u8);
+            gl::DepthMask(if self.depth_write {
+                gl::TRUE
+            } else {
+                gl::FALSE
+            });
+
+            gl::DepthFunc(self.depth_func.into());
 
             // 模板测试
             if self.stencil_test {
@@ -62,8 +74,15 @@ impl RenderState {
                         stencil_op.dppass.into(),
                     );
                 }
+                if let Some(mask) = self.stencil_write_mask {
+                    gl::StencilMask(mask);
+                }
             } else {
                 gl::Disable(gl::STENCIL_TEST);
+                // 重置 stencil 写入，防止下次 enable 时继承脏状态
+                gl::StencilMask(0xFF);
+                gl::StencilOp(gl::KEEP, gl::KEEP, gl::KEEP);
+                gl::StencilFunc(gl::ALWAYS, 0, 0xFF);
             }
 
             // 混合模式
@@ -102,16 +121,35 @@ impl RenderState {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct PartialRenderState {
     pub depth_test: Option<bool>,
     pub depth_write: Option<bool>,
+    pub depth_func: Option<DepthFunc>,
     pub stencil_test: Option<bool>,
     pub stencil_func: Option<StencilFunc>,
     pub stencil_op: Option<StencilOp>,
+    pub stencil_write_mask: Option<u32>,
     pub blend: Option<BlendMode>,
     pub cull_face: Option<CullFaceMode>,
     pub polygon_mode: Option<PolygonMode>,
+}
+
+impl Default for PartialRenderState {
+    fn default() -> Self {
+        Self {
+            depth_test: Default::default(),
+            depth_write: Default::default(),
+            depth_func: Default::default(),
+            stencil_test: Default::default(),
+            stencil_func: Default::default(),
+            stencil_write_mask: Default::default(),
+            stencil_op: Default::default(),
+            blend: Default::default(),
+            cull_face: Default::default(),
+            polygon_mode: Default::default(),
+        }
+    }
 }
 
 impl RenderState {
@@ -120,9 +158,11 @@ impl RenderState {
         Self {
             depth_test: partial.depth_test.unwrap_or(self.depth_test),
             depth_write: partial.depth_write.unwrap_or(self.depth_write),
+            depth_func: partial.depth_func.unwrap_or(self.depth_func),
             stencil_test: partial.stencil_test.unwrap_or(self.stencil_test),
             stencil_func: partial.stencil_func.or(self.stencil_func),
             stencil_op: partial.stencil_op.or(self.stencil_op),
+            stencil_write_mask: partial.stencil_write_mask.or(self.stencil_write_mask),
             blend: partial.blend.or(self.blend),
             cull_face: partial.cull_face.or(self.cull_face),
             polygon_mode: partial.polygon_mode.unwrap_or(self.polygon_mode),
@@ -164,23 +204,35 @@ impl PartialRenderState {
     }
 }
 
-// 方便从完整状态创建部分状态
-impl From<RenderState> for PartialRenderState {
-    fn from(state: RenderState) -> Self {
-        Self {
-            depth_test: Some(state.depth_test),
-            depth_write: Some(state.depth_write),
-            stencil_test: Some(state.stencil_test),
-            stencil_func: state.stencil_func,
-            stencil_op: state.stencil_op,
-            blend: state.blend,
-            cull_face: state.cull_face,
-            polygon_mode: Some(state.polygon_mode),
+/// 深度函数
+#[derive(Clone, Debug, Copy)]
+pub enum DepthFunc {
+    Never,
+    Less, // 默认
+    Equal,
+    LessEqual,
+    Greater,
+    NotEqual,
+    GreaterEqual,
+    Always,
+}
+
+impl From<DepthFunc> for gl::types::GLenum {
+    fn from(value: DepthFunc) -> Self {
+        match value {
+            DepthFunc::Never => gl::NEVER,
+            DepthFunc::Less => gl::LESS,
+            DepthFunc::Equal => gl::EQUAL,
+            DepthFunc::LessEqual => gl::LEQUAL,
+            DepthFunc::Greater => gl::GREATER,
+            DepthFunc::NotEqual => gl::NOTEQUAL,
+            DepthFunc::GreaterEqual => gl::GEQUAL,
+            DepthFunc::Always => gl::ALWAYS,
         }
     }
 }
 
-/// 模板函数
+/// 模板函数 (ref & mask)  vs  (stencil_value & mask)
 #[derive(Clone, Debug, Copy)]
 pub struct StencilFunc {
     pub func: StencilFuncType, // gl::FUNC

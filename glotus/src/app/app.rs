@@ -318,7 +318,11 @@ impl App {
                 self.config.bg_color[2],
                 1.0,
             );
+
+            gl::StencilMask(0xFF);
+            gl::DepthMask(gl::TRUE);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
+            info!("clear");
         }
 
         // 计算全局数据
@@ -334,6 +338,8 @@ impl App {
 
         // 按 Pass 渲染
         for pass in &self.pipeline.borrow().passes {
+            info!("{}", pass.name);
+            // pass.default_state.apply();
             for entity in self.get_world().borrow().get_entities().iter() {
                 let entity = entity.borrow();
 
