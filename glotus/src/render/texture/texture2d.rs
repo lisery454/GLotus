@@ -170,3 +170,13 @@ impl Texture2D {
         }
     }
 }
+
+impl Drop for Texture2D {
+    fn drop(&mut self) {
+        unsafe {
+            if self.id != 0 {
+                gl::DeleteTextures(1, &self.id);
+            }
+        }
+    }
+}
