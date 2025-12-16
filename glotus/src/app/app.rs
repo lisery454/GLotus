@@ -45,7 +45,7 @@ impl App {
             input_state: Rc::new(RefCell::new(InputState::new())),
             event_queue: Rc::new(RefCell::new(AppEventQueue::new())),
             ticker: Rc::new(RefCell::new(Ticker::new())),
-            pipeline: build_defalut_pipeline(),
+            pipeline: DefaultPipeline::build_defalut_pipeline(),
         };
 
         utils::setup_logger();

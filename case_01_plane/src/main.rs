@@ -10,7 +10,7 @@ fn main() {
     .unwrap();
 
     let material = Material::new(shader.clone());
-    let pass_name = get_default_pipeline_default_pass_name();
+    let pass_name = DefaultPipeline::get_default_pass_name();
     let material_group = MaterialGroup::single(pass_name, material.clone());
 
     let mesh = Mesh::from_position(

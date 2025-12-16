@@ -13,9 +13,9 @@ pub struct RenderState {
 impl Default for RenderState {
     fn default() -> Self {
         Self {
-            depth_test: Default::default(),
-            depth_write: Default::default(),
-            stencil_test: Default::default(),
+            depth_test: true,
+            depth_write: true,
+            stencil_test: false,
             stencil_func: Default::default(),
             stencil_op: Default::default(),
             blend: Default::default(),
