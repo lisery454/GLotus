@@ -24,6 +24,8 @@ pub struct App {
     input_state: Rc<RefCell<InputState>>,
     event_queue: Rc<RefCell<AppEventQueue>>,
     ticker: Rc<RefCell<Ticker>>,
+
+    pipeline: Rc<RefCell<Pipeline>>,
 }
 
 // main
@@ -33,6 +35,7 @@ impl App {
     }
 
     pub fn new_with_config(config: AppConfig) -> Rc<RefCell<Self>> {
+        let pipeline = Rc::new(RefCell::new((*config.pipeline_builder)()));
         let app = Self {
             config,
             is_running: false,
@@ -43,6 +46,7 @@ impl App {
             input_state: Rc::new(RefCell::new(InputState::new())),
             event_queue: Rc::new(RefCell::new(AppEventQueue::new())),
             ticker: Rc::new(RefCell::new(Ticker::new())),
+            pipeline,
         };
 
         utils::setup_logger();
@@ -306,6 +310,7 @@ impl App {
     }
 
     fn render_update(&mut self) {
+        // 清空
         unsafe {
             gl::ClearColor(
                 self.config.bg_color[0],
@@ -313,50 +318,66 @@ impl App {
                 self.config.bg_color[2],
                 1.0,
             );
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT); // 每帧清除深度缓冲
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
         }
+
+        // 计算全局数据
         let camera = self.get_world().borrow().get_camera();
         let view_matrix = camera.borrow().get_view_matrix();
         let projection_matrix = camera.borrow().get_projection_matrix();
         let view_position = camera.borrow().get_view_position();
+
         let lights_shader_data: Vec<LightShaderData> =
             self.get_world().borrow().get_light_shader_data();
         let light_count = lights_shader_data.len() as i32;
         let camera_shader_data = self.get_world().borrow().get_camera_shader_data();
 
-        for entity in self.get_world().borrow().get_entities().iter() {
-            let entity = entity.borrow();
-            // 计算矩阵
-            let model_matrix = entity.transform.to_matrix();
-            let normal_matrix = entity.transform.to_normal_matrix().unwrap();
+        // 按 Pass 渲染
+        for pass in &self.pipeline.borrow().passes {
+            for entity in self.get_world().borrow().get_entities().iter() {
+                let entity = entity.borrow();
 
-            // 给材质注入全局变量，比如mvp
-            let global_uniform = GlobalUniform {
-                view_matrix,
-                projection_matrix,
-                view_position,
-                model_matrix,
-                normal_matrix,
-                light_count,
-                lights_shader_data: &lights_shader_data,
-                camera_shader_data: &camera_shader_data,
-            };
-            entity
-                .material
-                .borrow_mut()
-                .inject_global_uniform(&global_uniform);
+                // 检查这个 Entity 的 Material 是否包含当前 Pass
+                let material_wrapper = entity.material_group.borrow();
+                let material = match material_wrapper.materials.get(&pass.name) {
+                    Some(mat) => mat.clone(),
+                    None => continue, // 跳过这个 Pass
+                };
 
-            // 通知opengl用这个材质，初始化
-            match entity.material.borrow().bind() {
-                Ok(_) => {
-                    entity.mesh.borrow().draw(); // 通知opengl进行绘制
-                }
-                Err(_) => {
+                // 计算这个物体相关的数据
+                let model_matrix = entity.transform.to_matrix();
+                let normal_matrix = entity.transform.to_normal_matrix().unwrap();
+
+                // 注入全局 Uniform
+                let global_uniform = GlobalUniform {
+                    view_matrix: &view_matrix,
+                    projection_matrix: &projection_matrix,
+                    view_position: &view_position,
+                    model_matrix: &model_matrix,
+                    normal_matrix: &normal_matrix,
+                    light_count: &light_count,
+                    lights_shader_data: &lights_shader_data,
+                    camera_shader_data: &camera_shader_data,
+                };
+                material.borrow_mut().inject_global_uniform(&global_uniform);
+
+                // 合并 RenderState
+                let final_state = material.borrow().final_state(&pass.default_state);
+                // 应用state
+                final_state.apply();
+
+                // 绑定 Shader
+                if let Err(_) = material.borrow().bind() {
                     error!("bind material fail");
+                    continue;
                 }
-            };
 
-            entity.material.borrow().unbind(); // 通知opengl卸载这个材质
+                // 绘制 Mesh
+                entity.mesh_wrapper.borrow().draw();
+
+                // 卸载材质
+                material.borrow().unbind();
+            }
         }
     }
 

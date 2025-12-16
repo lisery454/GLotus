@@ -23,6 +23,8 @@ fn main() {
             .unwrap();
 
     let material = Material::new(shader.clone());
+    let pass_name = DefaultPipeline::get_default_pass_name();
+    let material_group = MaterialGroup::single(pass_name, material.clone());
     material.borrow_mut().insert_uniform(
         "material.diffuse_texture",
         UniformValue::Texture(0, texture_diffuse.clone()),
@@ -123,7 +125,7 @@ fn main() {
                 }
                 let entity = Entity::new(
                     Transform::from_position(3.0 * (i as f32), 3.0 * (j as f32), 3.0 * (k as f32)),
-                    material.clone(),
+                    material_group.clone(),
                     mesh.clone(),
                 );
 

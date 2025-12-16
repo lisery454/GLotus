@@ -14,6 +14,8 @@ fn main() {
     .unwrap();
 
     let material = Material::new(shader.clone());
+    let pass_name = DefaultPipeline::get_default_pass_name();
+    let material_group = MaterialGroup::single(pass_name, material.clone());
     material.borrow_mut().insert_uniform(
         "material.diff_color",
         UniformValue::Vector3([0.5, 0.5, 0.5]),
@@ -51,7 +53,7 @@ fn main() {
         .borrow_mut()
         .add_entity(Entity::new(
             Transform::from_position(0.0, 0.0, 0.0),
-            material.clone(),
+            material_group.clone(),
             mesh.clone(),
         ));
 
@@ -60,7 +62,7 @@ fn main() {
         .borrow_mut()
         .add_entity(Entity::new(
             Transform::from_position(3.0, 0.0, 0.0),
-            material.clone(),
+            material_group.clone(),
             mesh_2.clone(),
         ));
 
@@ -69,7 +71,7 @@ fn main() {
         .borrow_mut()
         .add_entity(Entity::new(
             Transform::from_position(0.0, 0.0, 3.0),
-            material.clone(),
+            material_group.clone(),
             mesh_3.clone(),
         ));
 
@@ -78,7 +80,7 @@ fn main() {
         .borrow_mut()
         .add_entity(Entity::new(
             Transform::from_position(3.0, 0.0, 3.0),
-            material.clone(),
+            material_group.clone(),
             mesh_4.clone(),
         ));
 
