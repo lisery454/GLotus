@@ -8,8 +8,6 @@ pub struct Material {
     pub shader: Rc<RefCell<Shader>>,
     pub uniforms: HashMap<String, UniformValue>,
     pub textures: HashMap<u32, Rc<RefCell<Texture2D>>>,
-
-    pub override_state: PartialRenderState,
 }
 
 impl Material {
@@ -18,7 +16,6 @@ impl Material {
             shader,
             uniforms: HashMap::new(),
             textures: HashMap::new(),
-            override_state: PartialRenderState::new(),
         }))
     }
 
@@ -154,8 +151,8 @@ impl Material {
 }
 
 impl Material {
-    /// 合并 Pass 的默认状态和 Material 的覆盖状态
-    pub fn final_state(&self, pass_state: &RenderState) -> RenderState {
-        pass_state.merge(&self.override_state)
-    }
+    // 合并 Pass 的默认状态和 Material 的覆盖状态 TODO:
+    // pub fn final_state(&self, pass_state: &RenderState) -> RenderState {
+    //     pass_state.merge(&self.override_state)
+    // }
 }

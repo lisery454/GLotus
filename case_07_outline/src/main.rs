@@ -8,45 +8,41 @@ fn main() {
             let mut pipeline = Pipeline::new();
             pipeline.insert(Pass::new(
                 "main",
-                RenderState {
-                    depth_test: true,
-                    depth_write: true,
-                    stencil_test: true,
-                    stencil_func: Some(StencilFunc {
-                        func: StencilFuncType::Always,
-                        ref_value: 1,
-                        mask: 0xFF,
-                    }),
-                    stencil_op: Some(StencilOp {
-                        sfail: StencilOpType::Keep,
-                        dpfail: StencilOpType::Keep,
-                        dppass: StencilOpType::Replace,
-                    }),
-                    stencil_write_mask: Some(0xFF),
-                    ..Default::default()
-                },
+                RenderState::new(
+                    DepthMode::new(true, true, DepthFunc::Less),
+                    StencilMode::new(
+                        true,
+                        StencilFunc::new(StencilFuncType::Always, 1, 0xFF),
+                        StencilOp::new(
+                            StencilOpType::Keep,
+                            StencilOpType::Keep,
+                            StencilOpType::Replace,
+                        ),
+                        0xFF,
+                    ),
+                    BlendMode::default(),
+                    CullFaceMode::default(),
+                    PolygonMode::default(),
+                ),
             ));
             pipeline.insert(Pass::new(
                 "outline",
-                RenderState {
-                    depth_test: true,
-                    depth_write: false,
-                    depth_func: DepthFunc::LessEqual,
-                    stencil_test: true,
-                    stencil_func: Some(StencilFunc {
-                        func: StencilFuncType::NotEqual,
-                        ref_value: 1,
-                        mask: 0xFF,
-                    }),
-                    stencil_op: Some(StencilOp {
-                        sfail: StencilOpType::Keep,
-                        dpfail: StencilOpType::Keep,
-                        dppass: StencilOpType::Keep,
-                    }),
-                    stencil_write_mask: Some(0x00),       // 禁止写入
-                    cull_face: Some(CullFaceMode::Front), // 剔除正面
-                    ..Default::default()
-                },
+                RenderState::new(
+                    DepthMode::new(true, false, DepthFunc::LessEqual),
+                    StencilMode::new(
+                        true,
+                        StencilFunc::new(StencilFuncType::NotEqual, 1, 0xFF),
+                        StencilOp::new(
+                            StencilOpType::Keep,
+                            StencilOpType::Keep,
+                            StencilOpType::Keep,
+                        ),
+                        0x00,
+                    ),
+                    BlendMode::default(),
+                    CullFaceMode::Front,
+                    PolygonMode::default(),
+                ),
             ));
             pipeline
         }),

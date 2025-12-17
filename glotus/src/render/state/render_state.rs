@@ -1,385 +1,86 @@
-#[derive(Clone, Debug)]
+use crate::{BlendMode, CullFaceMode, DepthMode, PolygonMode, StencilMode};
+
+#[derive(Clone, Debug, Default)]
 pub struct RenderState {
-    /// 是否启用深度测试，也就是只有frag的深度小于当前位置的深度缓冲才会写入像素缓冲区
-    pub depth_test: bool,
-    /// 是否启用深度写入，也就是是否在深度测试判断时，会写入当前frag的深度到深度缓冲区
-    pub depth_write: bool,
-    /// 深度测试函数
-    pub depth_func: DepthFunc,
-    /// 是否开启模板测试
-    pub stencil_test: bool,
-    /// 模板测试函数
-    pub stencil_func: Option<StencilFunc>,
-    /// 模板缓冲修改操作
-    pub stencil_op: Option<StencilOp>,
-    /// 模板写入mask锁 1为可以写，0不能写，一共8位
-    pub stencil_write_mask: Option<u32>,
-    /// 混合模式
-    pub blend: Option<BlendMode>,
-    /// 剔除面模式
-    pub cull_face: Option<CullFaceMode>,
-    /// 多边形模式
-    pub polygon_mode: PolygonMode,
-}
-
-impl Default for RenderState {
-    fn default() -> Self {
-        Self {
-            depth_test: true,
-            depth_write: true,
-            depth_func: DepthFunc::Less,
-            stencil_test: false,
-            stencil_func: Default::default(),
-            stencil_write_mask: Some(0xFF),
-            stencil_op: Default::default(),
-            blend: Default::default(),
-            cull_face: Default::default(),
-            polygon_mode: Default::default(),
-        }
-    }
+    depth_mode: DepthMode,
+    stencil_mode: StencilMode,
+    blend_mode: BlendMode,
+    cull_face_mode: CullFaceMode,
+    polygon_mode: PolygonMode,
 }
 
 impl RenderState {
-    /// 将 RenderState 应用到 OpenGL
+    pub fn new(
+        depth_mode: DepthMode,
+        stencil_mode: StencilMode,
+        blend_mode: BlendMode,
+        cull_face_mode: CullFaceMode,
+        polygon_mode: PolygonMode,
+    ) -> Self {
+        Self {
+            depth_mode,
+            stencil_mode,
+            blend_mode,
+            cull_face_mode,
+            polygon_mode,
+        }
+    }
+
     pub fn apply(&self) {
-        unsafe {
-            // 深度测试
-            if self.depth_test {
-                gl::Enable(gl::DEPTH_TEST);
-            } else {
-                gl::Disable(gl::DEPTH_TEST);
-            }
-            gl::DepthMask(if self.depth_write {
-                gl::TRUE
-            } else {
-                gl::FALSE
-            });
-
-            gl::DepthFunc(self.depth_func.into());
-
-            // 模板测试
-            if self.stencil_test {
-                gl::Enable(gl::STENCIL_TEST);
-                if let Some(stencil_func) = &self.stencil_func {
-                    gl::StencilFunc(
-                        stencil_func.func.into(),
-                        stencil_func.ref_value,
-                        stencil_func.mask,
-                    );
-                }
-                if let Some(stencil_op) = &self.stencil_op {
-                    gl::StencilOp(
-                        stencil_op.sfail.into(),
-                        stencil_op.dpfail.into(),
-                        stencil_op.dppass.into(),
-                    );
-                }
-                if let Some(mask) = self.stencil_write_mask {
-                    gl::StencilMask(mask);
-                }
-            } else {
-                gl::Disable(gl::STENCIL_TEST);
-                // 重置 stencil 写入，防止下次 enable 时继承脏状态
-                gl::StencilMask(0xFF);
-                gl::StencilOp(gl::KEEP, gl::KEEP, gl::KEEP);
-                gl::StencilFunc(gl::ALWAYS, 0, 0xFF);
-            }
-
-            // 混合模式
-            match self.blend {
-                Some(BlendMode::Alpha) => {
-                    gl::Enable(gl::BLEND);
-                    gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-                }
-                Some(BlendMode::Additive) => {
-                    gl::Enable(gl::BLEND);
-                    gl::BlendFunc(gl::ONE, gl::ONE);
-                }
-                _ => gl::Disable(gl::BLEND),
-            }
-
-            // 剔除模式
-            match self.cull_face {
-                Some(CullFaceMode::Back) => {
-                    gl::Enable(gl::CULL_FACE);
-                    gl::CullFace(gl::BACK);
-                }
-                Some(CullFaceMode::Front) => {
-                    gl::Enable(gl::CULL_FACE);
-                    gl::CullFace(gl::FRONT);
-                }
-                _ => gl::Disable(gl::CULL_FACE),
-            }
-
-            // 多边形模式
-            match self.polygon_mode {
-                PolygonMode::Fill => gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL),
-                PolygonMode::Line => gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE),
-                PolygonMode::Point => gl::PolygonMode(gl::FRONT_AND_BACK, gl::POINT),
-            }
-        }
+        self.depth_mode.apply();
+        self.stencil_mode.apply();
+        self.blend_mode.apply();
+        self.cull_face_mode.apply();
+        self.polygon_mode.apply();
     }
-}
 
-#[derive(Clone, Debug)]
-pub struct PartialRenderState {
-    pub depth_test: Option<bool>,
-    pub depth_write: Option<bool>,
-    pub depth_func: Option<DepthFunc>,
-    pub stencil_test: Option<bool>,
-    pub stencil_func: Option<StencilFunc>,
-    pub stencil_op: Option<StencilOp>,
-    pub stencil_write_mask: Option<u32>,
-    pub blend: Option<BlendMode>,
-    pub cull_face: Option<CullFaceMode>,
-    pub polygon_mode: Option<PolygonMode>,
-}
-
-impl Default for PartialRenderState {
-    fn default() -> Self {
-        Self {
-            depth_test: Default::default(),
-            depth_write: Default::default(),
-            depth_func: Default::default(),
-            stencil_test: Default::default(),
-            stencil_func: Default::default(),
-            stencil_write_mask: Default::default(),
-            stencil_op: Default::default(),
-            blend: Default::default(),
-            cull_face: Default::default(),
-            polygon_mode: Default::default(),
-        }
+    pub fn get_polygon_mode(&self) -> PolygonMode {
+        self.polygon_mode
     }
-}
-
-impl RenderState {
-    /// 使用 partial 覆盖当前状态
-    pub fn merge(&self, partial: &PartialRenderState) -> Self {
-        Self {
-            depth_test: partial.depth_test.unwrap_or(self.depth_test),
-            depth_write: partial.depth_write.unwrap_or(self.depth_write),
-            depth_func: partial.depth_func.unwrap_or(self.depth_func),
-            stencil_test: partial.stencil_test.unwrap_or(self.stencil_test),
-            stencil_func: partial.stencil_func.or(self.stencil_func),
-            stencil_op: partial.stencil_op.or(self.stencil_op),
-            stencil_write_mask: partial.stencil_write_mask.or(self.stencil_write_mask),
-            blend: partial.blend.or(self.blend),
-            cull_face: partial.cull_face.or(self.cull_face),
-            polygon_mode: partial.polygon_mode.unwrap_or(self.polygon_mode),
+    pub fn set_polygon_mode(&mut self, mode: PolygonMode) {
+        if mode != self.polygon_mode {
+            self.polygon_mode = mode;
+            self.polygon_mode.apply();
         }
     }
 
-    /// 可变引用版本的 override
-    pub fn override_by(&mut self, partial: PartialRenderState) {
-        if let Some(depth_test) = partial.depth_test {
-            self.depth_test = depth_test;
-        }
-        if let Some(depth_write) = partial.depth_write {
-            self.depth_write = depth_write;
-        }
-        if let Some(stencil_test) = partial.stencil_test {
-            self.stencil_test = stencil_test;
-        }
-        if let Some(stencil_func) = partial.stencil_func {
-            self.stencil_func = Some(stencil_func);
-        }
-        if let Some(stencil_op) = partial.stencil_op {
-            self.stencil_op = Some(stencil_op);
-        }
-        if let Some(blend) = partial.blend {
-            self.blend = Some(blend);
-        }
-        if let Some(cull_face) = partial.cull_face {
-            self.cull_face = Some(cull_face);
-        }
-        if let Some(polygon_mode) = partial.polygon_mode {
-            self.polygon_mode = polygon_mode;
+    pub fn get_cull_face_mode(&self) -> CullFaceMode {
+        self.cull_face_mode
+    }
+    pub fn set_cull_face_mode(&mut self, mode: CullFaceMode) {
+        if mode != self.cull_face_mode {
+            self.cull_face_mode = mode;
+            self.cull_face_mode.apply();
         }
     }
-}
 
-impl PartialRenderState {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn get_blend_mode(&self) -> BlendMode {
+        self.blend_mode
     }
-}
-
-/// 深度函数
-#[derive(Clone, Debug, Copy)]
-pub enum DepthFunc {
-    Never,
-    Less, // 默认
-    Equal,
-    LessEqual,
-    Greater,
-    NotEqual,
-    GreaterEqual,
-    Always,
-}
-
-impl From<DepthFunc> for gl::types::GLenum {
-    fn from(value: DepthFunc) -> Self {
-        match value {
-            DepthFunc::Never => gl::NEVER,
-            DepthFunc::Less => gl::LESS,
-            DepthFunc::Equal => gl::EQUAL,
-            DepthFunc::LessEqual => gl::LEQUAL,
-            DepthFunc::Greater => gl::GREATER,
-            DepthFunc::NotEqual => gl::NOTEQUAL,
-            DepthFunc::GreaterEqual => gl::GEQUAL,
-            DepthFunc::Always => gl::ALWAYS,
+    pub fn set_blend_mode(&mut self, mode: BlendMode) {
+        if mode != self.blend_mode {
+            self.blend_mode = mode;
+            self.blend_mode.apply();
         }
     }
-}
 
-/// 模板函数 (ref & mask)  vs  (stencil_value & mask)
-#[derive(Clone, Debug, Copy)]
-pub struct StencilFunc {
-    pub func: StencilFuncType, // gl::FUNC
-    /// 与模板缓冲中的值进行比较的值
-    pub ref_value: i32,
-    /// 读取掩码，从模板缓冲区中读的值会先于这个掩码进行&，一共有八位可以进行掩码。
-    pub mask: u32,
-}
-
-/// 模板函数类型
-#[derive(Clone, Debug, Copy)]
-pub enum StencilFuncType {
-    /// 总是通过
-    Always,
-    /// 永远不通过
-    Never,
-    /// 参考值等于通过
-    Equal,
-    /// 参考值不等于读取值通过
-    NotEqual,
-    /// 参考值小于读取值通过
-    Less,
-    /// 参考值小于读取值等于通过
-    LessEqual,
-    /// 参考值大于读取值通过
-    Greater,
-    /// 参考值大于读取值等于通过
-    GreraterEqual,
-}
-
-impl From<StencilFuncType> for gl::types::GLenum {
-    fn from(value: StencilFuncType) -> Self {
-        match value {
-            StencilFuncType::Always => gl::ALWAYS,
-            StencilFuncType::Never => gl::NEVER,
-            StencilFuncType::Equal => gl::EQUAL,
-            StencilFuncType::NotEqual => gl::NOTEQUAL,
-            StencilFuncType::Less => gl::LESS,
-            StencilFuncType::LessEqual => gl::LEQUAL,
-            StencilFuncType::Greater => gl::GREATER,
-            StencilFuncType::GreraterEqual => gl::GEQUAL,
+    pub fn get_stencil_mode(&self) -> StencilMode {
+        self.stencil_mode
+    }
+    pub fn set_stencil_mode(&mut self, mode: StencilMode) {
+        if mode != self.stencil_mode {
+            self.stencil_mode = mode;
+            self.stencil_mode.apply();
         }
     }
-}
 
-impl Default for StencilFunc {
-    fn default() -> Self {
-        StencilFunc {
-            func: StencilFuncType::Always,
-            ref_value: 0,
-            mask: 0xFF,
+    pub fn get_depth_mode(&self) -> DepthMode {
+        self.depth_mode
+    }
+    pub fn set_depth_mode(&mut self, mode: DepthMode) {
+        if mode != self.depth_mode {
+            self.depth_mode = mode;
+            self.depth_mode.apply();
         }
-    }
-}
-
-/// 模板测试写操作的处理
-#[derive(Clone, Debug, Copy)]
-pub struct StencilOp {
-    /// 模板测试失败对模板缓冲的处理
-    pub sfail: StencilOpType,
-    /// 模板测试通过但是深度测试失败的对模板缓冲的处理
-    pub dpfail: StencilOpType,
-    /// 模板和深度都通过的对模板缓冲的处理
-    pub dppass: StencilOpType,
-}
-
-/// 模板测试写操作的处理类型
-#[derive(Clone, Debug, Copy)]
-pub enum StencilOpType {
-    /// 保持不变
-    Keep,
-    /// 置零
-    Zero,
-    /// 替换为模板方法中参考值
-    Replace,
-    /// 递增加1
-    Increment,
-    /// 递增加1，但是超过最大限制回到0（一共8位）
-    IncrementWrap,
-    /// 递减减1
-    Decrement,
-    /// 递减减1，但是超过最小限制回到最大值（一共8位）
-    DecrementWrap,
-    /// 反转所有位
-    Invert,
-}
-
-impl From<StencilOpType> for gl::types::GLenum {
-    fn from(value: StencilOpType) -> Self {
-        match value {
-            StencilOpType::Keep => gl::KEEP,
-            StencilOpType::Zero => gl::ZERO,
-            StencilOpType::Replace => gl::REPLACE,
-            StencilOpType::Increment => gl::INCR,
-            StencilOpType::IncrementWrap => gl::INCR_WRAP,
-            StencilOpType::Decrement => gl::DECR,
-            StencilOpType::DecrementWrap => gl::DECR_WRAP,
-            StencilOpType::Invert => gl::INVERT,
-        }
-    }
-}
-
-impl Default for StencilOp {
-    fn default() -> Self {
-        StencilOp {
-            sfail: StencilOpType::Keep,
-            dpfail: StencilOpType::Keep,
-            dppass: StencilOpType::Keep,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Copy)]
-pub enum BlendMode {
-    Alpha,
-    Additive,
-    None,
-}
-
-impl Default for BlendMode {
-    fn default() -> Self {
-        BlendMode::None
-    }
-}
-
-#[derive(Clone, Debug, Copy)]
-pub enum CullFaceMode {
-    Back,
-    Front,
-    None,
-}
-
-impl Default for CullFaceMode {
-    fn default() -> Self {
-        CullFaceMode::None
-    }
-}
-
-#[derive(Clone, Debug, Copy)]
-pub enum PolygonMode {
-    Fill,
-    Line,
-    Point,
-}
-
-impl Default for PolygonMode {
-    fn default() -> Self {
-        PolygonMode::Fill
     }
 }
