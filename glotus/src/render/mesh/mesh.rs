@@ -25,17 +25,17 @@ impl Default for Mesh {
 
 impl Mesh {
     /// 从位置数组生成
-    pub fn from_position(indices: &Vec<usize>, positions: &Vec<f32>) -> Rc<RefCell<Self>> {
+    pub fn from_position(indices: &Vec<usize>, positions: &Vec<f32>) -> Self {
         let count = positions.len();
         assert_eq!(count % 3, 0);
-        Rc::new(RefCell::new(Self {
+        Self {
             indices: indices.clone(),
             positions: positions
                 .chunks(3)
                 .map(|c| Vector3::new(c[0], c[1], c[2]))
                 .collect(),
             ..Default::default()
-        }))
+        }
     }
 
     /// 从位置数组和法线数组生成

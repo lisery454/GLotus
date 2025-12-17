@@ -16,7 +16,7 @@ pub struct Texture2D {
 
 impl Texture2D {
     /// 用默认配置从文件生成贴图
-    pub fn from_file_default(path: &str) -> Result<Rc<RefCell<Self>>, TextureError> {
+    pub fn from_file_default(path: &str) -> Result<Self, TextureError> {
         Self::from_file(
             path,
             WrappingMode::Repeat,
@@ -27,7 +27,7 @@ impl Texture2D {
     }
 
     /// 用默认配置从2进制数据生成贴图
-    pub fn from_byte_default(data: &[u8]) -> Result<Rc<RefCell<Self>>, TextureError> {
+    pub fn from_byte_default(data: &[u8]) -> Result<Self, TextureError> {
         Self::from_byte(
             data,
             WrappingMode::Repeat,
@@ -44,7 +44,7 @@ impl Texture2D {
         wrapping_mode_t: WrappingMode,
         filtering_mode_min: FilteringMode,
         filtering_mode_mag: FilteringMode,
-    ) -> Result<Rc<RefCell<Self>>, TextureError> {
+    ) -> Result<Self, TextureError> {
         let img = image::load_from_memory(data).map_err(|_| TextureError::ByteReadError)?;
 
         Self::load(
@@ -63,7 +63,7 @@ impl Texture2D {
         wrapping_mode_t: WrappingMode,
         filtering_mode_min: FilteringMode,
         filtering_mode_mag: FilteringMode,
-    ) -> Result<Rc<RefCell<Self>>, TextureError> {
+    ) -> Result<Self, TextureError> {
         let img = image::open(path).map_err(|_| TextureError::FileReadError(path.to_string()))?;
 
         Self::load(
@@ -82,7 +82,7 @@ impl Texture2D {
         wrapping_mode_t: WrappingMode,
         filtering_mode_min: FilteringMode,
         filtering_mode_mag: FilteringMode,
-    ) -> Result<Rc<RefCell<Self>>, TextureError> {
+    ) -> Result<Self, TextureError> {
         // 1. 翻转
         let img = img.flipv(); // OpenGL 的纹理坐标原点在左下，需要翻转Y轴
 
@@ -122,7 +122,7 @@ impl Texture2D {
             gl::BindTexture(gl::TEXTURE_2D, 0);
         }
 
-        Ok(Rc::new(RefCell::new(Self { id: texture_id })))
+        Ok(Self { id: texture_id })
     }
 
     /// 设置循环模式

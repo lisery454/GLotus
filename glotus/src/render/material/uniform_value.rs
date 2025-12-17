@@ -1,6 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
-
-use crate::Texture2D;
+use crate::TextureHandle;
 
 /// uniform的值
 #[derive(Debug)]
@@ -18,5 +16,5 @@ pub enum UniformValue {
     /// mat4*4
     Matrix4([[f32; 4]; 4]),
     /// tex的slot，以及贴图数据
-    Texture(usize, Rc<RefCell<Texture2D>>), // 纹理槽位
+    Texture(usize, TextureHandle), // 纹理槽位
 }

@@ -1,25 +1,19 @@
-use std::{cell::RefCell, rc::Rc};
+use std::collections::HashMap;
 
 use crate::render::*;
 
 /// 实体对象
 pub struct Entity {
-    pub transform: Transform,
-    pub material_group: Rc<RefCell<MaterialGroup>>,
-    pub mesh_wrapper: Rc<RefCell<MeshGPUWrapper>>,
+    pub material_handles: HashMap<String, MaterialHandle>,
+    pub mesh_handle: MeshHandle,
 }
 
 impl Entity {
     /// 新建
-    pub fn new(
-        transform: Transform,
-        material_group: Rc<RefCell<MaterialGroup>>,
-        mesh: Rc<RefCell<Mesh>>,
-    ) -> Rc<RefCell<Self>> {
-        Rc::new(RefCell::new(Self {
-            transform,
-            material_group,
-            mesh_wrapper: MeshGPUWrapper::from_mesh(mesh),
-        }))
+    pub fn new(material_handles: HashMap<String, MaterialHandle>, mesh_handle: MeshHandle) -> Self {
+        Self {
+            material_handles,
+            mesh_handle,
+        }
     }
 }

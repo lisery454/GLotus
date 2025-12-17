@@ -26,6 +26,12 @@ pub struct App {
     ticker: Rc<RefCell<Ticker>>,
 
     pipeline: Rc<RefCell<Pipeline>>,
+
+    shader_manager: Rc<RefCell<ShaderManager>>,
+    texture_manager: Rc<RefCell<TextureManager>>,
+    material_manager: Rc<RefCell<MaterialManager>>,
+    mesh_manager: Rc<RefCell<MeshManager>>,
+    entity_manager: Rc<RefCell<EntityManager>>,
 }
 
 // main
@@ -47,6 +53,11 @@ impl App {
             event_queue: Rc::new(RefCell::new(AppEventQueue::new())),
             ticker: Rc::new(RefCell::new(Ticker::new())),
             pipeline,
+            shader_manager: Rc::new(RefCell::new(ShaderManager::new())),
+            texture_manager: Rc::new(RefCell::new(TextureManager::new())),
+            material_manager: Rc::new(RefCell::new(MaterialManager::new())),
+            mesh_manager: Rc::new(RefCell::new(MeshManager::new())),
+            entity_manager: Rc::new(RefCell::new(EntityManager::new())),
         };
 
         utils::setup_logger();
@@ -138,6 +149,26 @@ impl App {
 
         // 初始化视口
         self.resize_view(width, height);
+    }
+
+    pub fn get_shader_manager(&self) -> Rc<RefCell<ShaderManager>> {
+        self.shader_manager.clone()
+    }
+
+    pub fn get_texture_manager(&self) -> Rc<RefCell<TextureManager>> {
+        self.texture_manager.clone()
+    }
+
+    pub fn get_material_manager(&self) -> Rc<RefCell<MaterialManager>> {
+        self.material_manager.clone()
+    }
+
+    pub fn get_mesh_manager(&self) -> Rc<RefCell<MeshManager>> {
+        self.mesh_manager.clone()
+    }
+
+    pub fn get_entity_manager(&self) -> Rc<RefCell<EntityManager>> {
+        self.entity_manager.clone()
     }
 
     pub fn get_world(&self) -> Rc<RefCell<World>> {

@@ -112,9 +112,7 @@ pub struct MeshGPUWrapper {
 
 impl MeshGPUWrapper {
     /// 从mesh生成
-    pub fn from_mesh(mesh: Rc<RefCell<Mesh>>) -> Rc<RefCell<Self>> {
-        let mesh = mesh.borrow();
-
+    pub fn from_mesh(mesh: &Mesh) -> Self {
         // Dedup + index buffer
         let (vertices, indices) = build_gpu_mesh(&mesh);
 
@@ -160,12 +158,12 @@ impl MeshGPUWrapper {
             gl::BindVertexArray(0);
         }
 
-        Rc::new(RefCell::new(Self {
+        Self {
             vao,
             vbo,
             ebo,
             index_count: indices.len(),
-        }))
+        }
     }
 
     /// 传输数据给GPU进行绘制
