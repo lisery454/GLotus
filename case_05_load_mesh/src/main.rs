@@ -1,111 +1,168 @@
+use std::{collections::HashMap, error::Error};
+
 use glotus::*;
 
-fn main() {
-    let app = glotus::App::new_with_config(AppConfig {
-        // bg_color: [0.0, 0.0, 0.0],
-        anti_pixel_msaa: AntiPixel::MSAA16,
-        ..Default::default()
-    });
+fn main() -> Result<(), Box<dyn Error>> {
+    let app = App::new();
 
-    let shader = Shader::from_sources(
-        include_str!("../assets/shaders/vs_0.vert"),
-        include_str!("../assets/shaders/fs_0.frag"),
-    )
-    .unwrap();
+    app.borrow().build(|context| {
+        let shader = context
+            .borrow()
+            .asset_manager
+            .borrow_mut()
+            .shader_manager
+            .create_from_sources(
+                include_str!("../assets/shaders/vs.vert"),
+                include_str!("../assets/shaders/fs.frag"),
+            )?;
 
-    let material = Material::new(shader.clone());
-    let pass_name = DefaultPipeline::get_default_pass_name();
-    let material_group = MaterialGroup::single(pass_name, material.clone());
-    material.borrow_mut().insert_uniform(
-        "material.diff_color",
-        UniformValue::Vector3([0.5, 0.5, 0.5]),
-    );
-    material.borrow_mut().insert_uniform(
-        "material.spec_color",
-        UniformValue::Vector3([1.0, 1.0, 1.0]),
-    );
-    material.borrow_mut().insert_uniform(
-        "material.ambient_factor",
-        UniformValue::Vector3([0.1, 0.1, 0.1]),
-    );
-    material.borrow_mut().insert_uniform(
-        "material.diffuse_factor",
-        UniformValue::Vector3([1.0, 1.0, 1.0]),
-    );
-    material.borrow_mut().insert_uniform(
-        "material.specular_factor",
-        UniformValue::Vector3([0.6, 0.6, 0.6]),
-    );
-    material
-        .borrow_mut()
-        .insert_uniform("material.specular_shininess", UniformValue::Float(40.0));
+        let material = context
+            .borrow()
+            .asset_manager
+            .borrow_mut()
+            .material_manager
+            .create(shader)?;
 
-    let mesh = Mesh::load_obj_from_memory(include_bytes!("../assets/meshes/sphere.obj")).unwrap();
-    let mesh_2 =
-        Mesh::load_obj_from_memory(include_bytes!("../assets/meshes/sphere_no_smooth.obj"))
-            .unwrap();
-    let mesh_3 = Mesh::load_obj_from_memory(include_bytes!("../assets/meshes/box.obj")).unwrap();
-    let mesh_4 =
-        Mesh::load_obj_from_memory(include_bytes!("../assets/meshes/suzanne.obj")).unwrap();
+        {
+            let context_ref = context.borrow();
 
-    app.borrow()
-        .get_world()
-        .borrow_mut()
-        .add_entity(Entity::new(
-            Transform::from_position(0.0, 0.0, 0.0),
-            material_group.clone(),
-            mesh.clone(),
-        ));
+            let mut asset_mgr = context_ref.asset_manager.borrow_mut();
 
-    app.borrow()
-        .get_world()
-        .borrow_mut()
-        .add_entity(Entity::new(
-            Transform::from_position(3.0, 0.0, 0.0),
-            material_group.clone(),
-            mesh_2.clone(),
-        ));
+            asset_mgr.material_manager.insert_uniform(
+                material,
+                "material.diff_color",
+                UniformValue::Vector3([0.5, 0.5, 0.5]),
+            );
 
-    app.borrow()
-        .get_world()
-        .borrow_mut()
-        .add_entity(Entity::new(
-            Transform::from_position(0.0, 0.0, 3.0),
-            material_group.clone(),
-            mesh_3.clone(),
-        ));
+            asset_mgr.material_manager.insert_uniform(
+                material,
+                "material.spec_color",
+                UniformValue::Vector3([1.0, 1.0, 1.0]),
+            );
 
-    app.borrow()
-        .get_world()
-        .borrow_mut()
-        .add_entity(Entity::new(
-            Transform::from_position(3.0, 0.0, 3.0),
-            material_group.clone(),
-            mesh_4.clone(),
-        ));
+            asset_mgr.material_manager.insert_uniform(
+                material,
+                "material.ambient_factor",
+                UniformValue::Vector3([0.1, 0.1, 0.1]),
+            );
 
-    app.borrow()
-        .get_world()
-        .borrow()
-        .get_camera()
-        .borrow_mut()
-        .get_transform_mut()
-        .set_translation(Translation::new(1.5, 0.0, 6.0));
+            asset_mgr.material_manager.insert_uniform(
+                material,
+                "material.diffuse_factor",
+                UniformValue::Vector3([1.0, 1.0, 1.0]),
+            );
 
-    let point_light = PointLight::new();
-    point_light.borrow_mut().color = Color::from_rgb(255, 255, 255);
-    point_light.borrow_mut().intensity = 4.0;
-    point_light.borrow_mut().range = 20.0;
-    point_light
-        .borrow_mut()
-        .transform
-        .set_translation(Translation::new(5.0, 6.0, 3.0));
-    app.borrow()
-        .get_world()
-        .borrow_mut()
-        .add_light(point_light.clone());
+            asset_mgr.material_manager.insert_uniform(
+                material,
+                "material.specular_factor",
+                UniformValue::Vector3([0.6, 0.6, 0.6]),
+            );
 
-    app.borrow_mut().init_camera_tickable();
+            asset_mgr.material_manager.insert_uniform(
+                material,
+                "material.specular_shininess",
+                UniformValue::Float(40.0),
+            );
+        }
+
+        let mesh = context
+            .borrow()
+            .asset_manager
+            .borrow_mut()
+            .mesh_manager
+            .create_from_obj_in_bytes(include_bytes!("../assets/meshes/sphere.obj"))?;
+
+        let mesh2 = context
+            .borrow()
+            .asset_manager
+            .borrow_mut()
+            .mesh_manager
+            .create_from_obj_in_bytes(include_bytes!("../assets/meshes/sphere_no_smooth.obj"))?;
+
+        let mesh3 = context
+            .borrow()
+            .asset_manager
+            .borrow_mut()
+            .mesh_manager
+            .create_from_obj_in_bytes(include_bytes!("../assets/meshes/box.obj"))?;
+
+        let mesh4 = context
+            .borrow()
+            .asset_manager
+            .borrow_mut()
+            .mesh_manager
+            .create_from_obj_in_bytes(include_bytes!("../assets/meshes/suzanne.obj"))?;
+
+        let context_borrow = context.borrow();
+        let mut world = context_borrow.world.borrow_mut();
+        let pass_name = DefaultPipeline::get_default_pass_name();
+
+        let entity = world.spawn_entity();
+        world.get_manager_mut::<RenderableComponent>().add(
+            entity,
+            RenderableComponent::new(HashMap::from([(pass_name.clone(), material)]), mesh),
+        );
+        world.get_manager_mut::<TransformComponent>().add(
+            entity,
+            TransformComponent::new(Transform::from_position(0.0, 0.0, 0.0)),
+        );
+
+        let entity = world.spawn_entity();
+        world.get_manager_mut::<RenderableComponent>().add(
+            entity,
+            RenderableComponent::new(HashMap::from([(pass_name.clone(), material)]), mesh2),
+        );
+        world.get_manager_mut::<TransformComponent>().add(
+            entity,
+            TransformComponent::new(Transform::from_position(3.0, 0.0, 0.0)),
+        );
+
+        let entity = world.spawn_entity();
+        world.get_manager_mut::<RenderableComponent>().add(
+            entity,
+            RenderableComponent::new(HashMap::from([(pass_name.clone(), material)]), mesh3),
+        );
+        world.get_manager_mut::<TransformComponent>().add(
+            entity,
+            TransformComponent::new(Transform::from_position(0.0, 0.0, 3.0)),
+        );
+
+        let entity = world.spawn_entity();
+        world.get_manager_mut::<RenderableComponent>().add(
+            entity,
+            RenderableComponent::new(HashMap::from([(pass_name.clone(), material)]), mesh4),
+        );
+        world.get_manager_mut::<TransformComponent>().add(
+            entity,
+            TransformComponent::new(Transform::from_position(3.0, 0.0, 3.0)),
+        );
+
+        let camera_entity = world.spawn_entity();
+        world
+            .get_manager_mut::<CameraComponent>()
+            .add(camera_entity, CameraComponent::new(true));
+        world.get_manager_mut::<TransformComponent>().add(
+            camera_entity,
+            TransformComponent::new(Transform::from_position(1.5, 0.0, 6.0)),
+        );
+
+        let point_light_entity = world.spawn_entity();
+        let mut point_light = PointLight::new();
+        point_light.color = Color::from_rgb(255, 255, 255);
+        point_light.intensity = 4.0;
+        point_light.range = 20.0;
+        world
+            .get_manager_mut::<LightComponent>()
+            .add(point_light_entity, LightComponent::new(point_light));
+        world.get_manager_mut::<TransformComponent>().add(
+            point_light_entity,
+            TransformComponent::new(Transform::from_position(5.0, 6.0, 3.0)),
+        );
+
+        Ok(())
+    })?;
 
     app.borrow_mut().run();
+
+    Ok(())
 }
