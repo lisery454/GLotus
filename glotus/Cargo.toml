@@ -17,6 +17,8 @@ uuid = { version = "1.7", features = ["v4", "serde"] }
 image = "0.24"
 regex = "1.11.1"
 tobj = "4.0.3"
+slotmap = "1.1.1"
+downcast-rs = "2.0.2"
 
 [build-dependencies]
 gl_generator = "0.14.0"

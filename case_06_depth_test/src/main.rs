@@ -1,81 +1,113 @@
+use std::{collections::HashMap, error::Error};
+
 use glotus::*;
 
-fn main() {
-    let app = glotus::App::new_with_config(AppConfig {
-        // bg_color: [0.0, 0.0, 0.0],
-        anti_pixel_msaa: AntiPixel::MSAA16,
-        ..Default::default()
-    });
+fn main() -> Result<(), Box<dyn Error>> {
+    let app = App::new();
 
-    let shader = Shader::from_sources(
-        include_str!("../assets/shaders/vs_0.vert"),
-        include_str!("../assets/shaders/fs_0.frag"),
-    )
-    .unwrap();
+    app.borrow().build(|context| {
+        let shader = context
+            .borrow()
+            .asset_manager
+            .borrow_mut()
+            .shader_manager
+            .create_from_sources(
+                include_str!("../assets/shaders/vs.vert"),
+                include_str!("../assets/shaders/fs.frag"),
+            )?;
 
-    let material = Material::new(shader.clone());
-    let pass_name = DefaultPipeline::get_default_pass_name();
-    let material_group = MaterialGroup::single(pass_name, material.clone());
+        let material = context
+            .borrow()
+            .asset_manager
+            .borrow_mut()
+            .material_manager
+            .create(shader)?;
 
-    let mesh = Mesh::load_obj_from_memory(include_bytes!("../assets/meshes/sphere.obj")).unwrap();
-    let mesh_2 =
-        Mesh::load_obj_from_memory(include_bytes!("../assets/meshes/sphere_no_smooth.obj"))
-            .unwrap();
-    let mesh_3 = Mesh::load_obj_from_memory(include_bytes!("../assets/meshes/box.obj")).unwrap();
+        let mesh = context
+            .borrow()
+            .asset_manager
+            .borrow_mut()
+            .mesh_manager
+            .create_from_obj_in_bytes(include_bytes!("../assets/meshes/sphere.obj"))?;
 
-    app.borrow()
-        .get_world()
-        .borrow_mut()
-        .add_entity(Entity::new(
-            Transform::from_position(0.0, 0.0, 0.0),
-            material_group.clone(),
-            mesh.clone(),
-        ));
+        let mesh2 = context
+            .borrow()
+            .asset_manager
+            .borrow_mut()
+            .mesh_manager
+            .create_from_obj_in_bytes(include_bytes!("../assets/meshes/sphere_no_smooth.obj"))?;
 
-    app.borrow()
-        .get_world()
-        .borrow_mut()
-        .add_entity(Entity::new(
-            Transform::from_position(3.0, 0.0, 0.0),
-            material_group.clone(),
-            mesh_2.clone(),
-        ));
+        let mesh3 = context
+            .borrow()
+            .asset_manager
+            .borrow_mut()
+            .mesh_manager
+            .create_from_obj_in_bytes(include_bytes!("../assets/meshes/box.obj"))?;
 
-    app.borrow()
-        .get_world()
-        .borrow_mut()
-        .add_entity(Entity::new(
-            Transform::new(
+        let context_borrow = context.borrow();
+        let mut world = context_borrow.world.borrow_mut();
+        let pass_name = DefaultPipeline::get_default_pass_name();
+
+        let entity = world.spawn_entity();
+        world.get_manager_mut::<RenderableComponent>().add(
+            entity,
+            RenderableComponent::new(HashMap::from([(pass_name.clone(), material)]), mesh),
+        );
+        world.get_manager_mut::<TransformComponent>().add(
+            entity,
+            TransformComponent::new(Transform::from_position(0.0, 0.0, 0.0)),
+        );
+
+        let entity = world.spawn_entity();
+        world.get_manager_mut::<RenderableComponent>().add(
+            entity,
+            RenderableComponent::new(HashMap::from([(pass_name.clone(), material)]), mesh2),
+        );
+        world.get_manager_mut::<TransformComponent>().add(
+            entity,
+            TransformComponent::new(Transform::from_position(3.0, 0.0, 0.0)),
+        );
+
+        let entity = world.spawn_entity();
+        world.get_manager_mut::<RenderableComponent>().add(
+            entity,
+            RenderableComponent::new(HashMap::from([(pass_name.clone(), material)]), mesh3),
+        );
+        world.get_manager_mut::<TransformComponent>().add(
+            entity,
+            TransformComponent::new(Transform::new(
                 Translation::new(0.0, -1.2, 0.0),
-                Rotation::default(),
+                Default::default(),
                 Scaling::new(100.0, 0.1, 100.0),
-            ),
-            material_group.clone(),
-            mesh_3.clone(),
-        ));
+            )),
+        );
 
-    app.borrow()
-        .get_world()
-        .borrow()
-        .get_camera()
-        .borrow_mut()
-        .get_transform_mut()
-        .set_translation(Translation::new(1.5, 0.0, 6.0));
+        let camera_entity = world.spawn_entity();
+        world
+            .get_manager_mut::<CameraComponent>()
+            .add(camera_entity, CameraComponent::new(true));
+        world.get_manager_mut::<TransformComponent>().add(
+            camera_entity,
+            TransformComponent::new(Transform::from_position(1.5, 0.0, 6.0)),
+        );
 
-    let point_light = PointLight::new();
-    point_light.borrow_mut().color = Color::from_rgb(255, 255, 255);
-    point_light.borrow_mut().intensity = 4.0;
-    point_light.borrow_mut().range = 20.0;
-    point_light
-        .borrow_mut()
-        .transform
-        .set_translation(Translation::new(5.0, 6.0, 3.0));
-    app.borrow()
-        .get_world()
-        .borrow_mut()
-        .add_light(point_light.clone());
+        let point_light_entity = world.spawn_entity();
+        let mut point_light = PointLight::new();
+        point_light.color = Color::from_rgb(255, 255, 255);
+        point_light.intensity = 4.0;
+        point_light.range = 20.0;
+        world
+            .get_manager_mut::<LightComponent>()
+            .add(point_light_entity, LightComponent::new(point_light));
+        world.get_manager_mut::<TransformComponent>().add(
+            point_light_entity,
+            TransformComponent::new(Transform::from_position(5.0, 6.0, 3.0)),
+        );
 
-    app.borrow_mut().init_camera_tickable();
+        Ok(())
+    })?;
 
     app.borrow_mut().run();
+
+    Ok(())
 }
