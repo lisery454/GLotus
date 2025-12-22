@@ -20,6 +20,16 @@ impl SystemDispatcher {
         }
     }
 
+    pub fn new_with_default_systems() -> Self {
+        let mut sd = Self::new();
+
+        sd.add_system(super::CameraSystem::default());
+        sd.add_system(super::RenderSystem::default());
+        sd.add_system(super::ScriptSystem::default());
+
+        sd
+    }
+
     // 注册系统
     pub fn add_system<S: ISystem + 'static>(&mut self, system: S) {
         self.systems.push(Box::new(system));

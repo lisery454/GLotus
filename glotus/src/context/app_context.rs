@@ -21,7 +21,7 @@ impl AppContext {
             input_state: RefCell::new(InputState::new()),
             asset_manager: RefCell::new(AssetManager::new()),
             pipeline: RefCell::new(pipeline),
-            world: Rc::new(RefCell::new(World::new())),
+            world: Rc::new(RefCell::new(World::new_with_default_registry())),
         }
     }
 }

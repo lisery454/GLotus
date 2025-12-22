@@ -239,8 +239,8 @@ impl IBehavior for LightTickable {
     fn on_fixed_update(&mut self, entity_id: usize, context: Rc<RefCell<AppContext>>, dt: f32) {
         let ctx = context.borrow();
         let world = ctx.world.borrow();
-        let light_mgr = world.get_manager_mut::<LightComponent>();
-        let transform_mgr = world.get_manager_mut::<TransformComponent>();
+        let mut light_mgr = world.get_manager_mut::<LightComponent>();
+        let mut transform_mgr = world.get_manager_mut::<TransformComponent>();
 
         self.total_time += dt;
 

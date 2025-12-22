@@ -1,5 +1,5 @@
 use crate::{
-    AppConfig, AppContext, AppEvent, CameraSystem, RenderSystem, ScriptSystem, SystemDispatcher,
+    AppConfig, AppContext, AppEvent, SystemDispatcher,
     utils::{self},
 };
 use glfw::{
@@ -31,7 +31,7 @@ impl App {
             glfw: None,
             event_receiver: None,
             context: Rc::new(RefCell::new(AppContext::new(config))),
-            system_dispatcher: Rc::new(RefCell::new(SystemDispatcher::new())),
+            system_dispatcher: Rc::new(RefCell::new(SystemDispatcher::new_with_default_systems())),
         };
 
         utils::setup_logger();
@@ -224,16 +224,6 @@ impl App {
             gl::Viewport(0, 0, width as i32, height as i32);
         }
 
-        // 增加system
-        self.system_dispatcher
-            .borrow_mut()
-            .add_system(CameraSystem::default());
-        self.system_dispatcher
-            .borrow_mut()
-            .add_system(RenderSystem::default());
-        self.system_dispatcher
-            .borrow_mut()
-            .add_system(ScriptSystem::default());
         // 初始化system
         self.system_dispatcher
             .borrow_mut()

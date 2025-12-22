@@ -14,25 +14,6 @@ impl ISystem for CameraSystem {
         "CameraSystem"
     }
 
-    // fn init(&mut self, app_context: Rc<RefCell<AppContext>>) {
-    //     let resize_data = {
-    //         let context = app_context.borrow();
-    //         let config = context.app_config.borrow();
-    //         (config.width, config.height)
-    //     };
-    //
-    //     {
-    //         let (w, h) = resize_data;
-    //         let app = app_context.borrow();
-    //         let world = app.world.borrow_mut();
-    //         let mut camera_mgr = world.get_manager_mut::<CameraComponent>();
-    //
-    //         if let Some((_entity_id, main_cam)) = camera_mgr.find_mut(|cam| cam.is_active) {
-    //             main_cam.set_aspect_ratio(w, h);
-    //         }
-    //     }
-    // }
-
     fn update(&mut self, app_context: Rc<RefCell<AppContext>>, _delta_dt: f32) {
         let config_wh = {
             let context = app_context.borrow();
@@ -55,7 +36,7 @@ impl ISystem for CameraSystem {
         {
             let app = app_context.borrow();
             let world = app.world.borrow();
-            let camera_mgr = world.get_manager_mut::<CameraComponent>();
+            let mut camera_mgr = world.get_manager_mut::<CameraComponent>();
 
             if let Some((_entity_id, main_cam)) = camera_mgr.find_mut(|cam| cam.is_active) {
                 if let Some((w, h)) = resize_data {
@@ -104,8 +85,8 @@ impl ISystem for CameraSystem {
             let app = app_context.borrow();
             let world = app.world.borrow_mut();
 
-            let camera_mgr = world.get_manager_mut::<CameraComponent>();
-            let transform_mgr = world.get_manager_mut::<TransformComponent>();
+            let mut camera_mgr = world.get_manager_mut::<CameraComponent>();
+            let mut transform_mgr = world.get_manager_mut::<TransformComponent>();
 
             if let Some((entity_id, main_cam)) = camera_mgr.find_mut(|cam| cam.is_active) {
                 if let Some(transform) = transform_mgr.get_mut(entity_id) {

@@ -21,8 +21,8 @@ impl ISystem for RenderSystem {
         clear_frame(config.bg_color);
 
         // 计算全局数据
-        let camera_mgr = world.get_manager_mut::<CameraComponent>();
-        let transform_mgr = world.get_manager_mut::<TransformComponent>();
+        let mut camera_mgr = world.get_manager_mut::<CameraComponent>();
+        let mut transform_mgr = world.get_manager_mut::<TransformComponent>();
         let light_mgr = world.get_manager_mut::<LightComponent>();
         let renderable_mgr = world.get_manager_mut::<RenderableComponent>();
         let Some((_camera_entity_id, main_cam)) = camera_mgr.find_mut(|cam| cam.is_active) else {

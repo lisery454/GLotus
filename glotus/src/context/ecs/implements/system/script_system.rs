@@ -14,7 +14,7 @@ impl ISystem for ScriptSystem {
         let context = app_context.borrow();
         let world = context.world.borrow();
 
-        let script_mgr = world.get_manager_mut::<ScriptComponent>();
+        let mut script_mgr = world.get_manager_mut::<ScriptComponent>();
 
         for (entity_id, script_comp) in script_mgr.iter_mut() {
             for behavior in script_comp.behaviors.iter_mut() {
@@ -27,7 +27,7 @@ impl ISystem for ScriptSystem {
         let context = app_context.borrow();
         let world = context.world.borrow();
 
-        let script_mgr = world.get_manager_mut::<ScriptComponent>();
+        let mut script_mgr = world.get_manager_mut::<ScriptComponent>();
 
         for (entity_id, script_comp) in script_mgr.iter_mut() {
             for behavior in script_comp.behaviors.iter_mut() {
