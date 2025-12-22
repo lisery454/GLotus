@@ -12,8 +12,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             .borrow_mut()
             .shader_manager
             .create_from_sources(
-                include_str!("../assets/shaders/vs.vert"),
-                include_str!("../assets/shaders/fs.frag"),
+                include_str!("./assets/shaders/vs.vert"),
+                include_str!("./assets/shaders/fs.frag"),
             )?;
 
         let texture_handle = context
@@ -22,7 +22,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .borrow_mut()
             .texture_manager
             .create_from_byte(
-                include_bytes!("../assets/textures/brick.png"),
+                include_bytes!("./assets/textures/brick.png"),
                 WrappingMode::Repeat,
                 WrappingMode::Repeat,
                 FilteringMode::LinearMipmapLinear,

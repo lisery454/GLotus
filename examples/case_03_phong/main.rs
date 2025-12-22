@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, error::Error, rc::Rc};
+use std::{collections::HashMap, error::Error};
 
 use glotus::*;
 
@@ -15,8 +15,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             .borrow_mut()
             .shader_manager
             .create_from_sources(
-                include_str!("../assets/shaders/vs.vert"),
-                include_str!("../assets/shaders/fs.frag"),
+                include_str!("./assets/shaders/vs.vert"),
+                include_str!("./assets/shaders/fs.frag"),
             )?;
 
         let texture_diffuse = context
@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .borrow_mut()
             .texture_manager
             .create_from_byte(
-                include_bytes!("../assets/textures/texture_diffuse.png"),
+                include_bytes!("./assets/textures/texture_diffuse.png"),
                 WrappingMode::Repeat,
                 WrappingMode::Repeat,
                 FilteringMode::LinearMipmapLinear,
@@ -38,7 +38,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .borrow_mut()
             .texture_manager
             .create_from_byte(
-                include_bytes!("../assets/textures/texture_specular.png"),
+                include_bytes!("./assets/textures/texture_specular.png"),
                 WrappingMode::Repeat,
                 WrappingMode::Repeat,
                 FilteringMode::LinearMipmapLinear,
@@ -56,12 +56,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             let context_ref = context.borrow();
 
             let mut asset_mgr = context_ref.asset_manager.borrow_mut();
-
-            asset_mgr.material_manager.insert_uniform(
-                material,
-                "material.diffuse_texture",
-                UniformValue::Texture(0, texture_diffuse),
-            );
 
             asset_mgr.material_manager.insert_uniform(
                 material,
@@ -177,14 +171,32 @@ fn main() -> Result<(), Box<dyn Error>> {
         let mut world = context_borrow.world.borrow_mut();
         let pass_name = DefaultPipeline::get_default_pass_name();
 
-        let entity = world.spawn_entity();
-        world.get_manager_mut::<RenderableComponent>().add(
-            entity,
-            RenderableComponent::new(HashMap::from([(pass_name.clone(), material)]), mesh),
-        );
-        world
-            .get_manager_mut::<TransformComponent>()
-            .add(entity, TransformComponent::new(Transform::default()));
+        for i in -1..2 {
+            for j in -1..2 {
+                for k in -1..2 {
+                    if i == 0 && j == 0 && k == 0 {
+                        continue;
+                    }
+
+                    let entity = world.spawn_entity();
+                    world.get_manager_mut::<RenderableComponent>().add(
+                        entity,
+                        RenderableComponent::new(
+                            HashMap::from([(pass_name.clone(), material)]),
+                            mesh,
+                        ),
+                    );
+                    world.get_manager_mut::<TransformComponent>().add(
+                        entity,
+                        TransformComponent::new(Transform::from_position(
+                            3.0 * (i as f32),
+                            3.0 * (j as f32),
+                            3.0 * (k as f32),
+                        )),
+                    );
+                }
+            }
+        }
 
         let camera_entity = world.spawn_entity();
         world
@@ -192,26 +204,53 @@ fn main() -> Result<(), Box<dyn Error>> {
             .add(camera_entity, CameraComponent::new(true));
         world.get_manager_mut::<TransformComponent>().add(
             camera_entity,
-            TransformComponent::new(Transform::from_position(0.0, 0.0, 4.0)),
+            TransformComponent::new(Transform::from_position(0.0, 1.0, 4.0)),
         );
 
+        // 灯光
         let point_light_entity = world.spawn_entity();
         let mut point_light = PointLight::new();
         point_light.color = Color::from_rgb(0, 255, 0);
-        point_light.intensity = 1.0;
+        point_light.intensity = 3.0;
         point_light.range = 10.0;
         world
             .get_manager_mut::<LightComponent>()
             .add(point_light_entity, LightComponent::new(point_light));
         world.get_manager_mut::<TransformComponent>().add(
             point_light_entity,
-            TransformComponent::new(Transform::from_position(5.0, 0.0, 0.0)),
+            TransformComponent::new(Transform::from_position(0.0, 0.0, 0.0)),
         );
-        let mut script_component = ScriptComponent::new();
-        script_component.add(LightTickable::new());
+
+        let directional_light_entity = world.spawn_entity();
+        let mut directional_light = DirectionalLight::new();
+        directional_light.color = Color::from_rgb(255, 0, 0);
+        world.get_manager_mut::<LightComponent>().add(
+            directional_light_entity,
+            LightComponent::new(directional_light),
+        );
+        let transform = Transform::new(
+            Translation::default(),
+            Rotation::new(0.0, 180.0, 0.0),
+            Scaling::default(),
+        );
         world
-            .get_manager_mut::<ScriptComponent>()
-            .add(point_light_entity, script_component);
+            .get_manager_mut::<TransformComponent>()
+            .add(directional_light_entity, TransformComponent::new(transform));
+
+        let spot_light_entity = world.spawn_entity();
+        let mut spot_light = SpotLight::new();
+        spot_light.color = Color::from_rgb(0, 0, 255);
+        world
+            .get_manager_mut::<LightComponent>()
+            .add(spot_light_entity, LightComponent::new(spot_light));
+        let transform = Transform::new(
+            Translation::new(0.0, 0.0, 8.0),
+            Rotation::default(),
+            Scaling::default(),
+        );
+        world
+            .get_manager_mut::<TransformComponent>()
+            .add(spot_light_entity, TransformComponent::new(transform));
 
         Ok(())
     })?;
@@ -219,51 +258,4 @@ fn main() -> Result<(), Box<dyn Error>> {
     app.borrow_mut().run();
 
     Ok(())
-}
-
-struct LightTickable {
-    hue: f32,
-    total_time: f32,
-}
-
-impl LightTickable {
-    pub fn new() -> Self {
-        Self {
-            hue: 0.0,
-            total_time: 0.0,
-        }
-    }
-}
-
-impl IBehavior for LightTickable {
-    fn on_fixed_update(&mut self, entity_id: usize, context: Rc<RefCell<AppContext>>, dt: f32) {
-        let ctx = context.borrow();
-        let world = ctx.world.borrow();
-        let mut light_mgr = world.get_manager_mut::<LightComponent>();
-        let mut transform_mgr = world.get_manager_mut::<TransformComponent>();
-
-        self.total_time += dt;
-
-        self.hue = (self.hue + dt * 0.05) % 1.0;
-        let new_color = Color::from_hsv(self.hue, 1.0, 1.0);
-
-        let x = self.total_time.cos() * 5.0;
-        let y = self.total_time.sin() * 5.0 * (self.total_time * 0.5).sin();
-        let z = self.total_time.sin() * 5.0 * (self.total_time * 0.5).cos();
-
-        // 修改灯光颜色
-        if let Some(light_comp) = light_mgr.get_mut(entity_id) {
-            let light_dyn = &mut *light_comp.light;
-            if let Some(point_light) = light_dyn.downcast_mut::<PointLight>() {
-                point_light.color = new_color;
-            }
-        }
-
-        // 修改变换位置
-        if let Some(transform) = transform_mgr.get_mut(entity_id) {
-            transform.transform.get_translation_mut().set_x(x);
-            transform.transform.get_translation_mut().set_y(y);
-            transform.transform.get_translation_mut().set_z(z);
-        }
-    }
 }

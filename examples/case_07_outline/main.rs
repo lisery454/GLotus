@@ -57,8 +57,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             .borrow_mut()
             .shader_manager
             .create_from_sources(
-                include_str!("../assets/shaders/vs_1.vert"),
-                include_str!("../assets/shaders/fs_1.frag"),
+                include_str!("./assets/shaders/vs_1.vert"),
+                include_str!("./assets/shaders/fs_1.frag"),
             )?;
 
         let shader_2 = context
@@ -67,8 +67,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             .borrow_mut()
             .shader_manager
             .create_from_sources(
-                include_str!("../assets/shaders/vs_2.vert"),
-                include_str!("../assets/shaders/fs_2.frag"),
+                include_str!("./assets/shaders/vs_2.vert"),
+                include_str!("./assets/shaders/fs_2.frag"),
             )?;
 
         let material_1 = context
@@ -90,21 +90,21 @@ fn main() -> Result<(), Box<dyn Error>> {
             .asset_manager
             .borrow_mut()
             .mesh_manager
-            .create_from_obj_in_bytes(include_bytes!("../assets/meshes/sphere.obj"))?;
+            .create_from_obj_in_bytes(include_bytes!("./assets/meshes/sphere.obj"))?;
 
         let mesh2 = context
             .borrow()
             .asset_manager
             .borrow_mut()
             .mesh_manager
-            .create_from_obj_in_bytes(include_bytes!("../assets/meshes/sphere_no_smooth.obj"))?;
+            .create_from_obj_in_bytes(include_bytes!("./assets/meshes/sphere_no_smooth.obj"))?;
 
         let mesh3 = context
             .borrow()
             .asset_manager
             .borrow_mut()
             .mesh_manager
-            .create_from_obj_in_bytes(include_bytes!("../assets/meshes/box.obj"))?;
+            .create_from_obj_in_bytes(include_bytes!("./assets/meshes/box.obj"))?;
 
         let context_borrow = context.borrow();
         let mut world = context_borrow.world.borrow_mut();

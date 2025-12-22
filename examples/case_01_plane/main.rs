@@ -13,8 +13,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             .borrow_mut()
             .shader_manager
             .create_from_sources(
-                include_str!("../assets/shaders/vs.vert"),
-                include_str!("../assets/shaders/fs.frag"),
+                include_str!("./assets/shaders/vs.vert"),
+                include_str!("./assets/shaders/fs.frag"),
             )?;
 
         let material_handle = context

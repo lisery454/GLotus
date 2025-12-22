@@ -1,12 +1,34 @@
-[workspace]
-members = [
-    "case_01_plane",
-    "case_02_cube",
-    "case_03_phong",
-    "case_04_moving_light",
-    "case_05_load_mesh",
-    "case_06_depth_test",
-    "case_07_outline",
-    "glotus",
-]
-resolver = "3"
+[package]
+name = "glotus"
+version = "0.1.0"
+edition = "2024"
+build = "build.rs"
+
+[dependencies]
+cgmath = "0.18.0"
+chrono = "0.4.41"
+env_logger = "0.11.8"
+ffi = "0.1.1"
+gl = "0.14.0"
+glfw = "0.59.0"
+log = "0.4.27"
+thiserror = "2.0.12"
+uuid = { version = "1.7", features = ["v4", "serde"] }
+image = "0.24"
+regex = "1.11.1"
+tobj = "4.0.3"
+slotmap = "1.1.1"
+downcast-rs = "2.0.2"
+
+[build-dependencies]
+gl_generator = "0.14.0"
+
+[lints.rust]
+# unused = "allow" # 禁用所有未使用警告
+# unused_variables = "allow"  # 仅禁用未使用变量
+dead_code = "allow"
+
+# [lib]
+# dylib: 生成 Rust 专用的动态库（包含 Rust 特有的元数据）
+# cdylib: 生成 C 风格的动态库（通常用于跨语言调用，体积更小）
+# crate-type = ["dylib"]
