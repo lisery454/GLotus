@@ -235,7 +235,7 @@ impl LightTickable {
 }
 
 impl IBehavior for LightTickable {
-    fn on_fixed_update(&mut self, entity_id: usize, context: Rc<RefCell<AppContext>>, dt: f32) {
+    fn on_fixed_update(&mut self, entity: EntityHandle, context: Rc<RefCell<AppContext>>, dt: f32) {
         let ctx = context.borrow();
         let world = ctx.world.borrow();
         let mut light_mgr = world.get_manager_mut::<LightComponent>();
@@ -251,7 +251,7 @@ impl IBehavior for LightTickable {
         let z = self.total_time.sin() * 5.0 * (self.total_time * 0.5).cos();
 
         // 修改灯光颜色
-        if let Some(light_comp) = light_mgr.get_mut(entity_id) {
+        if let Some(light_comp) = light_mgr.get_mut(entity) {
             let light_dyn = &mut *light_comp.light;
             if let Some(point_light) = light_dyn.downcast_mut::<PointLight>() {
                 point_light.color = new_color;
@@ -259,7 +259,7 @@ impl IBehavior for LightTickable {
         }
 
         // 修改变换位置
-        if let Some(transform) = transform_mgr.get_mut(entity_id) {
+        if let Some(transform) = transform_mgr.get_mut(entity) {
             transform.transform.get_translation_mut().set_x(x);
             transform.transform.get_translation_mut().set_y(y);
             transform.transform.get_translation_mut().set_z(z);

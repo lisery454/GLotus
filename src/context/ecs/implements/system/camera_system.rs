@@ -38,7 +38,7 @@ impl ISystem for CameraSystem {
             let world = app.world.borrow();
             let mut camera_mgr = world.get_manager_mut::<CameraComponent>();
 
-            if let Some((_entity_id, main_cam)) = camera_mgr.find_mut(|cam| cam.is_active) {
+            if let Some((_entity, main_cam)) = camera_mgr.find_mut(|cam| cam.is_active) {
                 if let Some((w, h)) = resize_data {
                     main_cam.set_aspect_ratio(w as u32, h as u32);
                     return;
@@ -88,8 +88,8 @@ impl ISystem for CameraSystem {
             let mut camera_mgr = world.get_manager_mut::<CameraComponent>();
             let mut transform_mgr = world.get_manager_mut::<TransformComponent>();
 
-            if let Some((entity_id, main_cam)) = camera_mgr.find_mut(|cam| cam.is_active) {
-                if let Some(transform) = transform_mgr.get_mut(entity_id) {
+            if let Some((entity, main_cam)) = camera_mgr.find_mut(|cam| cam.is_active) {
+                if let Some(transform) = transform_mgr.get_mut(entity) {
                     if let Some(m) = movement {
                         process_move(transform, m, 10.0, delta_dt);
                     }

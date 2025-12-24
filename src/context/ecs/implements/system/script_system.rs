@@ -16,9 +16,9 @@ impl ISystem for ScriptSystem {
 
         let mut script_mgr = world.get_manager_mut::<ScriptComponent>();
 
-        for (entity_id, script_comp) in script_mgr.iter_mut() {
+        for (entity, script_comp) in script_mgr.iter_mut() {
             for behavior in script_comp.behaviors.iter_mut() {
-                behavior.on_update(entity_id, app_context.clone(), dt);
+                behavior.on_update(entity, app_context.clone(), dt);
             }
         }
     }
@@ -29,9 +29,9 @@ impl ISystem for ScriptSystem {
 
         let mut script_mgr = world.get_manager_mut::<ScriptComponent>();
 
-        for (entity_id, script_comp) in script_mgr.iter_mut() {
+        for (entity, script_comp) in script_mgr.iter_mut() {
             for behavior in script_comp.behaviors.iter_mut() {
-                behavior.on_fixed_update(entity_id, app_context.clone(), delta_dt);
+                behavior.on_fixed_update(entity, app_context.clone(), delta_dt);
             }
         }
     }

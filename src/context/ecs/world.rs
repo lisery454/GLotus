@@ -7,18 +7,22 @@ use std::cell::RefCell;
 use std::cell::RefMut;
 use std::collections::HashMap;
 
-type EntityHandle = usize;
+use slotmap::{SlotMap, new_key_type};
+
+new_key_type! {
+    pub struct EntityHandle;
+}
 
 pub struct World {
     components: HashMap<TypeId, RefCell<Box<dyn IComponentManager>>>,
-    pub(crate) entities_count: usize,
+    entities: SlotMap<EntityHandle, ()>,
 }
 
 impl World {
     pub fn new_with_default_registry() -> Self {
         let mut result = Self {
             components: HashMap::new(),
-            entities_count: 0,
+            entities: SlotMap::with_key(),
         };
 
         result.register_component::<super::TransformComponent>();
@@ -71,8 +75,15 @@ impl World {
     }
 
     pub fn spawn_entity(&mut self) -> EntityHandle {
-        let id = self.entities_count;
-        self.entities_count += 1;
-        id
+        self.entities.insert(())
+    }
+
+    pub fn despawn_entity(&mut self, entity: EntityHandle) {
+        if self.entities.remove(entity).is_some() {
+            // 同步删除所有组件
+            for manager in self.components.values() {
+                manager.borrow_mut().remove_abstract(entity);
+            }
+        }
     }
 }

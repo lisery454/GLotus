@@ -40,8 +40,8 @@ impl ISystem for RenderSystem {
         let camera_shader_data = camera_to_shader_data(main_cam, main_cam_transform);
         let raw_lights_shader_data = light_mgr
             .iter()
-            .map(|(entity_id, light)| {
-                if let Some(light_transform) = transform_mgr.get_mut(entity_id) {
+            .map(|(entity, light)| {
+                if let Some(light_transform) = transform_mgr.get_mut(entity) {
                     return light_to_shader_data(light, light_transform);
                 }
                 None
@@ -57,7 +57,7 @@ impl ISystem for RenderSystem {
         let pipeline = context.pipeline.borrow();
         for pass in &pipeline.passes {
             pass.default_state.apply();
-            for (entity_id, renderable) in renderable_mgr.iter() {
+            for (entity, renderable) in renderable_mgr.iter() {
                 // 检查这个 Entity 的 Material 是否包含当前 Pass
                 let material_handle = match renderable.materials.get(&pass.id) {
                     Some(mat) => mat.clone(),
@@ -66,8 +66,8 @@ impl ISystem for RenderSystem {
                 let mesh_handle = renderable.mesh;
 
                 // 计算这个物体相关的数据
-                let Some(transform) = transform_mgr.get_mut(entity_id) else {
-                    warn!("Can not find transform for entity {}", entity_id);
+                let Some(transform) = transform_mgr.get_mut(entity) else {
+                    warn!("Can not find transform for entity {:?}", entity);
                     return;
                 };
                 let model_matrix = transform.transform.to_matrix();

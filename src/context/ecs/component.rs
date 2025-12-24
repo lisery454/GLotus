@@ -1,7 +1,11 @@
+use slotmap::SecondaryMap;
+
 use crate::AppContext;
 use std::any::Any;
 use std::cell::RefCell;
 use std::rc::Rc;
+
+use super::EntityHandle;
 
 // 实体 ID 定义
 type EntityId = usize;
@@ -24,72 +28,73 @@ pub trait IComponent: Any {
     }
 }
 
-// 组件存储：使用 Sparse Set 或简单的 Vec<Option<T>> TODO: Slot Map
 pub struct ComponentManager<T: IComponent> {
-    data: Vec<Option<T>>,
+    components: SecondaryMap<EntityHandle, T>,
 }
 
 impl<T: IComponent> ComponentManager<T> {
     pub fn new() -> Self {
-        Self { data: Vec::new() }
-    }
-
-    pub fn add(&mut self, entity_id: EntityId, component: T) {
-        if entity_id >= self.data.len() {
-            self.data.resize_with(entity_id + 1, || None);
+        Self {
+            components: SecondaryMap::new(),
         }
-        self.data[entity_id] = Some(component);
     }
 
-    pub fn get(&self, entity_id: EntityId) -> Option<&T> {
-        self.data.get(entity_id).and_then(|opt| opt.as_ref())
+    pub fn add(&mut self, entity: EntityHandle, component: T) {
+        self.components.insert(entity, component);
     }
 
-    pub fn get_mut(&mut self, entity_id: EntityId) -> Option<&mut T> {
-        self.data.get_mut(entity_id).and_then(|opt| opt.as_mut())
+    pub fn remove(&mut self, entity: EntityHandle) -> Option<T> {
+        self.components.remove(entity)
     }
 
-    pub fn has(&self, entity_id: EntityId) -> bool {
-        self.get(entity_id).is_some()
+    /// 获取组件的不可变引用
+    pub fn get(&self, entity: EntityHandle) -> Option<&T> {
+        self.components.get(entity)
     }
 
-    /// 遍历所有有效的组件，返回 (EntityId, &T)
-    pub fn iter(&self) -> impl Iterator<Item = (EntityId, &T)> {
-        self.data
-            .iter()
-            .enumerate()
-            .filter_map(|(id, opt)| opt.as_ref().map(|comp| (id, comp)))
+    /// 获取组件的可变引用
+    pub fn get_mut(&mut self, entity: EntityHandle) -> Option<&mut T> {
+        self.components.get_mut(entity)
     }
 
-    /// 可变遍历所有有效的组件，返回 (EntityId, &mut T)
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = (EntityId, &mut T)> {
-        self.data
-            .iter_mut()
-            .enumerate()
-            .filter_map(|(id, opt)| opt.as_mut().map(|comp| (id, comp)))
+    /// 检查实体是否有该组件
+    pub fn has(&self, entity: EntityHandle) -> bool {
+        self.components.contains_key(entity)
     }
 
-    /// 根据条件查找第一个匹配的组件
-    /// 示例：manager.find(|cam| cam.is_main)
-    pub fn find<F>(&self, mut predicate: F) -> Option<(EntityId, &T)>
+    /// 返回所有 (EntityHandle, &T) 的迭代器
+    pub fn iter(&self) -> slotmap::secondary::Iter<EntityHandle, T> {
+        self.components.iter()
+    }
+
+    /// 返回所有 (EntityHandle, &mut T) 的迭代器
+    pub fn iter_mut(&mut self) -> slotmap::secondary::IterMut<EntityHandle, T> {
+        self.components.iter_mut()
+    }
+
+    /// 查找第一个符合条件的组件，返回 (实体句柄, 组件引用)
+    pub fn find<F>(&self, mut predicate: F) -> Option<(EntityHandle, &T)>
     where
         F: FnMut(&T) -> bool,
     {
-        self.iter().find(|(_, comp)| predicate(comp))
+        // iter() 返回的是 (EntityHandle, &T)
+        self.components.iter().find(|(_, comp)| predicate(comp))
     }
 
-    /// 根据条件查找第一个匹配的可变组件
-    pub fn find_mut<F>(&mut self, mut predicate: F) -> Option<(EntityId, &mut T)>
+    /// 查找第一个符合条件的组件，返回 (实体句柄, 组件可变引用)
+    pub fn find_mut<F>(&mut self, mut predicate: F) -> Option<(EntityHandle, &mut T)>
     where
         F: FnMut(&T) -> bool,
     {
-        self.iter_mut().find(|(_, comp)| predicate(comp))
+        // iter_mut() 返回的是 (EntityHandle, &mut T)
+        self.components.iter_mut().find(|(_, comp)| predicate(comp))
     }
 }
 
 pub trait IComponentManager: Any {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
+    fn remove_abstract(&mut self, entity: EntityHandle);
 }
 
 impl<T: IComponent + 'static> IComponentManager for ComponentManager<T> {
@@ -98,5 +103,9 @@ impl<T: IComponent + 'static> IComponentManager for ComponentManager<T> {
     }
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
+    }
+
+    fn remove_abstract(&mut self, entity: EntityHandle) {
+        self.remove(entity);
     }
 }
