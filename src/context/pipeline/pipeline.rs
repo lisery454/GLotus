@@ -14,5 +14,14 @@ impl Pipeline {
 
     pub fn insert(&mut self, pass: Pass) {
         self.passes.push(pass);
+        self.sort_passes();
+    }
+
+    fn sort_passes(&mut self) {
+        self.passes.sort_by(|a, b| {
+            a.priority
+                .cmp(&b.priority)
+                .then_with(|| a.id.raw().cmp(&b.id.raw()))
+        });
     }
 }

@@ -1,4 +1,4 @@
-use crate::{Color, DefaultPipeline, Pipeline};
+use crate::{Color, Pipeline};
 
 pub enum AntiPixel {
     MSAA32,
@@ -29,7 +29,7 @@ pub struct AppConfig {
     pub width: u32,
     pub height: u32,
     pub bg_color: Color,
-    pub pipeline_builder: Box<dyn Fn() -> Pipeline>,
+    pub pipeline_configurer: Option<Box<dyn Fn(&mut Pipeline)>>,
 }
 
 impl Default for AppConfig {
@@ -43,7 +43,7 @@ impl Default for AppConfig {
             width: 1440,
             height: 960,
             bg_color: Color::from_rgb(50, 75, 75),
-            pipeline_builder: Box::new(DefaultPipeline::build_default_pipeline),
+            pipeline_configurer: None,
         }
     }
 }

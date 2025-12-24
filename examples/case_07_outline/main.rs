@@ -1,52 +1,10 @@
-use std::{collections::HashMap, error::Error};
+use std::error::Error;
 
 use glotus::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let app = App::new_with_config(AppConfig {
         anti_pixel_msaa: AntiPixel::MSAA16,
-        pipeline_builder: Box::new(|| {
-            let mut pipeline = Pipeline::new();
-            pipeline.insert(Pass::new(
-                "main".to_string(),
-                RenderState::new(
-                    DepthMode::new(true, true, DepthFunc::Less),
-                    StencilMode::new(
-                        true,
-                        StencilFunc::new(StencilFuncType::Always, 1, 0xFF),
-                        StencilOp::new(
-                            StencilOpType::Keep,
-                            StencilOpType::Keep,
-                            StencilOpType::Replace,
-                        ),
-                        0xFF,
-                    ),
-                    BlendMode::default(),
-                    CullFaceMode::default(),
-                    PolygonMode::default(),
-                ),
-            ));
-            pipeline.insert(Pass::new(
-                "outline".to_string(),
-                RenderState::new(
-                    DepthMode::new(true, false, DepthFunc::LessEqual),
-                    StencilMode::new(
-                        true,
-                        StencilFunc::new(StencilFuncType::NotEqual, 1, 0xFF),
-                        StencilOp::new(
-                            StencilOpType::Keep,
-                            StencilOpType::Keep,
-                            StencilOpType::Keep,
-                        ),
-                        0x00,
-                    ),
-                    BlendMode::default(),
-                    CullFaceMode::Front,
-                    PolygonMode::default(),
-                ),
-            ));
-            pipeline
-        }),
         ..Default::default()
     });
 
@@ -112,13 +70,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         let entity = world.spawn_entity();
         world.get_manager_mut::<RenderableComponent>().add(
             entity,
-            RenderableComponent::new(
-                HashMap::from([
-                    ("main".to_string(), material_1),
-                    ("outline".to_string(), material_2),
-                ]),
-                mesh,
-            ),
+            RenderableComponent::new(mesh)
+                .with_material(DefaultPipeline::main_pass(), material_1)
+                .with_material(DefaultPipeline::outline_pass(), material_2),
         );
         world.get_manager_mut::<TransformComponent>().add(
             entity,
@@ -128,13 +82,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         let entity = world.spawn_entity();
         world.get_manager_mut::<RenderableComponent>().add(
             entity,
-            RenderableComponent::new(
-                HashMap::from([
-                    ("main".to_string(), material_1),
-                    ("outline".to_string(), material_2),
-                ]),
-                mesh2,
-            ),
+            RenderableComponent::new(mesh2)
+                .with_material(DefaultPipeline::main_pass(), material_1)
+                .with_material(DefaultPipeline::outline_pass(), material_2),
         );
         world.get_manager_mut::<TransformComponent>().add(
             entity,
@@ -144,13 +94,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         let entity = world.spawn_entity();
         world.get_manager_mut::<RenderableComponent>().add(
             entity,
-            RenderableComponent::new(
-                HashMap::from([
-                    ("main".to_string(), material_1),
-                    ("outline".to_string(), material_2),
-                ]),
-                mesh3,
-            ),
+            RenderableComponent::new(mesh3)
+                .with_material(DefaultPipeline::main_pass(), material_1)
+                .with_material(DefaultPipeline::outline_pass(), material_2),
         );
         world.get_manager_mut::<TransformComponent>().add(
             entity,

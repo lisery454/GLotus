@@ -59,7 +59,7 @@ impl ISystem for RenderSystem {
             pass.default_state.apply();
             for (entity_id, renderable) in renderable_mgr.iter() {
                 // 检查这个 Entity 的 Material 是否包含当前 Pass
-                let material_handle = match renderable.materials.get(&pass.name) {
+                let material_handle = match renderable.materials.get(&pass.id) {
                     Some(mat) => mat.clone(),
                     None => continue, // 跳过这个 Pass
                 };

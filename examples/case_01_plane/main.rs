@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::error::Error;
 
 use glotus::*;
@@ -7,7 +6,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let app = App::new();
 
     app.borrow().build(|context| {
-        let shader_handle = context
+        let shader = context
             .borrow()
             .asset_manager
             .borrow_mut()
@@ -17,16 +16,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                 include_str!("./assets/shaders/fs.frag"),
             )?;
 
-        let material_handle = context
+        let material = context
             .borrow()
             .asset_manager
             .borrow_mut()
             .material_manager
-            .create(shader_handle)?;
+            .create(shader)?;
 
-        let pass_name = DefaultPipeline::get_default_pass_name();
-
-        let mesh_handle = context
+        let mesh = context
             .borrow()
             .asset_manager
             .borrow_mut()
@@ -46,7 +43,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let entity = world.spawn_entity();
         world.get_manager_mut::<RenderableComponent>().add(
             entity,
-            RenderableComponent::new(HashMap::from([(pass_name, material_handle)]), mesh_handle),
+            RenderableComponent::new(mesh).with_material(DefaultPipeline::main_pass(), material),
         );
         world
             .get_manager_mut::<TransformComponent>()

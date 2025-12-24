@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error};
+use std::error::Error;
 
 use glotus::*;
 
@@ -46,12 +46,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let context_borrow = context.borrow();
         let mut world = context_borrow.world.borrow_mut();
-        let pass_name = DefaultPipeline::get_default_pass_name();
 
         let entity = world.spawn_entity();
         world.get_manager_mut::<RenderableComponent>().add(
             entity,
-            RenderableComponent::new(HashMap::from([(pass_name.clone(), material)]), mesh),
+            RenderableComponent::new(mesh).with_material(DefaultPipeline::main_pass(), material),
         );
         world.get_manager_mut::<TransformComponent>().add(
             entity,
@@ -61,7 +60,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let entity = world.spawn_entity();
         world.get_manager_mut::<RenderableComponent>().add(
             entity,
-            RenderableComponent::new(HashMap::from([(pass_name.clone(), material)]), mesh2),
+            RenderableComponent::new(mesh2).with_material(DefaultPipeline::main_pass(), material),
         );
         world.get_manager_mut::<TransformComponent>().add(
             entity,
@@ -71,7 +70,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let entity = world.spawn_entity();
         world.get_manager_mut::<RenderableComponent>().add(
             entity,
-            RenderableComponent::new(HashMap::from([(pass_name.clone(), material)]), mesh3),
+            RenderableComponent::new(mesh3).with_material(DefaultPipeline::main_pass(), material),
         );
         world.get_manager_mut::<TransformComponent>().add(
             entity,

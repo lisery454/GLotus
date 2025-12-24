@@ -1,4 +1,4 @@
-use super::{AppEventQueue, AssetManager, InputState, Pipeline};
+use super::{AppEventQueue, AssetManager, DefaultPipeline, InputState, Pipeline};
 use crate::{AppConfig, World};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -9,12 +9,17 @@ pub struct AppContext {
     pub input_state: RefCell<InputState>,
     pub asset_manager: RefCell<AssetManager>,
     pub pipeline: RefCell<Pipeline>,
-    pub world: Rc::<RefCell<World>>,
+    pub world: Rc<RefCell<World>>,
 }
 
 impl AppContext {
     pub fn new(config: AppConfig) -> Self {
-        let pipeline = (*config.pipeline_builder)();
+        let mut pipeline = DefaultPipeline::build_default_pipeline();
+
+        if let Some(configurer) = &config.pipeline_configurer {
+            configurer(&mut pipeline);
+        }
+        
         Self {
             app_config: RefCell::new(config),
             event_queue: RefCell::new(AppEventQueue::new()),
