@@ -12,6 +12,11 @@ impl DefaultPipeline {
     }
 
     #[inline]
+    pub fn transparent_pass() -> PassId {
+        PassId::named("transparent")
+    }
+
+    #[inline]
     pub fn outline_pass() -> PassId {
         PassId::named("outline")
     }
@@ -34,6 +39,26 @@ impl DefaultPipeline {
                     0xFF,
                 ),
                 BlendMode::default(),
+                CullFaceMode::default(),
+                PolygonMode::default(),
+            ),
+        ));
+        pipeline.insert(Pass::new(
+            Self::transparent_pass(),
+            5,
+            RenderState::new(
+                DepthMode::new(true, true, DepthFunc::Less),
+                StencilMode::new(
+                    true,
+                    StencilFunc::new(StencilFuncType::Always, 1, 0xFF),
+                    StencilOp::new(
+                        StencilOpType::Keep,
+                        StencilOpType::Keep,
+                        StencilOpType::Replace,
+                    ),
+                    0xFF,
+                ),
+                BlendMode::Alpha,
                 CullFaceMode::default(),
                 PolygonMode::default(),
             ),

@@ -1,0 +1,116 @@
+use std::error::Error;
+
+use glotus::*;
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let app = App::new_with_config(AppConfig {
+        anti_pixel_msaa: AntiPixel::MSAA16,
+        ..Default::default()
+    });
+
+    app.borrow().build(|context| {
+        let shader = context.borrow().create_shader_from_sources(
+            include_str!("./assets/shaders/grass_vs.vert"),
+            include_str!("./assets/shaders/grass_fs.frag"),
+        )?;
+
+        let shader2 = context.borrow().create_shader_from_sources(
+            include_str!("./assets/shaders/simple_vs.vert"),
+            include_str!("./assets/shaders/simple_fs.frag"),
+        )?;
+
+        let texture = context.borrow().create_texture_from_byte(
+            include_bytes!("./assets/textures/grass.png"),
+            WrappingMode::ClampToEdge,
+            WrappingMode::ClampToEdge,
+            FilteringMode::LinearMipmapLinear,
+            FilteringMode::Linear,
+        )?;
+
+        let texture2 = context.borrow().create_texture_from_byte(
+            include_bytes!("./assets/textures/window.png"),
+            WrappingMode::ClampToEdge,
+            WrappingMode::ClampToEdge,
+            FilteringMode::LinearMipmapLinear,
+            FilteringMode::Linear,
+        )?;
+
+        let material = context.borrow().create_material(shader)?;
+
+        context.borrow().insert_uniform_to_material(
+            material,
+            "texture1",
+            UniformValue::Texture(0, texture),
+        );
+
+        let material2 = context.borrow().create_material(shader)?;
+
+        context.borrow().insert_uniform_to_material(
+            material2,
+            "texture1",
+            UniformValue::Texture(0, texture2),
+        );
+
+        let material3 = context.borrow().create_material(shader2)?;
+
+        let mesh = context.borrow().create_mesh_from_position_texcoord(
+            &vec![0, 1, 3, 1, 2, 3],
+            &vec![
+                1.0, 1.0, -5.0, // 0
+                1.0, -1.0, -5.0, // 1
+                -1.0, -1.0, -5.0, // 2
+                -1.0, 1.0, -5.0, // 3
+            ],
+            &vec![1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+        )?;
+
+        let mesh_box = context
+            .borrow()
+            .create_mesh_from_obj_in_bytes(include_bytes!("./assets/meshes/box.obj"))?;
+
+        context.borrow().spawn_entity_with((
+            RenderableComponent::new(mesh)
+                .with_material(DefaultPipeline::transparent_pass(), material),
+            TransformComponent::new(Transform::from_position(0.0, 0.0, 0.0)),
+        ));
+
+        context.borrow().spawn_entity_with((
+            RenderableComponent::new(mesh)
+                .with_material(DefaultPipeline::transparent_pass(), material2),
+            TransformComponent::new(Transform::from_position(1.5, 0.0, 3.0)),
+        ));
+
+        context.borrow().spawn_entity_with((
+            CameraComponent::new(true),
+            TransformComponent::new(Transform::from_position(0.0, 0.0, 6.0)),
+        ));
+
+        context.borrow().spawn_entity_with((
+            RenderableComponent::new(mesh_box)
+                .with_material(DefaultPipeline::main_pass(), material3),
+            TransformComponent::new(Transform::new(
+                Translation::new(0.0, -1.2, 0.0),
+                Default::default(),
+                Scaling::new(100.0, 0.1, 100.0),
+            )),
+        ));
+
+        context.borrow().spawn_entity_with((
+            RenderableComponent::new(mesh)
+                .with_material(DefaultPipeline::transparent_pass(), material2),
+            TransformComponent::new(Transform::from_position(0.4, -1.0, -2.0)),
+        ));
+
+        context.borrow().spawn_entity_with((
+            RenderableComponent::new(mesh)
+                .with_material(DefaultPipeline::transparent_pass(), material2),
+            TransformComponent::new(Transform::from_position(1.9, 1.0, 1.0)),
+        ));
+
+        Ok(())
+    })?;
+
+    app.borrow_mut().run();
+
+    Ok(())
+}

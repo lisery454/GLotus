@@ -2,8 +2,16 @@ use crate::*;
 use cgmath::Matrix4;
 use log::{error, warn};
 use std::cell::RefCell;
+use std::cmp::Ordering;
 use std::error::Error;
 use std::rc::Rc;
+
+struct RenderJob {
+    entity_handle: EntityHandle,
+    mesh_handle: MeshHandle,
+    material_handle: MaterialHandle,
+    depth: f32, // 用于排序
+}
 
 #[derive(Default)]
 pub struct RenderSystem;
@@ -35,6 +43,7 @@ impl ISystem for RenderSystem {
         };
 
         let view_matrix = get_view_matrix(&main_cam_transform.transform);
+        let view_matrix_arr = view_matrix.into();
         let projection_matrix = main_cam.get_projection_matrix();
         let view_position = get_view_position(&main_cam_transform.transform);
         let camera_shader_data = camera_to_shader_data(main_cam, main_cam_transform);
@@ -56,18 +65,58 @@ impl ISystem for RenderSystem {
         // 按pass渲染
         let pipeline = context.pipeline.borrow();
         for pass in &pipeline.passes {
+            // 应用渲染状态
             pass.default_state.apply();
+
+            // 收集当前 Pass 需要渲染的所有物体
+            let mut jobs = Vec::new();
+
             for (entity, renderable) in renderable_mgr.iter() {
-                // 检查这个 Entity 的 Material 是否包含当前 Pass
-                let material_handle = match renderable.materials.get(&pass.id) {
-                    Some(mat) => mat.clone(),
-                    None => continue, // 跳过这个 Pass
-                };
-                let mesh_handle = renderable.mesh;
+                if let Some(material_handle) = renderable.get_material(pass.id) {
+                    let mesh_handle = renderable.mesh;
+
+                    // 获取 transform 用于计算深度
+                    let depth = if pass.id == DefaultPipeline::transparent_pass() {
+                        if let Some(transform) = transform_mgr.get(entity) {
+                            let world_pos_v4 =
+                                transform.transform.translation.data.to_homogeneous();
+                            // 转换到观察空间
+                            let view_pos = view_matrix * world_pos_v4;
+                            // -Z，这样值越大代表距离相机越远
+                            -view_pos.z
+                        } else {
+                            0.0
+                        }
+                    } else {
+                        0.0
+                    };
+
+                    jobs.push(RenderJob {
+                        entity_handle: entity,
+                        mesh_handle,
+                        material_handle,
+                        depth,
+                    });
+                }
+            }
+
+            // 进行远近排序
+            if pass.id == DefaultPipeline::transparent_pass() {
+                // 透明物体：由远及近 (Back-to-Front)
+                jobs.sort_by(|a, b| b.depth.partial_cmp(&a.depth).unwrap_or(Ordering::Equal));
+            } else {
+                // 不透明物体：由近及远 (Front-to-Back) 以优化 Z-Culling
+                jobs.sort_by(|a, b| a.depth.partial_cmp(&b.depth).unwrap_or(Ordering::Equal));
+            }
+
+            for job in jobs {
+                let material_handle = job.material_handle;
+                let mesh_handle = job.mesh_handle;
+                let entity_handle = job.entity_handle;
 
                 // 计算这个物体相关的数据
-                let Some(transform) = transform_mgr.get_mut(entity) else {
-                    warn!("Can not find transform for entity {:?}", entity);
+                let Some(transform) = transform_mgr.get_mut(entity_handle) else {
+                    warn!("Can not find transform for entity {:?}", entity_handle);
                     return;
                 };
                 let model_matrix = transform.transform.to_matrix();
@@ -75,7 +124,7 @@ impl ISystem for RenderSystem {
 
                 // 注入全局 Uniform
                 let global_uniform = GlobalUniform {
-                    view_matrix: &view_matrix,
+                    view_matrix: &view_matrix_arr,
                     projection_matrix: &projection_matrix,
                     view_position: &view_position,
                     model_matrix: &model_matrix,
@@ -125,13 +174,21 @@ fn clear_frame(color: Color) {
     }
 }
 
-fn get_view_matrix(camera_transform: &Transform) -> [[f32; 4]; 4] {
+fn get_view_matrix_arr(camera_transform: &Transform) -> [[f32; 4]; 4] {
     Matrix4::look_to_rh(
         camera_transform.get_translation().data,
         camera_transform.get_forward(),
         camera_transform.get_up(),
     )
     .into()
+}
+
+fn get_view_matrix(camera_transform: &Transform) -> Matrix4<f32> {
+    Matrix4::look_to_rh(
+        camera_transform.get_translation().data,
+        camera_transform.get_forward(),
+        camera_transform.get_up(),
+    )
 }
 
 fn get_view_position(camera_transform: &Transform) -> [f32; 3] {

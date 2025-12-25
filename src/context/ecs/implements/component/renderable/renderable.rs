@@ -18,6 +18,10 @@ impl RenderableComponent {
         }
     }
 
+    pub fn get_material(&self, pass: impl Into<PassId>) -> Option<MaterialHandle> {
+        self.materials.get(&pass.into()).cloned()
+    }
+
     pub fn with_material(mut self, pass: impl Into<PassId>, material: MaterialHandle) -> Self {
         self.materials.insert(pass.into(), material);
         self
