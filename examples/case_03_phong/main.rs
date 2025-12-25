@@ -138,77 +138,55 @@ fn main() -> Result<(), Box<dyn Error>> {
                         continue;
                     }
 
-                    let entity = context.borrow().spawn_entity();
-                    context.borrow().add_component(
-                        entity,
+                    context.borrow().spawn_entity_with((
                         RenderableComponent::new(mesh)
                             .with_material(DefaultPipeline::main_pass(), material),
-                    );
-                    context.borrow().add_component(
-                        entity,
                         TransformComponent::new(Transform::from_position(
                             3.0 * (i as f32),
                             3.0 * (j as f32),
                             3.0 * (k as f32),
                         )),
-                    );
+                    ));
                 }
             }
         }
 
-        let camera_entity = context.borrow().spawn_entity();
-        context
-            .borrow()
-            .add_component(camera_entity, CameraComponent::new(true));
-        context.borrow().add_component(
-            camera_entity,
+        context.borrow().spawn_entity_with((
+            CameraComponent::new(true),
             TransformComponent::new(Transform::from_position(0.0, 1.0, 4.0)),
-        );
+        ));
 
         // 灯光
-        let point_light_entity = context.borrow().spawn_entity();
         let mut point_light = PointLight::new();
         point_light.color = Color::from_rgb(0, 255, 0);
         point_light.intensity = 3.0;
         point_light.range = 10.0;
-        context
-            .borrow()
-            .add_component(point_light_entity, LightComponent::new(point_light));
-        context.borrow().add_component(
-            point_light_entity,
+        context.borrow().spawn_entity_with((
             TransformComponent::new(Transform::from_position(0.0, 0.0, 0.0)),
-        );
+            LightComponent::new(point_light),
+        ));
 
-        let directional_light_entity = context.borrow().spawn_entity();
         let mut directional_light = DirectionalLight::new();
         directional_light.color = Color::from_rgb(255, 0, 0);
-        context.borrow().add_component(
-            directional_light_entity,
+        context.borrow().spawn_entity_with((
             LightComponent::new(directional_light),
-        );
-        let transform = Transform::new(
-            Translation::default(),
-            Rotation::new(0.0, 180.0, 0.0),
-            Scaling::default(),
-        );
-        context
-            .borrow()
-            .add_component(directional_light_entity, TransformComponent::new(transform));
+            TransformComponent::new(Transform::new(
+                Translation::default(),
+                Rotation::new(0.0, 180.0, 0.0),
+                Scaling::default(),
+            )),
+        ));
 
-        let spot_light_entity = context.borrow().spawn_entity();
         let mut spot_light = SpotLight::new();
         spot_light.color = Color::from_rgb(0, 0, 255);
-        context
-            .borrow()
-            .add_component(spot_light_entity, LightComponent::new(spot_light));
-        let transform = Transform::new(
-            Translation::new(0.0, 0.0, 8.0),
-            Rotation::default(),
-            Scaling::default(),
-        );
-        context
-            .borrow()
-            .add_component(spot_light_entity, TransformComponent::new(transform));
+        context.borrow().spawn_entity_with((
+            LightComponent::new(spot_light),
+            TransformComponent::new(Transform::new(
+                Translation::new(0.0, 0.0, 8.0),
+                Rotation::default(),
+                Scaling::default(),
+            )),
+        ));
 
         Ok(())
     })?;

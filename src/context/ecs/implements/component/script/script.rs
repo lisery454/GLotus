@@ -18,4 +18,9 @@ impl ScriptComponent {
     pub fn add<B: IBehavior>(&mut self, behavior: B) {
         self.behaviors.push(Box::new(behavior));
     }
+
+    pub fn with<B: IBehavior>(mut self, behavior: B) -> Self {
+        self.add(behavior);
+        self
+    }
 }

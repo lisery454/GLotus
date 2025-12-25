@@ -85,23 +85,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         )?;
 
         // 渲染物体
-        let entity = context.borrow().spawn_entity();
-        context.borrow().add_component(
-            entity,
+        context.borrow().spawn_entity_with((
             RenderableComponent::new(mesh).with_material(DefaultPipeline::main_pass(), material),
-        );
-        context
-            .borrow()
-            .add_component(entity, TransformComponent::new(Transform::default()));
+            TransformComponent::new(Transform::default()),
+        ));
+
         // 相机
-        let camera_entity = context.borrow().spawn_entity();
-        context
-            .borrow()
-            .add_component(camera_entity, CameraComponent::new(true));
-        context.borrow().add_component(
-            camera_entity,
+        context.borrow().spawn_entity_with((
+            CameraComponent::new(true),
             TransformComponent::new(Transform::from_position(0.0, 0.0, 10.0)),
-        );
+        ));
 
         Ok(())
     })?;

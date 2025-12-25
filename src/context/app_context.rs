@@ -216,6 +216,42 @@ impl AppContext {
 }
 
 // entity
+// 定义 Bundle trait
+pub trait ComponentBundle {
+    fn add_to_entity(self, ctx: &AppContext, entity: EntityHandle);
+}
+
+// 为单个组件实现
+impl<T: IComponent> ComponentBundle for T {
+    fn add_to_entity(self, ctx: &AppContext, entity: EntityHandle) {
+        ctx.add_component(entity, self);
+    }
+}
+
+// 为元组实现
+impl<T1, T2> ComponentBundle for (T1, T2)
+where
+    T1: IComponent,
+    T2: IComponent,
+{
+    fn add_to_entity(self, ctx: &AppContext, entity: EntityHandle) {
+        ctx.add_component(entity, self.0);
+        ctx.add_component(entity, self.1);
+    }
+}
+
+impl<T1, T2, T3> ComponentBundle for (T1, T2, T3)
+where
+    T1: IComponent,
+    T2: IComponent,
+    T3: IComponent,
+{
+    fn add_to_entity(self, ctx: &AppContext, entity: EntityHandle) {
+        ctx.add_component(entity, self.0);
+        ctx.add_component(entity, self.1);
+        ctx.add_component(entity, self.2);
+    }
+}
 impl AppContext {
     pub fn spawn_entity(&self) -> EntityHandle {
         self.world.borrow_mut().spawn_entity()
@@ -223,6 +259,12 @@ impl AppContext {
 
     pub fn despawn_entity(&self, entity: EntityHandle) {
         self.world.borrow_mut().despawn_entity(entity)
+    }
+
+    pub fn spawn_entity_with<B: ComponentBundle>(&self, bundle: B) -> EntityHandle {
+        let entity = self.spawn_entity();
+        bundle.add_to_entity(self, entity);
+        entity
     }
 
     pub fn add_component<T: IComponent>(&self, entity: EntityHandle, component: T) {

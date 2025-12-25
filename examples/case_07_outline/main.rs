@@ -36,50 +36,31 @@ fn main() -> Result<(), Box<dyn Error>> {
             .borrow()
             .create_mesh_from_obj_in_bytes(include_bytes!("./assets/meshes/box.obj"))?;
 
-        let entity = context.borrow().spawn_entity();
-        context.borrow().add_component(
-            entity,
+        context.borrow().spawn_entity_with((
             RenderableComponent::new(mesh)
                 .with_material(DefaultPipeline::main_pass(), material_1)
                 .with_material(DefaultPipeline::outline_pass(), material_2),
-        );
-        context.borrow().add_component(
-            entity,
             TransformComponent::new(Transform::from_position(0.0, 0.0, 0.0)),
-        );
+        ));
 
-        let entity = context.borrow().spawn_entity();
-        context.borrow().add_component(
-            entity,
+        context.borrow().spawn_entity_with((
             RenderableComponent::new(mesh2)
                 .with_material(DefaultPipeline::main_pass(), material_1)
                 .with_material(DefaultPipeline::outline_pass(), material_2),
-        );
-        context.borrow().add_component(
-            entity,
             TransformComponent::new(Transform::from_position(3.0, 0.0, 0.0)),
-        );
+        ));
 
-        let entity = context.borrow().spawn_entity();
-        context.borrow().add_component(
-            entity,
+        context.borrow().spawn_entity_with((
             RenderableComponent::new(mesh3)
                 .with_material(DefaultPipeline::main_pass(), material_1)
                 .with_material(DefaultPipeline::outline_pass(), material_2),
-        );
-        context.borrow().add_component(
-            entity,
             TransformComponent::new(Transform::from_position(1.5, 0.0, 3.0)),
-        );
+        ));
 
-        let camera_entity = context.borrow().spawn_entity();
-        context
-            .borrow()
-            .add_component(camera_entity, CameraComponent::new(true));
-        context.borrow().add_component(
-            camera_entity,
+        context.borrow().spawn_entity_with((
             TransformComponent::new(Transform::from_position(1.5, 0.0, 6.0)),
-        );
+            CameraComponent::new(true),
+        ));
 
         Ok(())
     })?;

@@ -62,67 +62,39 @@ fn main() -> Result<(), Box<dyn Error>> {
             .borrow()
             .create_mesh_from_obj_in_bytes(include_bytes!("./assets/meshes/suzanne.obj"))?;
 
-        let entity = context.borrow().spawn_entity();
-        context.borrow().add_component(
-            entity,
+        context.borrow().spawn_entity_with((
             RenderableComponent::new(mesh).with_material(DefaultPipeline::main_pass(), material),
-        );
-        context.borrow().add_component(
-            entity,
             TransformComponent::new(Transform::from_position(0.0, 0.0, 0.0)),
-        );
+        ));
 
-        let entity = context.borrow().spawn_entity();
-        context.borrow().add_component(
-            entity,
+        context.borrow().spawn_entity_with((
             RenderableComponent::new(mesh2).with_material(DefaultPipeline::main_pass(), material),
-        );
-        context.borrow().add_component(
-            entity,
             TransformComponent::new(Transform::from_position(3.0, 0.0, 0.0)),
-        );
+        ));
 
-        let entity = context.borrow().spawn_entity();
-        context.borrow().add_component(
-            entity,
+        context.borrow().spawn_entity_with((
             RenderableComponent::new(mesh3).with_material(DefaultPipeline::main_pass(), material),
-        );
-        context.borrow().add_component(
-            entity,
             TransformComponent::new(Transform::from_position(0.0, 0.0, 3.0)),
-        );
+        ));
 
-        let entity = context.borrow().spawn_entity();
-        context.borrow().add_component(
-            entity,
+        context.borrow().spawn_entity_with((
             RenderableComponent::new(mesh4).with_material(DefaultPipeline::main_pass(), material),
-        );
-        context.borrow().add_component(
-            entity,
             TransformComponent::new(Transform::from_position(3.0, 0.0, 3.0)),
-        );
+        ));
 
-        let camera_entity = context.borrow().spawn_entity();
-        context
-            .borrow()
-            .add_component(camera_entity, CameraComponent::new(true));
-        context.borrow().add_component(
-            camera_entity,
+        context.borrow().spawn_entity_with((
             TransformComponent::new(Transform::from_position(1.5, 0.0, 6.0)),
-        );
+            CameraComponent::new(true),
+        ));
 
-        let point_light_entity = context.borrow().spawn_entity();
         let mut point_light = PointLight::new();
         point_light.color = Color::from_rgb(255, 255, 255);
         point_light.intensity = 4.0;
         point_light.range = 20.0;
-        context
-            .borrow()
-            .add_component(point_light_entity, LightComponent::new(point_light));
-        context.borrow().add_component(
-            point_light_entity,
+        context.borrow().spawn_entity_with((
+            LightComponent::new(point_light),
             TransformComponent::new(Transform::from_position(5.0, 6.0, 3.0)),
-        );
+        ));
 
         Ok(())
     })?;
