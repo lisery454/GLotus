@@ -9,166 +9,127 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     app.borrow().build(|context| {
-        let shader = context
-            .borrow()
-            .asset_manager
-            .borrow_mut()
-            .shader_manager
-            .create_from_sources(
-                include_str!("./assets/shaders/vs.vert"),
-                include_str!("./assets/shaders/fs.frag"),
-            )?;
+        let shader = context.borrow().create_shader_from_sources(
+            include_str!("./assets/shaders/vs.vert"),
+            include_str!("./assets/shaders/fs.frag"),
+        )?;
 
-        let texture_diffuse = context
-            .borrow()
-            .asset_manager
-            .borrow_mut()
-            .texture_manager
-            .create_from_byte(
-                include_bytes!("./assets/textures/texture_diffuse.png"),
-                WrappingMode::Repeat,
-                WrappingMode::Repeat,
-                FilteringMode::LinearMipmapLinear,
-                FilteringMode::Linear,
-            )?;
+        let texture_diffuse = context.borrow().create_texture_from_byte(
+            include_bytes!("./assets/textures/texture_diffuse.png"),
+            WrappingMode::Repeat,
+            WrappingMode::Repeat,
+            FilteringMode::LinearMipmapLinear,
+            FilteringMode::Linear,
+        )?;
 
-        let texture_specular = context
-            .borrow()
-            .asset_manager
-            .borrow_mut()
-            .texture_manager
-            .create_from_byte(
-                include_bytes!("./assets/textures/texture_specular.png"),
-                WrappingMode::Repeat,
-                WrappingMode::Repeat,
-                FilteringMode::LinearMipmapLinear,
-                FilteringMode::Linear,
-            )?;
+        let texture_specular = context.borrow().create_texture_from_byte(
+            include_bytes!("./assets/textures/texture_specular.png"),
+            WrappingMode::Repeat,
+            WrappingMode::Repeat,
+            FilteringMode::LinearMipmapLinear,
+            FilteringMode::Linear,
+        )?;
 
-        let material = context
-            .borrow()
-            .asset_manager
-            .borrow_mut()
-            .material_manager
-            .create(shader)?;
+        let material = context.borrow().create_material(shader)?;
 
-        {
-            let context_ref = context.borrow();
+        context.borrow().insert_uniform_to_material(
+            material,
+            "material.diffuse_texture",
+            UniformValue::Texture(0, texture_diffuse),
+        );
+        context.borrow().insert_uniform_to_material(
+            material,
+            "material.specular_texture",
+            UniformValue::Texture(1, texture_specular),
+        );
+        context.borrow().insert_uniform_to_material(
+            material,
+            "material.ambient_factor",
+            UniformValue::Vector3([0.2, 0.2, 0.2]),
+        );
+        context.borrow().insert_uniform_to_material(
+            material,
+            "material.diffuse_factor",
+            UniformValue::Vector3([1.0, 1.0, 1.0]),
+        );
+        context.borrow().insert_uniform_to_material(
+            material,
+            "material.specular_factor",
+            UniformValue::Vector3([0.8, 0.8, 0.8]),
+        );
+        context.borrow().insert_uniform_to_material(
+            material,
+            "material.specular_shininess",
+            UniformValue::Float(256.0),
+        );
 
-            let mut asset_mgr = context_ref.asset_manager.borrow_mut();
-
-            asset_mgr.material_manager.insert_uniform(
-                material,
-                "material.diffuse_texture",
-                UniformValue::Texture(0, texture_diffuse),
-            );
-
-            asset_mgr.material_manager.insert_uniform(
-                material,
-                "material.specular_texture",
-                UniformValue::Texture(1, texture_specular),
-            );
-
-            asset_mgr.material_manager.insert_uniform(
-                material,
-                "material.ambient_factor",
-                UniformValue::Vector3([0.2, 0.2, 0.2]),
-            );
-
-            asset_mgr.material_manager.insert_uniform(
-                material,
-                "material.diffuse_factor",
-                UniformValue::Vector3([1.0, 1.0, 1.0]),
-            );
-
-            asset_mgr.material_manager.insert_uniform(
-                material,
-                "material.specular_factor",
-                UniformValue::Vector3([0.8, 0.8, 0.8]),
-            );
-
-            asset_mgr.material_manager.insert_uniform(
-                material,
-                "material.specular_shininess",
-                UniformValue::Float(256.0),
-            );
-        }
-
-        let mesh = context
-            .borrow()
-            .asset_manager
-            .borrow_mut()
-            .mesh_manager
-            .create_from_position_normal_texcoord(
-                &(0..36).collect(),
-                &vec![
-                    // back
-                    -0.5, -0.5, -0.5, // - - - 0
-                    0.5, -0.5, -0.5, // + - - 1
-                    0.5, 0.5, -0.5, // + + - 2
-                    0.5, 0.5, -0.5, // + + - 2
-                    -0.5, 0.5, -0.5, // - + - 3
-                    -0.5, -0.5, -0.5, // - - - 0
-                    // front
-                    -0.5, -0.5, 0.5, // - - + 4
-                    0.5, -0.5, 0.5, // + - + 5
-                    0.5, 0.5, 0.5, // + + + 6
-                    0.5, 0.5, 0.5, // + + + 6
-                    -0.5, 0.5, 0.5, // - + + 7
-                    -0.5, -0.5, 0.5, // - - + 4
-                    // left
-                    -0.5, 0.5, 0.5, // - + + 7
-                    -0.5, 0.5, -0.5, // - + - 3
-                    -0.5, -0.5, -0.5, // - - - 0
-                    -0.5, -0.5, -0.5, // - - - 0
-                    -0.5, -0.5, 0.5, // - - + 4
-                    -0.5, 0.5, 0.5, // - + + 7
-                    // right
-                    0.5, -0.5, -0.5, // + - - 1
-                    0.5, 0.5, -0.5, // + + - 2
-                    0.5, 0.5, 0.5, // + + + 6
-                    0.5, 0.5, 0.5, // + + + 6
-                    0.5, -0.5, 0.5, // + - + 5
-                    0.5, -0.5, -0.5, // + - - 1
-                    // top
-                    0.5, 0.5, -0.5, // + + - 2
-                    -0.5, 0.5, -0.5, // - + - 3
-                    -0.5, 0.5, 0.5, // - + + 7
-                    -0.5, 0.5, 0.5, // - + + 7
-                    0.5, 0.5, 0.5, // + + + 6
-                    0.5, 0.5, -0.5, // + + - 2
-                    // bottom
-                    0.5, -0.5, -0.5, // + - - 1
-                    -0.5, -0.5, -0.5, // - - - 0
-                    -0.5, -0.5, 0.5, // - - + 4
-                    -0.5, -0.5, 0.5, // - - + 4
-                    0.5, -0.5, 0.5, // + - + 5
-                    0.5, -0.5, -0.5, // + - - 1
-                ],
-                &[
-                    [0.0, 0.0, -1.0].repeat(6),
-                    [0.0, 0.0, 1.0].repeat(6),
-                    [-1.0, 0.0, 0.0].repeat(6),
-                    [1.0, 0.0, 0.0].repeat(6),
-                    [0.0, 1.0, 0.0].repeat(6),
-                    [0.0, -1.0, 0.0].repeat(6),
-                ]
-                .into_iter()
-                .flatten()
-                .collect(),
-                &vec![
-                    0.0, 0.0, // 0
-                    1.0, 0.0, // 1
-                    1.0, 1.0, // 2
-                    1.0, 1.0, // 2
-                    0.0, 1.0, // 3
-                    0.0, 0.0, // 0
-                ]
-                .repeat(6),
-            )?;
-
-        let context_borrow = context.borrow();
-        let mut world = context_borrow.world.borrow_mut();
+        let mesh = context.borrow().create_mesh_from_position_normal_texcoord(
+            &(0..36).collect(),
+            &vec![
+                // back
+                -0.5, -0.5, -0.5, // - - - 0
+                0.5, -0.5, -0.5, // + - - 1
+                0.5, 0.5, -0.5, // + + - 2
+                0.5, 0.5, -0.5, // + + - 2
+                -0.5, 0.5, -0.5, // - + - 3
+                -0.5, -0.5, -0.5, // - - - 0
+                // front
+                -0.5, -0.5, 0.5, // - - + 4
+                0.5, -0.5, 0.5, // + - + 5
+                0.5, 0.5, 0.5, // + + + 6
+                0.5, 0.5, 0.5, // + + + 6
+                -0.5, 0.5, 0.5, // - + + 7
+                -0.5, -0.5, 0.5, // - - + 4
+                // left
+                -0.5, 0.5, 0.5, // - + + 7
+                -0.5, 0.5, -0.5, // - + - 3
+                -0.5, -0.5, -0.5, // - - - 0
+                -0.5, -0.5, -0.5, // - - - 0
+                -0.5, -0.5, 0.5, // - - + 4
+                -0.5, 0.5, 0.5, // - + + 7
+                // right
+                0.5, -0.5, -0.5, // + - - 1
+                0.5, 0.5, -0.5, // + + - 2
+                0.5, 0.5, 0.5, // + + + 6
+                0.5, 0.5, 0.5, // + + + 6
+                0.5, -0.5, 0.5, // + - + 5
+                0.5, -0.5, -0.5, // + - - 1
+                // top
+                0.5, 0.5, -0.5, // + + - 2
+                -0.5, 0.5, -0.5, // - + - 3
+                -0.5, 0.5, 0.5, // - + + 7
+                -0.5, 0.5, 0.5, // - + + 7
+                0.5, 0.5, 0.5, // + + + 6
+                0.5, 0.5, -0.5, // + + - 2
+                // bottom
+                0.5, -0.5, -0.5, // + - - 1
+                -0.5, -0.5, -0.5, // - - - 0
+                -0.5, -0.5, 0.5, // - - + 4
+                -0.5, -0.5, 0.5, // - - + 4
+                0.5, -0.5, 0.5, // + - + 5
+                0.5, -0.5, -0.5, // + - - 1
+            ],
+            &[
+                [0.0, 0.0, -1.0].repeat(6),
+                [0.0, 0.0, 1.0].repeat(6),
+                [-1.0, 0.0, 0.0].repeat(6),
+                [1.0, 0.0, 0.0].repeat(6),
+                [0.0, 1.0, 0.0].repeat(6),
+                [0.0, -1.0, 0.0].repeat(6),
+            ]
+            .into_iter()
+            .flatten()
+            .collect(),
+            &vec![
+                0.0, 0.0, // 0
+                1.0, 0.0, // 1
+                1.0, 1.0, // 2
+                1.0, 1.0, // 2
+                0.0, 1.0, // 3
+                0.0, 0.0, // 0
+            ]
+            .repeat(6),
+        )?;
 
         for i in -1..2 {
             for j in -1..2 {
@@ -177,13 +138,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                         continue;
                     }
 
-                    let entity = world.spawn_entity();
-                    world.get_manager_mut::<RenderableComponent>().add(
+                    let entity = context.borrow().spawn_entity();
+                    context.borrow().add_component(
                         entity,
                         RenderableComponent::new(mesh)
                             .with_material(DefaultPipeline::main_pass(), material),
                     );
-                    world.get_manager_mut::<TransformComponent>().add(
+                    context.borrow().add_component(
                         entity,
                         TransformComponent::new(Transform::from_position(
                             3.0 * (i as f32),
@@ -195,33 +156,33 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
 
-        let camera_entity = world.spawn_entity();
-        world
-            .get_manager_mut::<CameraComponent>()
-            .add(camera_entity, CameraComponent::new(true));
-        world.get_manager_mut::<TransformComponent>().add(
+        let camera_entity = context.borrow().spawn_entity();
+        context
+            .borrow()
+            .add_component(camera_entity, CameraComponent::new(true));
+        context.borrow().add_component(
             camera_entity,
             TransformComponent::new(Transform::from_position(0.0, 1.0, 4.0)),
         );
 
         // 灯光
-        let point_light_entity = world.spawn_entity();
+        let point_light_entity = context.borrow().spawn_entity();
         let mut point_light = PointLight::new();
         point_light.color = Color::from_rgb(0, 255, 0);
         point_light.intensity = 3.0;
         point_light.range = 10.0;
-        world
-            .get_manager_mut::<LightComponent>()
-            .add(point_light_entity, LightComponent::new(point_light));
-        world.get_manager_mut::<TransformComponent>().add(
+        context
+            .borrow()
+            .add_component(point_light_entity, LightComponent::new(point_light));
+        context.borrow().add_component(
             point_light_entity,
             TransformComponent::new(Transform::from_position(0.0, 0.0, 0.0)),
         );
 
-        let directional_light_entity = world.spawn_entity();
+        let directional_light_entity = context.borrow().spawn_entity();
         let mut directional_light = DirectionalLight::new();
         directional_light.color = Color::from_rgb(255, 0, 0);
-        world.get_manager_mut::<LightComponent>().add(
+        context.borrow().add_component(
             directional_light_entity,
             LightComponent::new(directional_light),
         );
@@ -230,24 +191,24 @@ fn main() -> Result<(), Box<dyn Error>> {
             Rotation::new(0.0, 180.0, 0.0),
             Scaling::default(),
         );
-        world
-            .get_manager_mut::<TransformComponent>()
-            .add(directional_light_entity, TransformComponent::new(transform));
+        context
+            .borrow()
+            .add_component(directional_light_entity, TransformComponent::new(transform));
 
-        let spot_light_entity = world.spawn_entity();
+        let spot_light_entity = context.borrow().spawn_entity();
         let mut spot_light = SpotLight::new();
         spot_light.color = Color::from_rgb(0, 0, 255);
-        world
-            .get_manager_mut::<LightComponent>()
-            .add(spot_light_entity, LightComponent::new(spot_light));
+        context
+            .borrow()
+            .add_component(spot_light_entity, LightComponent::new(spot_light));
         let transform = Transform::new(
             Translation::new(0.0, 0.0, 8.0),
             Rotation::default(),
             Scaling::default(),
         );
-        world
-            .get_manager_mut::<TransformComponent>()
-            .add(spot_light_entity, TransformComponent::new(transform));
+        context
+            .borrow()
+            .add_component(spot_light_entity, TransformComponent::new(transform));
 
         Ok(())
     })?;

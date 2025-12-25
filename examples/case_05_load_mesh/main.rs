@@ -6,154 +6,120 @@ fn main() -> Result<(), Box<dyn Error>> {
     let app = App::new();
 
     app.borrow().build(|context| {
-        let shader = context
-            .borrow()
-            .asset_manager
-            .borrow_mut()
-            .shader_manager
-            .create_from_sources(
-                include_str!("./assets/shaders/vs.vert"),
-                include_str!("./assets/shaders/fs.frag"),
-            )?;
+        let shader = context.borrow().create_shader_from_sources(
+            include_str!("./assets/shaders/vs.vert"),
+            include_str!("./assets/shaders/fs.frag"),
+        )?;
 
-        let material = context
-            .borrow()
-            .asset_manager
-            .borrow_mut()
-            .material_manager
-            .create(shader)?;
+        let material = context.borrow().create_material(shader)?;
 
-        {
-            let context_ref = context.borrow();
-
-            let mut asset_mgr = context_ref.asset_manager.borrow_mut();
-
-            asset_mgr.material_manager.insert_uniform(
-                material,
-                "material.diff_color",
-                UniformValue::Vector3([0.5, 0.5, 0.5]),
-            );
-
-            asset_mgr.material_manager.insert_uniform(
-                material,
-                "material.spec_color",
-                UniformValue::Vector3([1.0, 1.0, 1.0]),
-            );
-
-            asset_mgr.material_manager.insert_uniform(
-                material,
-                "material.ambient_factor",
-                UniformValue::Vector3([0.1, 0.1, 0.1]),
-            );
-
-            asset_mgr.material_manager.insert_uniform(
-                material,
-                "material.diffuse_factor",
-                UniformValue::Vector3([1.0, 1.0, 1.0]),
-            );
-
-            asset_mgr.material_manager.insert_uniform(
-                material,
-                "material.specular_factor",
-                UniformValue::Vector3([0.6, 0.6, 0.6]),
-            );
-
-            asset_mgr.material_manager.insert_uniform(
-                material,
-                "material.specular_shininess",
-                UniformValue::Float(40.0),
-            );
-        }
+        context.borrow().insert_uniform_to_material(
+            material,
+            "material.diff_color",
+            UniformValue::Vector3([0.5, 0.5, 0.5]),
+        );
+        context.borrow().insert_uniform_to_material(
+            material,
+            "material.spec_color",
+            UniformValue::Vector3([1.0, 1.0, 1.0]),
+        );
+        context.borrow().insert_uniform_to_material(
+            material,
+            "material.ambient_factor",
+            UniformValue::Vector3([0.1, 0.1, 0.1]),
+        );
+        context.borrow().insert_uniform_to_material(
+            material,
+            "material.diffuse_factor",
+            UniformValue::Vector3([1.0, 1.0, 1.0]),
+        );
+        context.borrow().insert_uniform_to_material(
+            material,
+            "material.specular_factor",
+            UniformValue::Vector3([0.6, 0.6, 0.6]),
+        );
+        context.borrow().insert_uniform_to_material(
+            material,
+            "material.specular_shininess",
+            UniformValue::Float(40.0),
+        );
 
         let mesh = context
             .borrow()
-            .asset_manager
-            .borrow_mut()
-            .mesh_manager
-            .create_from_obj_in_bytes(include_bytes!("./assets/meshes/sphere.obj"))?;
+            .create_mesh_from_obj_in_bytes(include_bytes!("./assets/meshes/sphere.obj"))?;
 
         let mesh2 = context
             .borrow()
-            .asset_manager
-            .borrow_mut()
-            .mesh_manager
-            .create_from_obj_in_bytes(include_bytes!("./assets/meshes/sphere_no_smooth.obj"))?;
+            .create_mesh_from_obj_in_bytes(include_bytes!(
+                "./assets/meshes/sphere_no_smooth.obj"
+            ))?;
 
         let mesh3 = context
             .borrow()
-            .asset_manager
-            .borrow_mut()
-            .mesh_manager
-            .create_from_obj_in_bytes(include_bytes!("./assets/meshes/box.obj"))?;
+            .create_mesh_from_obj_in_bytes(include_bytes!("./assets/meshes/box.obj"))?;
 
         let mesh4 = context
             .borrow()
-            .asset_manager
-            .borrow_mut()
-            .mesh_manager
-            .create_from_obj_in_bytes(include_bytes!("./assets/meshes/suzanne.obj"))?;
+            .create_mesh_from_obj_in_bytes(include_bytes!("./assets/meshes/suzanne.obj"))?;
 
-        let context_borrow = context.borrow();
-        let mut world = context_borrow.world.borrow_mut();
-
-        let entity = world.spawn_entity();
-        world.get_manager_mut::<RenderableComponent>().add(
+        let entity = context.borrow().spawn_entity();
+        context.borrow().add_component(
             entity,
             RenderableComponent::new(mesh).with_material(DefaultPipeline::main_pass(), material),
         );
-        world.get_manager_mut::<TransformComponent>().add(
+        context.borrow().add_component(
             entity,
             TransformComponent::new(Transform::from_position(0.0, 0.0, 0.0)),
         );
 
-        let entity = world.spawn_entity();
-        world.get_manager_mut::<RenderableComponent>().add(
+        let entity = context.borrow().spawn_entity();
+        context.borrow().add_component(
             entity,
             RenderableComponent::new(mesh2).with_material(DefaultPipeline::main_pass(), material),
         );
-        world.get_manager_mut::<TransformComponent>().add(
+        context.borrow().add_component(
             entity,
             TransformComponent::new(Transform::from_position(3.0, 0.0, 0.0)),
         );
 
-        let entity = world.spawn_entity();
-        world.get_manager_mut::<RenderableComponent>().add(
+        let entity = context.borrow().spawn_entity();
+        context.borrow().add_component(
             entity,
             RenderableComponent::new(mesh3).with_material(DefaultPipeline::main_pass(), material),
         );
-        world.get_manager_mut::<TransformComponent>().add(
+        context.borrow().add_component(
             entity,
             TransformComponent::new(Transform::from_position(0.0, 0.0, 3.0)),
         );
 
-        let entity = world.spawn_entity();
-        world.get_manager_mut::<RenderableComponent>().add(
+        let entity = context.borrow().spawn_entity();
+        context.borrow().add_component(
             entity,
             RenderableComponent::new(mesh4).with_material(DefaultPipeline::main_pass(), material),
         );
-        world.get_manager_mut::<TransformComponent>().add(
+        context.borrow().add_component(
             entity,
             TransformComponent::new(Transform::from_position(3.0, 0.0, 3.0)),
         );
 
-        let camera_entity = world.spawn_entity();
-        world
-            .get_manager_mut::<CameraComponent>()
-            .add(camera_entity, CameraComponent::new(true));
-        world.get_manager_mut::<TransformComponent>().add(
+        let camera_entity = context.borrow().spawn_entity();
+        context
+            .borrow()
+            .add_component(camera_entity, CameraComponent::new(true));
+        context.borrow().add_component(
             camera_entity,
             TransformComponent::new(Transform::from_position(1.5, 0.0, 6.0)),
         );
 
-        let point_light_entity = world.spawn_entity();
+        let point_light_entity = context.borrow().spawn_entity();
         let mut point_light = PointLight::new();
         point_light.color = Color::from_rgb(255, 255, 255);
         point_light.intensity = 4.0;
         point_light.range = 20.0;
-        world
-            .get_manager_mut::<LightComponent>()
-            .add(point_light_entity, LightComponent::new(point_light));
-        world.get_manager_mut::<TransformComponent>().add(
+        context
+            .borrow()
+            .add_component(point_light_entity, LightComponent::new(point_light));
+        context.borrow().add_component(
             point_light_entity,
             TransformComponent::new(Transform::from_position(5.0, 6.0, 3.0)),
         );

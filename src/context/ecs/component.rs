@@ -63,12 +63,12 @@ impl<T: IComponent> ComponentManager<T> {
     }
 
     /// 返回所有 (EntityHandle, &T) 的迭代器
-    pub fn iter(&self) -> slotmap::secondary::Iter<EntityHandle, T> {
+    pub fn iter(&self) -> slotmap::secondary::Iter<'_, EntityHandle, T> {
         self.components.iter()
     }
 
     /// 返回所有 (EntityHandle, &mut T) 的迭代器
-    pub fn iter_mut(&mut self) -> slotmap::secondary::IterMut<EntityHandle, T> {
+    pub fn iter_mut(&mut self) -> slotmap::secondary::IterMut<'_, EntityHandle, T> {
         self.components.iter_mut()
     }
 

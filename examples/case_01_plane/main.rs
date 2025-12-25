@@ -6,53 +6,36 @@ fn main() -> Result<(), Box<dyn Error>> {
     let app = App::new();
 
     app.borrow().build(|context| {
-        let shader = context
-            .borrow()
-            .asset_manager
-            .borrow_mut()
-            .shader_manager
-            .create_from_sources(
-                include_str!("./assets/shaders/vs.vert"),
-                include_str!("./assets/shaders/fs.frag"),
-            )?;
+        let shader = context.borrow().create_shader_from_sources(
+            include_str!("./assets/shaders/vs.vert"),
+            include_str!("./assets/shaders/fs.frag"),
+        )?;
 
-        let material = context
-            .borrow()
-            .asset_manager
-            .borrow_mut()
-            .material_manager
-            .create(shader)?;
+        let material = context.borrow().create_material(shader)?;
 
-        let mesh = context
-            .borrow()
-            .asset_manager
-            .borrow_mut()
-            .mesh_manager
-            .create_from_position(
-                &vec![0, 1, 3, 1, 2, 3],
-                &vec![
-                    1.0, 1.0, -5.0, // 0
-                    1.0, -1.0, -5.0, // 1
-                    -1.0, -1.0, -5.0, // 2
-                    -1.0, 1.0, -5.0, // 3
-                ],
-            )?;
+        let mesh = context.borrow().create_mesh_from_position(
+            &vec![0, 1, 3, 1, 2, 3],
+            &vec![
+                1.0, 1.0, -5.0, // 0
+                1.0, -1.0, -5.0, // 1
+                -1.0, -1.0, -5.0, // 2
+                -1.0, 1.0, -5.0, // 3
+            ],
+        )?;
 
-        let context_borrow = context.borrow();
-        let mut world = context_borrow.world.borrow_mut();
-        let entity = world.spawn_entity();
-        world.get_manager_mut::<RenderableComponent>().add(
+        let entity = context.borrow().spawn_entity();
+        context.borrow().add_component(
             entity,
             RenderableComponent::new(mesh).with_material(DefaultPipeline::main_pass(), material),
         );
-        world
-            .get_manager_mut::<TransformComponent>()
-            .add(entity, TransformComponent::new(Transform::default()));
-        let camera_entity = world.spawn_entity();
-        world
-            .get_manager_mut::<CameraComponent>()
-            .add(camera_entity, CameraComponent::new(true));
-        world.get_manager_mut::<TransformComponent>().add(
+        context
+            .borrow()
+            .add_component(entity, TransformComponent::new(Transform::default()));
+        let camera_entity = context.borrow().spawn_entity();
+        context
+            .borrow()
+            .add_component(camera_entity, CameraComponent::new(true));
+        context.borrow().add_component(
             camera_entity,
             TransformComponent::new(Transform::from_position(0.0, 0.0, 10.0)),
         );
