@@ -35,21 +35,17 @@ fn main() -> Result<(), Box<dyn Error>> {
             FilteringMode::Linear,
         )?;
 
-        let material = context.borrow().create_material(shader)?;
+        let material = context
+            .borrow()
+            .get_material_builder(shader)?
+            .with("texture1", UniformValue::Texture(0, texture))
+            .build();
 
-        context.borrow().insert_uniform_to_material(
-            material,
-            "texture1",
-            UniformValue::Texture(0, texture),
-        );
-
-        let material2 = context.borrow().create_material(shader)?;
-
-        context.borrow().insert_uniform_to_material(
-            material2,
-            "texture1",
-            UniformValue::Texture(0, texture2),
-        );
+        let material2 = context
+            .borrow()
+            .get_material_builder(shader)?
+            .with("texture1", UniformValue::Texture(0, texture2))
+            .build();
 
         let material3 = context.borrow().create_material(shader2)?;
 

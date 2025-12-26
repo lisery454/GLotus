@@ -1,9 +1,5 @@
 use super::{AppEventQueue, AssetManager, DefaultPipeline, InputState, Pipeline};
-use crate::{
-    AppConfig, EntityHandle, FilteringMode, IComponent, MaterialError, MaterialHandle, MeshError,
-    MeshHandle, ShaderError, ShaderHandle, TextureError, TextureHandle, UniformValue, World,
-    WrappingMode,
-};
+use crate::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -68,7 +64,34 @@ impl AppContext {
 }
 
 // material
+pub struct MaterialBuilder<'a> {
+    app_context: &'a AppContext,
+    material: MaterialHandle,
+}
+
+impl<'a> MaterialBuilder<'a> {
+    pub fn with(self, name: &str, value: UniformValue) -> MaterialBuilder<'a> {
+        self.app_context
+            .insert_uniform_to_material(self.material, name, value);
+        self
+    }
+
+    pub fn build(self) -> MaterialHandle {
+        self.material
+    }
+}
 impl AppContext {
+    pub fn get_material_builder(
+        &self,
+        shader: ShaderHandle,
+    ) -> Result<MaterialBuilder<'_>, MaterialError> {
+        let material = self.create_material(shader)?;
+        Ok(MaterialBuilder {
+            app_context: self,
+            material,
+        })
+    }
+
     pub fn create_material(&self, shader: ShaderHandle) -> Result<MaterialHandle, MaterialError> {
         self.asset_manager
             .borrow_mut()

@@ -11,38 +11,31 @@ fn main() -> Result<(), Box<dyn Error>> {
             include_str!("./assets/shaders/fs.frag"),
         )?;
 
-        let material = context.borrow().create_material(shader)?;
-
-        context.borrow().insert_uniform_to_material(
-            material,
-            "material.diff_color",
-            UniformValue::Vector3([0.5, 0.5, 0.5]),
-        );
-        context.borrow().insert_uniform_to_material(
-            material,
-            "material.spec_color",
-            UniformValue::Vector3([1.0, 1.0, 1.0]),
-        );
-        context.borrow().insert_uniform_to_material(
-            material,
-            "material.ambient_factor",
-            UniformValue::Vector3([0.1, 0.1, 0.1]),
-        );
-        context.borrow().insert_uniform_to_material(
-            material,
-            "material.diffuse_factor",
-            UniformValue::Vector3([1.0, 1.0, 1.0]),
-        );
-        context.borrow().insert_uniform_to_material(
-            material,
-            "material.specular_factor",
-            UniformValue::Vector3([0.6, 0.6, 0.6]),
-        );
-        context.borrow().insert_uniform_to_material(
-            material,
-            "material.specular_shininess",
-            UniformValue::Float(40.0),
-        );
+        let material = context
+            .borrow()
+            .get_material_builder(shader)?
+            .with(
+                "material.diff_color",
+                UniformValue::Vector3([0.5, 0.5, 0.5]),
+            )
+            .with(
+                "material.spec_color",
+                UniformValue::Vector3([1.0, 1.0, 1.0]),
+            )
+            .with(
+                "material.ambient_factor",
+                UniformValue::Vector3([0.1, 0.1, 0.1]),
+            )
+            .with(
+                "material.diffuse_factor",
+                UniformValue::Vector3([1.0, 1.0, 1.0]),
+            )
+            .with(
+                "material.specular_factor",
+                UniformValue::Vector3([0.6, 0.6, 0.6]),
+            )
+            .with("material.specular_shininess", UniformValue::Float(40.0))
+            .build();
 
         let mesh = context
             .borrow()
