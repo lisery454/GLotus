@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use super::{
     BlendMode, CullFaceMode, DepthFunc, DepthMode, Pass, PassId, Pipeline, PolygonMode,
     RenderState, StencilFunc, StencilFuncType, StencilMode, StencilOp, StencilOpType,
@@ -23,46 +25,60 @@ impl DefaultPipeline {
 
     pub(crate) fn build_default_pipeline() -> Pipeline {
         let mut pipeline = Pipeline::new();
-        pipeline.insert(Pass::new(
-            Self::main_pass(),
-            0,
-            RenderState::new(
-                DepthMode::new(true, true, DepthFunc::Less),
-                StencilMode::new(
-                    true,
-                    StencilFunc::new(StencilFuncType::Always, 1, 0xFF),
-                    StencilOp::new(
-                        StencilOpType::Keep,
-                        StencilOpType::Keep,
-                        StencilOpType::Replace,
+        pipeline.insert(
+            Pass::new(
+                Self::main_pass(),
+                0,
+                RenderState::new(
+                    DepthMode::new(true, true, DepthFunc::Less),
+                    StencilMode::new(
+                        true,
+                        StencilFunc::new(StencilFuncType::Always, 1, 0xFF),
+                        StencilOp::new(
+                            StencilOpType::Keep,
+                            StencilOpType::Keep,
+                            StencilOpType::Replace,
+                        ),
+                        0xFF,
                     ),
-                    0xFF,
+                    BlendMode::default(),
+                    CullFaceMode::default(),
+                    PolygonMode::default(),
                 ),
-                BlendMode::default(),
-                CullFaceMode::default(),
-                PolygonMode::default(),
-            ),
-        ));
-        pipeline.insert(Pass::new(
-            Self::transparent_pass(),
-            5,
-            RenderState::new(
-                DepthMode::new(true, true, DepthFunc::Less),
-                StencilMode::new(
-                    true,
-                    StencilFunc::new(StencilFuncType::Always, 1, 0xFF),
-                    StencilOp::new(
-                        StencilOpType::Keep,
-                        StencilOpType::Keep,
-                        StencilOpType::Replace,
+            )
+            .with_sort(|a, b| {
+                a.get_depth()
+                    .partial_cmp(&b.get_depth())
+                    .unwrap_or(Ordering::Equal)
+            }),
+        );
+        pipeline.insert(
+            Pass::new(
+                Self::transparent_pass(),
+                5,
+                RenderState::new(
+                    DepthMode::new(true, true, DepthFunc::Less),
+                    StencilMode::new(
+                        true,
+                        StencilFunc::new(StencilFuncType::Always, 1, 0xFF),
+                        StencilOp::new(
+                            StencilOpType::Keep,
+                            StencilOpType::Keep,
+                            StencilOpType::Replace,
+                        ),
+                        0xFF,
                     ),
-                    0xFF,
+                    BlendMode::Alpha,
+                    CullFaceMode::default(),
+                    PolygonMode::default(),
                 ),
-                BlendMode::Alpha,
-                CullFaceMode::default(),
-                PolygonMode::default(),
-            ),
-        ));
+            )
+            .with_sort(|a, b| {
+                b.get_depth()
+                    .partial_cmp(&a.get_depth())
+                    .unwrap_or(Ordering::Equal)
+            }),
+        );
         pipeline.insert(Pass::new(
             Self::outline_pass(),
             10,

@@ -2,16 +2,8 @@ use crate::*;
 use cgmath::Matrix4;
 use log::{error, warn};
 use std::cell::RefCell;
-use std::cmp::Ordering;
 use std::error::Error;
 use std::rc::Rc;
-
-struct RenderJob {
-    entity_handle: EntityHandle,
-    mesh_handle: MeshHandle,
-    material_handle: MaterialHandle,
-    depth: f32, // 用于排序
-}
 
 #[derive(Default)]
 pub struct RenderSystem;
@@ -72,47 +64,33 @@ impl ISystem for RenderSystem {
             let mut jobs = Vec::new();
 
             for (entity, renderable) in renderable_mgr.iter() {
-                if let Some(material_handle) = renderable.get_material(pass.id) {
-                    let mesh_handle = renderable.mesh;
+                if let Some(material) = renderable.get_material(pass.id) {
+                    let mesh = renderable.mesh;
 
                     // 获取 transform 用于计算深度
-                    let depth = if pass.id == DefaultPipeline::transparent_pass() {
-                        if let Some(transform) = transform_mgr.get(entity) {
-                            let world_pos_v4 =
-                                transform.transform.translation.data.to_homogeneous();
-                            // 转换到观察空间
-                            let view_pos = view_matrix * world_pos_v4;
-                            // -Z，这样值越大代表距离相机越远
-                            -view_pos.z
-                        } else {
-                            0.0
-                        }
+                    let depth = if let Some(transform) = transform_mgr.get(entity) {
+                        let world_pos_v4 = transform.transform.translation.data.to_homogeneous();
+                        // 转换到观察空间
+                        let view_pos = view_matrix * world_pos_v4;
+                        // -Z，这样值越大代表距离相机越远
+                        -view_pos.z
                     } else {
                         0.0
                     };
 
-                    jobs.push(RenderJob {
-                        entity_handle: entity,
-                        mesh_handle,
-                        material_handle,
-                        depth,
-                    });
+                    jobs.push(RenderJob::new(entity, mesh, material, depth));
                 }
             }
 
             // 进行远近排序
-            if pass.id == DefaultPipeline::transparent_pass() {
-                // 透明物体：由远及近 (Back-to-Front)
-                jobs.sort_by(|a, b| b.depth.partial_cmp(&a.depth).unwrap_or(Ordering::Equal));
-            } else {
-                // 不透明物体：由近及远 (Front-to-Back) 以优化 Z-Culling
-                jobs.sort_by(|a, b| a.depth.partial_cmp(&b.depth).unwrap_or(Ordering::Equal));
+            if let Some(sort_func) = &pass.sort_func {
+                jobs.sort_by(sort_func);
             }
 
             for job in jobs {
-                let material_handle = job.material_handle;
-                let mesh_handle = job.mesh_handle;
-                let entity_handle = job.entity_handle;
+                let material_handle = job.get_material();
+                let mesh_handle = job.get_mesh();
+                let entity_handle = job.get_entity();
 
                 // 计算这个物体相关的数据
                 let Some(transform) = transform_mgr.get_mut(entity_handle) else {

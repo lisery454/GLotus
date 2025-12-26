@@ -26,4 +26,7 @@ cargo run --example case_06_depth_test
 
 # 模板测试实现的外边缘线
 cargo run --example case_07_outline
+
+# blend实现的透明物体渲染
+cargo run --example case_08_blend
 ```

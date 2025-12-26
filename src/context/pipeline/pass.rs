@@ -1,3 +1,7 @@
+use std::cmp::Ordering;
+
+use crate::{EntityHandle, MaterialHandle, MeshHandle};
+
 use super::RenderState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -39,9 +43,49 @@ fn fnv1a_32(bytes: &[u8]) -> u32 {
     hash
 }
 
+pub struct RenderJob {
+    entity: EntityHandle,
+    mesh: MeshHandle,
+    material: MaterialHandle,
+    depth: f32, // 用于排序
+}
+
+impl RenderJob {
+    pub fn new(
+        entity: EntityHandle,
+        mesh: MeshHandle,
+        material: MaterialHandle,
+        depth: f32,
+    ) -> Self {
+        Self {
+            entity,
+            mesh,
+            material,
+            depth,
+        }
+    }
+
+    pub fn get_entity(&self) -> EntityHandle {
+        self.entity
+    }
+
+    pub fn get_mesh(&self) -> MeshHandle {
+        self.mesh
+    }
+
+    pub fn get_material(&self) -> MaterialHandle {
+        self.material
+    }
+
+    pub fn get_depth(&self) -> f32 {
+        self.depth
+    }
+}
+
 pub struct Pass {
     pub id: PassId,
     pub priority: i32,
+    pub sort_func: Option<Box<dyn Fn(&RenderJob, &RenderJob) -> Ordering>>,
     pub default_state: RenderState,
 }
 
@@ -51,6 +95,15 @@ impl Pass {
             id,
             priority,
             default_state: state,
+            sort_func: None,
         }
+    }
+
+    pub fn with_sort<F>(mut self, sort_func: F) -> Self 
+    where 
+        F: Fn(&RenderJob, &RenderJob) -> Ordering + 'static, 
+    {
+        self.sort_func = Some(Box::new(sort_func));
+        self
     }
 }
