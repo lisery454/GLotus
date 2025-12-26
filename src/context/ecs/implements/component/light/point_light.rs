@@ -15,6 +15,21 @@ impl PointLight {
             range: 100.0,
         }
     }
+
+    pub fn with_color(mut self, color: Color) -> Self {
+        self.color = color;
+        self
+    }
+
+    pub fn with_intensity(mut self, intensity: f32) -> Self {
+        self.intensity = intensity;
+        self
+    }
+
+    pub fn with_range(mut self, range: f32) -> Self {
+        self.range = range;
+        self
+    }
 }
 
 impl ILight for PointLight {

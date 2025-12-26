@@ -19,6 +19,31 @@ impl SpotLight {
             outer: 0.8,
         }
     }
+
+    pub fn with_color(mut self, color: Color) -> Self {
+        self.color = color;
+        self
+    }
+
+    pub fn with_intensity(mut self, intensity: f32) -> Self {
+        self.intensity = intensity;
+        self
+    }
+
+    pub fn with_range(mut self, range: f32) -> Self {
+        self.range = range;
+        self
+    }
+
+    pub fn with_inner(mut self, inner: f32) -> Self {
+        self.inner = inner;
+        self
+    }
+
+    pub fn with_outer(mut self, outer: f32) -> Self {
+        self.outer = outer;
+        self
+    }
 }
 
 impl ILight for SpotLight {

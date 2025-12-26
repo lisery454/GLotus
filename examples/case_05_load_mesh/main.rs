@@ -80,12 +80,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             CameraComponent::new(true),
         ));
 
-        let mut point_light = PointLight::new();
-        point_light.color = Color::from_rgb(255, 255, 255);
-        point_light.intensity = 4.0;
-        point_light.range = 20.0;
         context.borrow().spawn_entity_with((
-            LightComponent::new(point_light),
+            LightComponent::new(
+                PointLight::new()
+                    .with_color(Color::WHITE)
+                    .with_intensity(4.0)
+                    .with_range(20.0),
+            ),
             TransformComponent::new(Transform::from_position(5.0, 6.0, 3.0)),
         ));
 

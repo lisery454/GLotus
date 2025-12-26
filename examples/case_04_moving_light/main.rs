@@ -134,14 +134,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             CameraComponent::new(true),
         ));
 
-        let mut point_light = PointLight::new();
-        point_light.color = Color::from_rgb(0, 255, 0);
-        point_light.intensity = 1.0;
-        point_light.range = 10.0;
-
         context.borrow().spawn_entity_with((
             TransformComponent::new(Transform::from_position(5.0, 0.0, 0.0)),
-            LightComponent::new(point_light),
+            LightComponent::new(
+                PointLight::new()
+                    .with_color(Color::GREEN)
+                    .with_intensity(1.0)
+                    .with_range(10.0),
+            ),
             ScriptComponent::new().with(LightTickable::new()),
         ));
 

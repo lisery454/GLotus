@@ -150,19 +150,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         ));
 
         // 灯光
-        let mut point_light = PointLight::new();
-        point_light.color = Color::from_rgb(0, 255, 0);
-        point_light.intensity = 3.0;
-        point_light.range = 10.0;
         context.borrow().spawn_entity_with((
             TransformComponent::new(Transform::from_position(0.0, 0.0, 0.0)),
-            LightComponent::new(point_light),
+            LightComponent::new(
+                PointLight::new()
+                    .with_color(Color::GREEN)
+                    .with_intensity(3.0)
+                    .with_range(10.0),
+            ),
         ));
 
-        let mut directional_light = DirectionalLight::new();
-        directional_light.color = Color::from_rgb(255, 0, 0);
         context.borrow().spawn_entity_with((
-            LightComponent::new(directional_light),
+            LightComponent::new(DirectionalLight::new().with_color(Color::RED)),
             TransformComponent::new(Transform::new(
                 Translation::default(),
                 Rotation::new(0.0, 180.0, 0.0),
@@ -170,10 +169,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             )),
         ));
 
-        let mut spot_light = SpotLight::new();
-        spot_light.color = Color::from_rgb(0, 0, 255);
         context.borrow().spawn_entity_with((
-            LightComponent::new(spot_light),
+            LightComponent::new(SpotLight::new().with_color(Color::BLUE)),
             TransformComponent::new(Transform::new(
                 Translation::new(0.0, 0.0, 8.0),
                 Rotation::default(),

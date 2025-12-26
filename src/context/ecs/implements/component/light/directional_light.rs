@@ -13,6 +13,16 @@ impl DirectionalLight {
             intensity: 1.0,
         }
     }
+
+    pub fn with_color(mut self, color: Color) -> Self {
+        self.color = color;
+        self
+    }
+
+    pub fn with_intensity(mut self, intensity: f32) -> Self {
+        self.intensity = intensity;
+        self
+    }
 }
 
 impl ILight for DirectionalLight {
