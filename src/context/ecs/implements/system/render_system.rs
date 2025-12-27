@@ -1,5 +1,5 @@
 use crate::*;
-use cgmath::Matrix4;
+use cgmath::{Matrix4, One};
 use log::{error, warn};
 use std::cell::RefCell;
 use std::error::Error;
@@ -17,126 +17,194 @@ impl ISystem for RenderSystem {
         let context = app_context.borrow();
         let world = context.world.borrow();
         let config = context.app_config.borrow();
-        // 清空缓冲区
-        clear_frame(config.bg_color);
-
-        // 计算全局数据
-        let mut camera_mgr = world.get_manager_mut::<CameraComponent>();
-        let mut transform_mgr = world.get_manager_mut::<TransformComponent>();
+        let asset_mgr = context.asset_manager.borrow();
+        let pipeline = context.pipeline.borrow();
+        let camera_mgr = world.get_manager_mut::<CameraComponent>();
+        let transform_mgr = world.get_manager_mut::<TransformComponent>();
         let light_mgr = world.get_manager_mut::<LightComponent>();
         let renderable_mgr = world.get_manager_mut::<RenderableComponent>();
-        let Some((_camera_entity_id, main_cam)) = camera_mgr.find_mut(|cam| cam.is_active) else {
-            warn!("Can not find active camera");
-            return;
-        };
-        let Some(main_cam_transform) = transform_mgr.get_mut(_camera_entity_id) else {
-            warn!("Can not find active camera transform");
-            return;
-        };
+        let window_width = config.width;
+        let window_height = config.height;
 
-        let view_matrix = get_view_matrix(&main_cam_transform.transform);
-        let view_matrix_arr = view_matrix.into();
-        let projection_matrix = main_cam.get_projection_matrix();
-        let view_position = get_view_position(&main_cam_transform.transform);
-        let camera_shader_data = camera_to_shader_data(main_cam, main_cam_transform);
-        let raw_lights_shader_data = light_mgr
-            .iter()
-            .map(|(entity, light)| {
-                if let Some(light_transform) = transform_mgr.get_mut(entity) {
-                    return light_to_shader_data(light, light_transform);
+        // 收集所有相机
+        let mut cameras: Vec<(EntityHandle, &CameraComponent)> =
+            camera_mgr.iter().map(|(id, cam)| (id, cam)).collect();
+        cameras.sort_by_key(|(_, cam)| cam.order);
+        if cameras.is_empty() {
+            warn!("No cameras found, render fail...");
+            return;
+        }
+        for (camera_entity_id, camera) in cameras.iter() {
+            // 绑定相机对应的渲染目标
+            self.bind_camera_render_target(camera, &asset_mgr, window_width, window_height);
+            // 清空缓冲区
+            if camera.get_target() == RenderTarget::Screen {
+                clear_frame(config.bg_color);
+            } else {
+                clear_frame(Color::TRANSPARENT);
+            }
+            // 找到这个相机的 transform
+            let Some(camera_transform) = transform_mgr.get(*camera_entity_id) else {
+                warn!("Cannot find transform for camera {:?}", camera_entity_id);
+                continue;
+            };
+            // 计算相机相关矩阵
+            let view_matrix = camera_transform.transform.get_view_matrix();
+            let view_matrix_arr = view_matrix.into();
+
+            let projection_matrix = if camera_transform.transform.space == TransformSpace::World {
+                camera.get_projection_matrix()
+            } else {
+                Matrix4::one().into()
+            };
+
+            let view_position = get_view_position(&camera_transform.transform);
+            let camera_shader_data = camera_to_shader_data(camera, camera_transform);
+
+            // 计算光源 shader 信息
+            let raw_lights_shader_data = light_mgr
+                .iter()
+                .map(|(entity, light)| {
+                    if let Some(light_transform) = transform_mgr.get(entity) {
+                        return light_to_shader_data(light, light_transform);
+                    }
+                    None
+                })
+                .collect::<Option<Vec<LightShaderData>>>();
+
+            let Some(lights_shader_data) = raw_lights_shader_data else {
+                warn!("Cannot create lights shader data");
+                continue;
+            };
+            let light_count = lights_shader_data.len() as i32;
+
+            // 按 pass 渲染
+            for pass in &pipeline.passes {
+                // 应用渲染状态
+                pass.default_state.apply();
+
+                // 收集当前 Pass 需要渲染的所有物体
+                let mut jobs = Vec::new();
+
+                for (entity, renderable) in renderable_mgr.iter() {
+                    if let Some(material) = renderable.get_material(pass.id) {
+                        let mesh = renderable.mesh;
+
+                        // 获取 transform 用于计算深度
+                        let depth = if let Some(transform) = transform_mgr.get(entity) {
+                            let world_pos_v4 =
+                                transform.transform.translation.data.to_homogeneous();
+                            let view_pos = view_matrix * world_pos_v4;
+                            -view_pos.z
+                        } else {
+                            0.0
+                        };
+
+                        jobs.push(RenderJob::new(entity, mesh, material, depth));
+                    }
                 }
-                None
-            })
-            .collect::<Option<Vec<LightShaderData>>>();
-        let Some(lights_shader_data) = raw_lights_shader_data else {
-            warn!("Can not create lights shader data");
-            return;
-        };
-        let light_count = lights_shader_data.len() as i32;
 
-        // 按pass渲染
-        let pipeline = context.pipeline.borrow();
-        for pass in &pipeline.passes {
-            // 应用渲染状态
-            pass.default_state.apply();
+                // 进行远近排序
+                if let Some(sort_func) = &pass.sort_func {
+                    jobs.sort_by(sort_func);
+                }
 
-            // 收集当前 Pass 需要渲染的所有物体
-            let mut jobs = Vec::new();
+                // 渲染所有 job
+                for job in jobs {
+                    let material_handle = job.get_material();
+                    let mesh_handle = job.get_mesh();
+                    let entity_handle = job.get_entity();
 
-            for (entity, renderable) in renderable_mgr.iter() {
-                if let Some(material) = renderable.get_material(pass.id) {
-                    let mesh = renderable.mesh;
+                    // 计算这个物体相关的数据
+                    let Some(transform) = transform_mgr.get(entity_handle) else {
+                        warn!("Cannot find transform for entity {:?}", entity_handle);
+                        continue;
+                    };
+                    let model_matrix = transform.transform.to_matrix();
+                    let normal_matrix = transform.transform.to_normal_matrix().unwrap();
 
-                    // 获取 transform 用于计算深度
-                    let depth = if let Some(transform) = transform_mgr.get(entity) {
-                        let world_pos_v4 = transform.transform.translation.data.to_homogeneous();
-                        // 转换到观察空间
-                        let view_pos = view_matrix * world_pos_v4;
-                        // -Z，这样值越大代表距离相机越远
-                        -view_pos.z
-                    } else {
-                        0.0
+                    // 注入全局 Uniform
+                    let global_uniform = GlobalUniform {
+                        view_matrix: &view_matrix_arr,
+                        projection_matrix: &projection_matrix,
+                        view_position: &view_position,
+                        model_matrix: &model_matrix,
+                        normal_matrix: &normal_matrix,
+                        light_count: &light_count,
+                        lights_shader_data: &lights_shader_data,
+                        camera_shader_data: &camera_shader_data,
                     };
 
-                    jobs.push(RenderJob::new(entity, mesh, material, depth));
+                    // 绑定 Shader
+                    if let Err(e) = bind_material(&asset_mgr, material_handle) {
+                        error!("bind material fail: {:?}", e);
+                        continue;
+                    }
+
+                    // 给这个材质注入全局变量
+                    if let Err(_) =
+                        inject_global_uniform(&asset_mgr, material_handle, &global_uniform)
+                    {
+                        error!("inject global uniform fail");
+                        continue;
+                    }
+
+                    // 绘制 Mesh
+                    if let Err(_) = draw_mesh(&asset_mgr, mesh_handle) {
+                        error!("draw mesh fail");
+                        continue;
+                    }
+
+                    // 卸载材质
+                    if let Err(_) = unbind_material(&asset_mgr, material_handle) {
+                        error!("unbind material fail");
+                        continue;
+                    }
                 }
             }
 
-            // 进行远近排序
-            if let Some(sort_func) = &pass.sort_func {
-                jobs.sort_by(sort_func);
+            // 相机渲染完成后解绑 rendertarget
+            self.unbind_camera_render_target(&camera);
+        }
+    }
+}
+
+// 添加辅助方法
+impl RenderSystem {
+    /// 绑定相机的渲染目标
+    fn bind_camera_render_target(
+        &self,
+        camera: &CameraComponent,
+        asset_mgr: &AssetManager,
+        window_width: u32,
+        window_height: u32,
+    ) {
+        match camera.target {
+            RenderTarget::Screen => {
+                // 绑定默认 framebuffer (屏幕)
+                unsafe {
+                    gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+                    gl::Viewport(0, 0, window_width as i32, window_height as i32);
+                }
             }
-
-            for job in jobs {
-                let material_handle = job.get_material();
-                let mesh_handle = job.get_mesh();
-                let entity_handle = job.get_entity();
-
-                // 计算这个物体相关的数据
-                let Some(transform) = transform_mgr.get_mut(entity_handle) else {
-                    warn!("Can not find transform for entity {:?}", entity_handle);
-                    return;
-                };
-                let model_matrix = transform.transform.to_matrix();
-                let normal_matrix = transform.transform.to_normal_matrix().unwrap();
-
-                // 注入全局 Uniform
-                let global_uniform = GlobalUniform {
-                    view_matrix: &view_matrix_arr,
-                    projection_matrix: &projection_matrix,
-                    view_position: &view_position,
-                    model_matrix: &model_matrix,
-                    normal_matrix: &normal_matrix,
-                    light_count: &light_count,
-                    lights_shader_data: &lights_shader_data,
-                    camera_shader_data: &camera_shader_data,
-                };
-                let asset_mgr = context.asset_manager.borrow();
-
-                // 绑定 Shader
-                if let Err(_) = bind_material(&asset_mgr, material_handle) {
-                    error!("bind material fail");
-                    continue;
+            RenderTarget::Framebuffer(fb_handle) => {
+                // 绑定自定义 framebuffer
+                if let Err(e) = asset_mgr.framebuffer_manager.borrow().bind(fb_handle) {
+                    error!("Failed to bind framebuffer: {:?}", e);
                 }
+            }
+        }
+    }
 
-                // 给这个材质注入全局变量
-                if let Err(_) = inject_global_uniform(&asset_mgr, material_handle, &global_uniform)
-                {
-                    error!("inject global uniform fail");
-                    continue;
-                }
-
-                // 绘制 Mesh
-                if let Err(_) = draw_mesh(&asset_mgr, mesh_handle) {
-                    error!("draw mesh fail");
-                    continue;
-                }
-
-                // 卸载材质
-                if let Err(_) = unbind_material(&asset_mgr, material_handle) {
-                    error!("unbind material fail");
-                    continue;
-                }
+    /// 解绑相机的渲染目标
+    fn unbind_camera_render_target(&self, camera: &CameraComponent) {
+        match camera.target {
+            RenderTarget::Screen => {
+                // 屏幕不需要解绑
+            }
+            RenderTarget::Framebuffer(_) => {
+                // 解绑 framebuffer，恢复到默认
+                FramebufferManager::unbind();
             }
         }
     }
@@ -145,28 +213,11 @@ impl ISystem for RenderSystem {
 fn clear_frame(color: Color) {
     unsafe {
         let col = color.to_arr();
-        gl::ClearColor(col[0], col[1], col[2], 1.0);
+        gl::ClearColor(col[0], col[1], col[2], col[3]);
         gl::StencilMask(0xFF);
         gl::DepthMask(gl::TRUE);
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
     }
-}
-
-fn get_view_matrix_arr(camera_transform: &Transform) -> [[f32; 4]; 4] {
-    Matrix4::look_to_rh(
-        camera_transform.get_translation().data,
-        camera_transform.get_forward(),
-        camera_transform.get_up(),
-    )
-    .into()
-}
-
-fn get_view_matrix(camera_transform: &Transform) -> Matrix4<f32> {
-    Matrix4::look_to_rh(
-        camera_transform.get_translation().data,
-        camera_transform.get_forward(),
-        camera_transform.get_up(),
-    )
 }
 
 fn get_view_position(camera_transform: &Transform) -> [f32; 3] {
@@ -239,8 +290,8 @@ pub(crate) fn inject_global_uniform(
     material_handle: MaterialHandle,
     global_uniform: &GlobalUniform,
 ) -> Result<(), Box<dyn Error>> {
-    let material_manager = &asset_manager.material_manager;
-    let shader_manager = &asset_manager.shader_manager;
+    let material_manager = &asset_manager.material_manager.borrow();
+    let shader_manager = &asset_manager.shader_manager.borrow();
     let material = material_manager
         .get(material_handle)
         .ok_or(MaterialError::FindMatFail)?;
@@ -258,7 +309,7 @@ pub(crate) fn inject_global_uniform(
 
     for (i, v) in global_uniform.lights_shader_data.iter().enumerate() {
         shader.set_uniform_i32(&format!("g_lights[{}].light_type", i), v.light_type)?;
-        shader.set_uniform_vec3(&format!("g_lights[{}].color", i), &v.color)?;
+        shader.set_uniform_vec4(&format!("g_lights[{}].color", i), &v.color)?;
         shader.set_uniform_vec3(&format!("g_lights[{}].position", i), &v.position)?;
         shader.set_uniform_vec3(&format!("g_lights[{}].direction", i), &v.direction)?;
         shader.set_uniform_f32(&format!("g_lights[{}].intensity", i), v.intensity)?;
@@ -303,9 +354,9 @@ pub(crate) fn bind_material(
     asset_manager: &AssetManager,
     material_handle: MaterialHandle,
 ) -> Result<(), MaterialError> {
-    let material_manager = &asset_manager.material_manager;
-    let texture_manager = &asset_manager.texture_manager;
-    let shader_manager = &asset_manager.shader_manager;
+    let material_manager = &asset_manager.material_manager.borrow();
+    let texture_manager = &asset_manager.texture_manager.borrow();
+    let shader_manager = &asset_manager.shader_manager.borrow();
     let material = material_manager
         .get(material_handle)
         .ok_or(MaterialError::FindMatFail)?;
@@ -351,7 +402,8 @@ pub(crate) fn draw_mesh(
     asset_manager: &AssetManager,
     mesh_handle: MeshHandle,
 ) -> Result<(), Box<dyn Error>> {
-    let mesh = asset_manager.mesh_manager.get(mesh_handle);
+    let mesh_manager = asset_manager.mesh_manager.borrow();
+    let mesh = mesh_manager.get(mesh_handle);
 
     let Some(mesh) = mesh else {
         Err("Mesh does not exist")?
@@ -366,8 +418,8 @@ pub(crate) fn unbind_material(
     asset_manager: &AssetManager,
     material_handle: MaterialHandle,
 ) -> Result<(), MaterialError> {
-    let material_manager = &asset_manager.material_manager;
-    let shader_manager = &asset_manager.shader_manager;
+    let material_manager = &asset_manager.material_manager.borrow();
+    let shader_manager = &asset_manager.shader_manager.borrow();
     let material = material_manager
         .get(material_handle)
         .ok_or(MaterialError::FindMatFail)?;

@@ -9,17 +9,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     app.borrow().build(|context| {
-        let shader = context.borrow().create_shader_from_sources(
+        let transparent_texture_shader = context.borrow().create_shader_from_sources(
             include_str!("./assets/shaders/grass_vs.vert"),
             include_str!("./assets/shaders/grass_fs.frag"),
         )?;
 
-        let shader2 = context.borrow().create_shader_from_sources(
+        let simple_solid_shader = context.borrow().create_shader_from_sources(
             include_str!("./assets/shaders/simple_vs.vert"),
             include_str!("./assets/shaders/simple_fs.frag"),
         )?;
 
-        let texture = context.borrow().create_texture_from_byte(
+        let grass_texture = context.borrow().create_texture_from_byte(
             include_bytes!("./assets/textures/grass.png"),
             WrappingMode::ClampToEdge,
             WrappingMode::ClampToEdge,
@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             FilteringMode::Linear,
         )?;
 
-        let texture2 = context.borrow().create_texture_from_byte(
+        let window_texture = context.borrow().create_texture_from_byte(
             include_bytes!("./assets/textures/window.png"),
             WrappingMode::ClampToEdge,
             WrappingMode::ClampToEdge,
@@ -35,21 +35,21 @@ fn main() -> Result<(), Box<dyn Error>> {
             FilteringMode::Linear,
         )?;
 
-        let material = context
+        let transparent_grass_material = context
             .borrow()
-            .get_material_builder(shader)?
-            .with("texture1", UniformValue::Texture(0, texture))
+            .get_material_builder(transparent_texture_shader)?
+            .with("texture1", UniformValue::Texture(0, grass_texture))
             .build();
 
-        let material2 = context
+        let transparent_window_material = context
             .borrow()
-            .get_material_builder(shader)?
-            .with("texture1", UniformValue::Texture(0, texture2))
+            .get_material_builder(transparent_texture_shader)?
+            .with("texture1", UniformValue::Texture(0, window_texture))
             .build();
 
-        let material3 = context.borrow().create_material(shader2)?;
+        let solid_material = context.borrow().create_material(simple_solid_shader)?;
 
-        let mesh = context.borrow().create_mesh_from_position_texcoord(
+        let plane_mesh = context.borrow().create_mesh_from_position_texcoord(
             &vec![0, 1, 3, 1, 2, 3],
             &vec![
                 1.0, 1.0, -5.0, // 0
@@ -60,21 +60,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             &vec![1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
         )?;
 
-        let mesh_box = context
+        let box_mesh = context
             .borrow()
             .create_mesh_from_obj_in_bytes(include_bytes!("./assets/meshes/box.obj"))?;
-
-        context.borrow().spawn_entity_with((
-            RenderableComponent::new(mesh)
-                .with_material(DefaultPipeline::transparent_pass(), material),
-            TransformComponent::new(Transform::from_position(0.0, 0.0, 0.0)),
-        ));
-
-        context.borrow().spawn_entity_with((
-            RenderableComponent::new(mesh)
-                .with_material(DefaultPipeline::transparent_pass(), material2),
-            TransformComponent::new(Transform::from_position(1.5, 0.0, 3.0)),
-        ));
 
         context.borrow().spawn_entity_with((
             CameraComponent::new(true),
@@ -82,8 +70,24 @@ fn main() -> Result<(), Box<dyn Error>> {
         ));
 
         context.borrow().spawn_entity_with((
-            RenderableComponent::new(mesh_box)
-                .with_material(DefaultPipeline::main_pass(), material3),
+            RenderableComponent::new(plane_mesh).with_material(
+                DefaultPipeline::transparent_pass(),
+                transparent_grass_material,
+            ),
+            TransformComponent::new(Transform::from_position(0.0, 0.0, 0.0)),
+        ));
+
+        context.borrow().spawn_entity_with((
+            RenderableComponent::new(plane_mesh).with_material(
+                DefaultPipeline::transparent_pass(),
+                transparent_window_material,
+            ),
+            TransformComponent::new(Transform::from_position(1.5, 0.0, 3.0)),
+        ));
+
+        context.borrow().spawn_entity_with((
+            RenderableComponent::new(box_mesh)
+                .with_material(DefaultPipeline::main_pass(), solid_material),
             TransformComponent::new(Transform::new(
                 Translation::new(0.0, -1.2, 0.0),
                 Default::default(),
@@ -92,14 +96,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         ));
 
         context.borrow().spawn_entity_with((
-            RenderableComponent::new(mesh)
-                .with_material(DefaultPipeline::transparent_pass(), material2),
+            RenderableComponent::new(plane_mesh).with_material(
+                DefaultPipeline::transparent_pass(),
+                transparent_window_material,
+            ),
             TransformComponent::new(Transform::from_position(0.4, -1.0, -2.0)),
         ));
 
         context.borrow().spawn_entity_with((
-            RenderableComponent::new(mesh)
-                .with_material(DefaultPipeline::transparent_pass(), material2),
+            RenderableComponent::new(plane_mesh).with_material(
+                DefaultPipeline::transparent_pass(),
+                transparent_window_material,
+            ),
             TransformComponent::new(Transform::from_position(1.9, 1.0, 1.0)),
         ));
 

@@ -41,6 +41,7 @@ impl AppContext {
         self.asset_manager
             .borrow_mut()
             .shader_manager
+            .borrow_mut()
             .create_from_files(vertex_path, fragment_path)
     }
 
@@ -52,6 +53,7 @@ impl AppContext {
         self.asset_manager
             .borrow_mut()
             .shader_manager
+            .borrow_mut()
             .create_from_sources(vertex_source, fragment_source)
     }
 
@@ -59,6 +61,7 @@ impl AppContext {
         self.asset_manager
             .borrow_mut()
             .shader_manager
+            .borrow_mut()
             .remove(shader);
     }
 }
@@ -96,6 +99,7 @@ impl AppContext {
         self.asset_manager
             .borrow_mut()
             .material_manager
+            .borrow_mut()
             .create(shader)
     }
 
@@ -108,6 +112,7 @@ impl AppContext {
         self.asset_manager
             .borrow_mut()
             .material_manager
+            .borrow_mut()
             .insert_uniform(material, name, value);
     }
 
@@ -115,6 +120,7 @@ impl AppContext {
         self.asset_manager
             .borrow_mut()
             .material_manager
+            .borrow_mut()
             .remove(material);
     }
 }
@@ -132,6 +138,7 @@ impl AppContext {
         self.asset_manager
             .borrow_mut()
             .texture_manager
+            .borrow_mut()
             .create_from_file(
                 path,
                 wrapping_mode_s,
@@ -152,6 +159,7 @@ impl AppContext {
         self.asset_manager
             .borrow_mut()
             .texture_manager
+            .borrow_mut()
             .create_from_byte(
                 data,
                 wrapping_mode_s,
@@ -165,7 +173,55 @@ impl AppContext {
         self.asset_manager
             .borrow_mut()
             .texture_manager
+            .borrow_mut()
             .remove(texture);
+    }
+
+    pub fn create_empty_texture(
+        &self,
+        width: u32,
+        height: u32,
+        wrapping_mode_s: WrappingMode,
+        wrapping_mode_t: WrappingMode,
+        filtering_mode_min: FilteringMode,
+        filtering_mode_mag: FilteringMode,
+    ) -> Result<TextureHandle, TextureError> {
+        self.asset_manager
+            .borrow_mut()
+            .texture_manager
+            .borrow_mut()
+            .create_empty(
+                width,
+                height,
+                wrapping_mode_s,
+                wrapping_mode_t,
+                filtering_mode_min,
+                filtering_mode_mag,
+            )
+    }
+}
+
+// framebuffer
+impl AppContext {
+    pub fn create_framebuffer(
+        &self,
+        width: u32,
+        height: u32,
+        texture_handle: TextureHandle,
+    ) -> Result<FramebufferHandle, FramebufferError> {
+        self.asset_manager
+            .borrow()
+            .framebuffer_manager
+            .borrow_mut()
+            .create(width, height, texture_handle)
+    }
+
+    pub fn remove_framebuffer(&self, handle: FramebufferHandle) -> Option<TextureHandle> {
+        self.asset_manager
+            .borrow()
+            .framebuffer_manager
+            .borrow_mut()
+            .remove(handle)
     }
 }
 
@@ -179,6 +235,7 @@ impl AppContext {
         self.asset_manager
             .borrow_mut()
             .mesh_manager
+            .borrow_mut()
             .create_from_position(indices, positions)
     }
 
@@ -191,6 +248,7 @@ impl AppContext {
         self.asset_manager
             .borrow_mut()
             .mesh_manager
+            .borrow_mut()
             .create_from_position_normal(indices, positions, normals)
     }
 
@@ -203,6 +261,7 @@ impl AppContext {
         self.asset_manager
             .borrow_mut()
             .mesh_manager
+            .borrow_mut()
             .create_from_position_texcoord(indices, positions, texcoords)
     }
 
@@ -216,6 +275,7 @@ impl AppContext {
         self.asset_manager
             .borrow_mut()
             .mesh_manager
+            .borrow_mut()
             .create_from_position_normal_texcoord(indices, positions, normals, texcoords)
     }
 
@@ -223,6 +283,7 @@ impl AppContext {
         self.asset_manager
             .borrow_mut()
             .mesh_manager
+            .borrow_mut()
             .create_from_obj_path(path)
     }
 
@@ -230,11 +291,16 @@ impl AppContext {
         self.asset_manager
             .borrow_mut()
             .mesh_manager
+            .borrow_mut()
             .create_from_obj_in_bytes(data)
     }
 
     pub fn remove_mesh(&mut self, mesh: MeshHandle) {
-        self.asset_manager.borrow_mut().mesh_manager.remove(mesh);
+        self.asset_manager
+            .borrow_mut()
+            .mesh_manager
+            .borrow_mut()
+            .remove(mesh);
     }
 }
 

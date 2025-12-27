@@ -1,8 +1,8 @@
 use cgmath::{Deg, Matrix4, Ortho, PerspectiveFov, Rad};
 
-use crate::IComponent;
+use crate::{FramebufferHandle, IComponent};
 
-use super::projection_type::ProjectionType;
+use super::{RenderTarget, projection_type::ProjectionType};
 
 pub struct CameraComponent {
     pub fov: Deg<f32>,
@@ -12,6 +12,8 @@ pub struct CameraComponent {
     pub projection_type: ProjectionType,
     pub(crate) is_initialized: bool,
     pub(crate) is_active: bool, // 是否为主相机
+    pub target: RenderTarget,
+    pub order: i32, // 渲染顺序，较小的值先渲染
 }
 
 impl IComponent for CameraComponent {}
@@ -27,9 +29,57 @@ impl CameraComponent {
             projection_type: ProjectionType::Perspective,
             is_initialized: false,
             is_active,
+            target: RenderTarget::Screen,
+            order: 0,
         }
     }
 
+    pub fn with_fov(mut self, angle: f32) -> Self {
+        self.fov = Deg(angle);
+        self
+    }
+
+    pub fn with_projection_type(mut self, projection_type: ProjectionType) -> Self {
+        self.projection_type = projection_type;
+        self
+    }
+
+    /// 设置渲染目标为屏幕
+    pub fn with_target_screen(mut self) -> Self {
+        self.target = RenderTarget::Screen;
+        self
+    }
+
+    /// 设置渲染目标为framebuffer
+    pub fn with_target_framebuffer(mut self, framebuffer: FramebufferHandle) -> Self {
+        self.target = RenderTarget::Framebuffer(framebuffer);
+        self
+    }
+
+    /// 获取渲染目标
+    pub fn get_target(&self) -> RenderTarget {
+        self.target
+    }
+
+    /// 检查是否渲染到屏幕
+    pub fn is_rendering_to_screen(&self) -> bool {
+        matches!(self.target, RenderTarget::Screen)
+    }
+
+    /// 检查是否渲染到framebuffer
+    pub fn is_rendering_to_framebuffer(&self) -> bool {
+        matches!(self.target, RenderTarget::Framebuffer(_))
+    }
+
+    pub fn with_order(mut self, order: i32) -> Self {
+        self.order = order;
+        self
+    }
+
+    pub fn with_aspect_ratio(mut self, ratio: f32) -> Self {
+        self.aspect_ratio = ratio;
+        self
+    }
     /// 设置相机比例
     pub fn set_aspect_ratio(&mut self, width: u32, height: u32) {
         self.aspect_ratio = width as f32 / height as f32;

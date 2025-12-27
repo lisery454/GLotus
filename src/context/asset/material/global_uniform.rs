@@ -16,7 +16,7 @@ pub struct CameraShaderData {
 #[derive(Debug, Clone, Copy)]
 pub struct LightShaderData {
     pub light_type: i32,
-    pub color: [f32; 3],
+    pub color: [f32; 4],
     pub position: [f32; 3],
     pub direction: [f32; 3],
     pub intensity: f32,

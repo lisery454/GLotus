@@ -24,6 +24,26 @@ impl TextureManager {
         self.textures.get_mut(handle)
     }
 
+    pub fn create_empty(
+        &mut self,
+        width: u32,
+        height: u32,
+        wrapping_mode_s: WrappingMode,
+        wrapping_mode_t: WrappingMode,
+        filtering_mode_min: FilteringMode,
+        filtering_mode_mag: FilteringMode,
+    ) -> Result<TextureHandle, TextureError> {
+        let texture = Texture2D::empty(
+            width,
+            height,
+            wrapping_mode_s,
+            wrapping_mode_t,
+            filtering_mode_min,
+            filtering_mode_mag,
+        )?;
+        Ok(self.textures.insert(texture))
+    }
+
     pub fn create_from_file(
         &mut self,
         path: &str,

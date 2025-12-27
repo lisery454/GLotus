@@ -4,6 +4,7 @@ pub struct Color {
     r: f32,
     g: f32,
     b: f32,
+    a: f32,
 }
 
 impl Color {
@@ -17,12 +18,12 @@ impl Color {
         let g = g as f32 / 255.0;
         let b = b as f32 / 255.0;
 
-        Self { r, g, b }
+        Self { r, g, b, a: 1.0 }
     }
 
     /// 返回rgb三维数组的值，范围在0~1
-    pub fn to_arr(&self) -> [f32; 3] {
-        [self.r, self.g, self.b]
+    pub fn to_arr(&self) -> [f32; 4] {
+        [self.r, self.g, self.b, self.a]
     }
 
     /// 从hsv三维生成，h是0~1，s
@@ -45,6 +46,7 @@ impl Color {
             r: r1 + m,
             g: g1 + m,
             b: b1 + m,
+            a: 1.0,
         }
     }
 }
@@ -53,7 +55,7 @@ impl Color {
 impl Color {
     /// 内部使用的 const 构造函数，绕过编译期无法浮点运算的限制
     const fn new_const(r: f32, g: f32, b: f32) -> Self {
-        Self { r, g, b }
+        Self { r, g, b, a: 1.0 }
     }
 
     // --- 灰阶色 (Greyscale) ---
@@ -199,6 +201,13 @@ impl Color {
     pub const SIENNA: Self = Self::new_const(0.62745, 0.32157, 0.17647);
     pub const TAN: Self = Self::new_const(0.82353, 0.70588, 0.54902);
     pub const WHEAT: Self = Self::new_const(0.96078, 0.87059, 0.70196);
+
+    pub const TRANSPARENT: Self = Self {
+        a: 0.0,
+        r: 1.0,
+        g: 1.0,
+        b: 1.0,
+    };
 }
 
 impl Default for Color {
@@ -208,6 +217,7 @@ impl Default for Color {
             r: 1.0,
             g: 1.0,
             b: 1.0,
+            a: 1.0,
         }
     }
 }

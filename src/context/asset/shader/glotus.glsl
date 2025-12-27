@@ -8,7 +8,7 @@ uniform vec3 g_view_position; // 视角（摄像机）的位置
 
 struct Light {
   int light_type;
-  vec3 color;
+  vec4 color;
   vec3 position;
   vec3 direction;
   float intensity;
@@ -93,17 +93,20 @@ vec3 CalcSpotLight(Light L, vec3 normal, vec3 view_dir, vec3 frag_pos,
 // view_dir 世界坐标中视角方向
 // frag_pos 世界坐标中的frag位置
 // pp 参数
-vec3 CalcPhong(vec3 normal, vec3 view_dir, vec3 frag_pos, PhongParams pp) {
-  vec3 result = vec3(0);
+vec4 CalcPhong(vec3 normal, vec3 view_dir, vec3 frag_pos, PhongParams pp) {
+  vec4 result = vec4(0);
 
   for (int i = 0; i < g_light_count; ++i) {
     Light L = g_lights[i];
     if (L.light_type == 0)
-      result += L.color * CalcDirectionalLight(L, normal, view_dir, pp);
+      result +=
+          L.color * vec4(CalcDirectionalLight(L, normal, view_dir, pp), 1.0);
     else if (L.light_type == 1)
-      result += L.color * CalcPointLight(L, normal, view_dir, frag_pos, pp);
+      result += L.color *
+                vec4(CalcPointLight(L, normal, view_dir, frag_pos, pp), 1.0);
     else if (L.light_type == 2)
-      result += L.color * CalcSpotLight(L, normal, view_dir, frag_pos, pp);
+      result +=
+          L.color * vec4(CalcSpotLight(L, normal, view_dir, frag_pos, pp), 1.0);
   }
 
   return result;

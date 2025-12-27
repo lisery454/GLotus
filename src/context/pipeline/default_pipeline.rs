@@ -23,6 +23,11 @@ impl DefaultPipeline {
         PassId::named("outline")
     }
 
+    #[inline]
+    pub fn ui_pass() -> PassId {
+        PassId::named("ui")
+    }
+
     pub(crate) fn build_default_pipeline() -> Pipeline {
         let mut pipeline = Pipeline::new();
         pipeline.insert(
@@ -96,6 +101,26 @@ impl DefaultPipeline {
                 ),
                 BlendMode::default(),
                 CullFaceMode::Front,
+                PolygonMode::default(),
+            ),
+        ));
+        pipeline.insert(Pass::new(
+            Self::ui_pass(),
+            30,
+            RenderState::new(
+                DepthMode::new(false, false, DepthFunc::Less),
+                StencilMode::new(
+                    true,                                              // 启用模板
+                    StencilFunc::new(StencilFuncType::Equal, 1, 0xFF), // 只渲染模板值为1的区域
+                    StencilOp::new(
+                        StencilOpType::Keep,
+                        StencilOpType::Keep,
+                        StencilOpType::Keep, // 保持模板值不变
+                    ),
+                    0xFF,
+                ),
+                BlendMode::default(),
+                CullFaceMode::None,
                 PolygonMode::default(),
             ),
         ));

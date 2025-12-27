@@ -123,6 +123,46 @@ impl Texture2D {
         Ok(Self { id: texture_id })
     }
 
+    /// 创建一个空纹理（用于framebuffer）
+    pub fn empty(
+        width: u32,
+        height: u32,
+        wrapping_mode_s: WrappingMode,
+        wrapping_mode_t: WrappingMode,
+        filtering_mode_min: FilteringMode,
+        filtering_mode_mag: FilteringMode,
+    ) -> Result<Self, TextureError> {
+        let mut texture_id = 0;
+
+        unsafe {
+            gl::GenTextures(1, &mut texture_id);
+            gl::BindTexture(gl::TEXTURE_2D, texture_id);
+
+            // 创建空纹理
+            gl::TexImage2D(
+                gl::TEXTURE_2D,
+                0,
+                gl::RGBA as i32,
+                width as i32,
+                height as i32,
+                0,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                std::ptr::null(),
+            );
+
+            // 设置纹理参数
+            Texture2D::set_wrapping_mode(gl::TEXTURE_WRAP_S, wrapping_mode_s);
+            Texture2D::set_wrapping_mode(gl::TEXTURE_WRAP_T, wrapping_mode_t);
+            Texture2D::set_filtering_mode(gl::TEXTURE_MIN_FILTER, filtering_mode_min);
+            Texture2D::set_filtering_mode(gl::TEXTURE_MAG_FILTER, filtering_mode_mag);
+
+            gl::BindTexture(gl::TEXTURE_2D, 0);
+        }
+
+        Ok(Self { id: texture_id })
+    }
+
     /// 设置循环模式
     fn set_wrapping_mode(wrap: GLenum, wrapping_mode: WrappingMode) {
         unsafe {
