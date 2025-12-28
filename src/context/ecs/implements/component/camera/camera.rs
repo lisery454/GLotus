@@ -1,6 +1,6 @@
 use cgmath::{Deg, Matrix4, Ortho, PerspectiveFov, Rad};
 
-use crate::{FramebufferHandle, IComponent};
+use crate::{FramebufferHandle, IComponent, MaterialHandle};
 
 use super::{RenderTarget, projection_type::ProjectionType};
 
@@ -14,6 +14,7 @@ pub struct CameraComponent {
     pub(crate) is_active: bool, // 是否为主相机
     pub target: RenderTarget,
     pub order: i32, // 渲染顺序，较小的值先渲染
+    pub postprocess_materials: Vec<MaterialHandle>,
 }
 
 impl IComponent for CameraComponent {}
@@ -31,7 +32,35 @@ impl CameraComponent {
             is_active,
             target: RenderTarget::Screen,
             order: 0,
+            postprocess_materials: vec![],
         }
+    }
+
+    /// 添加后处理材质
+    pub fn with_postprocess_material(mut self, material: MaterialHandle) -> Self {
+        self.postprocess_materials.push(material);
+        self
+    }
+
+    /// 添加多个后处理材质
+    pub fn with_postprocess_materials(mut self, materials: Vec<MaterialHandle>) -> Self {
+        self.postprocess_materials = materials;
+        self
+    }
+
+    /// 检查是否有后处理
+    pub fn has_postprocess(&self) -> bool {
+        !self.postprocess_materials.is_empty()
+    }
+
+    /// 运行时添加后处理材质
+    pub fn add_postprocess_material(&mut self, material: MaterialHandle) {
+        self.postprocess_materials.push(material);
+    }
+
+    /// 清空后处理材质
+    pub fn clear_postprocess_materials(&mut self) {
+        self.postprocess_materials.clear();
     }
 
     pub fn with_fov(mut self, angle: f32) -> Self {

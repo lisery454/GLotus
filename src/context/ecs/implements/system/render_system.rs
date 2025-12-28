@@ -2,15 +2,33 @@ use crate::*;
 use cgmath::{Matrix4, One};
 use log::{error, warn};
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::error::Error;
 use std::rc::Rc;
 
 #[derive(Default)]
-pub struct RenderSystem;
+pub struct RenderSystem {
+    // 全屏四边形 mesh（用于后处理）
+    fullscreen_quad: Option<MeshHandle>,
+
+    // 每个相机的临时 framebuffer（key 是 EntityHandle）
+    camera_temp_framebuffers: HashMap<EntityHandle, FramebufferHandle>,
+
+    // ping-pong framebuffers（用于多遍后处理）
+    ping_pong_framebuffers: [Option<FramebufferHandle>; 2],
+    ping_pong_size: (u32, u32),
+}
 
 impl ISystem for RenderSystem {
     fn name(&self) -> &str {
         "RenderSystem"
+    }
+
+    fn init(&mut self, app_context: Rc<RefCell<AppContext>>) {
+        // 初始化后处理资源
+        if let Err(e) = self.ensure_postprocess_initialized(&app_context.borrow()) {
+            error!("Failed to initialize postprocess: {:?}", e);
+        }
     }
 
     fn update(&mut self, app_context: Rc<RefCell<AppContext>>, _delta_dt: f32) {
@@ -35,10 +53,35 @@ impl ISystem for RenderSystem {
             return;
         }
         for (camera_entity_id, camera) in cameras.iter() {
+            // 判断是否需要后处理
+            let needs_postprocess = camera.has_postprocess();
+            let original_target = camera.get_target();
+
+            // 如果需要后处理，先渲染到临时 framebuffer
+            let render_target = if needs_postprocess {
+                // 获取或创建临时 framebuffer
+                match self.get_or_create_temp_framebuffer(
+                    &context,
+                    *camera_entity_id,
+                    window_width,
+                    window_height,
+                ) {
+                    Ok(fb) => RenderTarget::Framebuffer(fb),
+                    Err(e) => {
+                        error!("Failed to create temp framebuffer: {:?}", e);
+                        original_target
+                    }
+                }
+            } else {
+                original_target
+            };
+
             // 绑定相机对应的渲染目标
-            self.bind_camera_render_target(camera, &asset_mgr, window_width, window_height);
+            self.bind_render_target(&asset_mgr, render_target, window_width, window_height);
             // 清空缓冲区
-            if camera.get_target() == RenderTarget::Screen {
+            if render_target == RenderTarget::Screen {
+                clear_frame(config.bg_color);
+            } else if needs_postprocess {
                 clear_frame(config.bg_color);
             } else {
                 clear_frame(Color::TRANSPARENT);
@@ -164,13 +207,313 @@ impl ISystem for RenderSystem {
             }
 
             // 相机渲染完成后解绑 rendertarget
-            self.unbind_camera_render_target(&camera);
+            self.unbind_render_target(render_target);
+
+            // ========== 应用后处理 ==========
+            if needs_postprocess {
+                if let Err(e) = self.apply_postprocess(
+                    &app_context.borrow(),
+                    render_target,
+                    original_target,
+                    &camera.postprocess_materials,
+                    window_width,
+                    window_height,
+                ) {
+                    error!("Failed to apply postprocess: {:?}", e);
+                }
+            }
         }
     }
 }
 
-// 添加辅助方法
+// 后处理
 impl RenderSystem {
+    /// 初始化后处理资源（第一次使用时调用）
+    fn ensure_postprocess_initialized(
+        &mut self,
+        app_context: &AppContext,
+    ) -> Result<(), Box<dyn Error>> {
+        if self.fullscreen_quad.is_some() {
+            return Ok(());
+        }
+
+        // 创建全屏四边形
+        let quad = app_context.create_mesh_from_position_texcoord(
+            &vec![0, 1, 2, 0, 2, 3],
+            &vec![
+                -1.0, 1.0, 0.0, // 左上
+                -1.0, -1.0, 0.0, // 左下
+                1.0, -1.0, 0.0, // 右下
+                1.0, 1.0, 0.0, // 右上
+            ],
+            &vec![
+                0.0, 1.0, // 左上 UV
+                0.0, 0.0, // 左下 UV
+                1.0, 0.0, // 右下 UV
+                1.0, 1.0, // 右上 UV
+            ],
+        )?;
+
+        self.fullscreen_quad = Some(quad);
+        Ok(())
+    }
+
+    /// 获取或创建相机的临时 framebuffer
+    fn get_or_create_temp_framebuffer(
+        &mut self,
+        context: &AppContext,
+        camera_entity: EntityHandle,
+        width: u32,
+        height: u32,
+    ) -> Result<FramebufferHandle, Box<dyn Error>> {
+        // 检查是否已存在
+        if let Some(&fb) = self.camera_temp_framebuffers.get(&camera_entity) {
+            // TODO: 检查尺寸是否匹配
+            return Ok(fb);
+        }
+
+        // 创建新的
+        let texture_config = TextureConfig::new()
+            .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
+            .with_filtering(FilteringMode::Linear, FilteringMode::Linear);
+
+        let fb = context.create_framebuffer(width, height, texture_config)?;
+        self.camera_temp_framebuffers.insert(camera_entity, fb);
+        Ok(fb)
+    }
+
+    /// 确保 ping-pong framebuffers 存在
+    fn ensure_ping_pong_framebuffers(
+        &mut self,
+        context: &AppContext,
+        width: u32,
+        height: u32,
+    ) -> Result<(), Box<dyn Error>> {
+        let needs_recreate =
+            self.ping_pong_framebuffers[0].is_none() || self.ping_pong_size != (width, height);
+
+        if needs_recreate {
+            // 删除旧的
+            for fb_opt in &self.ping_pong_framebuffers {
+                if let Some(fb) = fb_opt {
+                    context.remove_framebuffer(*fb);
+                }
+            }
+
+            // 创建新的
+            let texture_config = TextureConfig::new()
+                .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
+                .with_filtering(FilteringMode::Linear, FilteringMode::Linear);
+
+            self.ping_pong_framebuffers[0] =
+                Some(context.create_framebuffer(width, height, texture_config)?);
+            self.ping_pong_framebuffers[1] =
+                Some(context.create_framebuffer(width, height, texture_config)?);
+
+            self.ping_pong_size = (width, height);
+        }
+
+        Ok(())
+    }
+
+    /// 应用后处理
+    fn apply_postprocess(
+        &mut self,
+        context: &AppContext,
+        source_target: RenderTarget,
+        final_target: RenderTarget,
+        materials: &Vec<MaterialHandle>,
+        width: u32,
+        height: u32,
+    ) -> Result<(), Box<dyn Error>> {
+        if materials.is_empty() {
+            return Ok(());
+        }
+
+        // 获取源纹理
+        let source_texture = match source_target {
+            RenderTarget::Framebuffer(fb) => context.get_texture_of_framebuffer(fb)?,
+            RenderTarget::Screen => {
+                error!("Cannot apply postprocess from screen");
+                return Ok(());
+            }
+        };
+
+        // 如果只有一个后处理，直接渲染到最终目标
+        if materials.len() == 1 {
+            return self.render_postprocess_pass(
+                context,
+                source_texture,
+                final_target,
+                materials[0],
+                width,
+                height,
+            );
+        }
+
+        // 多个后处理，需要 ping-pong
+        self.ensure_ping_pong_framebuffers(context, width, height)?;
+
+        let mut current_source = source_texture;
+        let num_materials = materials.len();
+
+        for (i, &material) in materials.iter().enumerate() {
+            let is_last = i == num_materials - 1;
+
+            let current_target = if is_last {
+                final_target
+            } else {
+                match self.ping_pong_framebuffers[i % 2] {
+                    Some(fb) => RenderTarget::Framebuffer(fb),
+                    None => RenderTarget::Screen,
+                }
+            };
+
+            self.render_postprocess_pass(
+                context,
+                current_source,
+                current_target,
+                material,
+                width,
+                height,
+            )?;
+
+            // 更新 source
+            if !is_last {
+                let fb = self.ping_pong_framebuffers[i % 2].unwrap();
+                current_source = context.get_texture_of_framebuffer(fb)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// 渲染单个后处理 pass
+    fn render_postprocess_pass(
+        &self,
+        context: &AppContext,
+        source_texture: TextureHandle,
+        target: RenderTarget,
+        material_handle: MaterialHandle,
+        window_width: u32,
+        window_height: u32,
+    ) -> Result<(), Box<dyn Error>> {
+        let asset_mgr = context.asset_manager.borrow();
+
+        // 只清空非屏幕目标
+        match target {
+            RenderTarget::Framebuffer(_) => clear_frame(Color::TRANSPARENT),
+            RenderTarget::Screen => {} // 不清空，全屏quad会覆盖整个屏幕
+        }
+
+        // 绑定目标 framebuffer
+        self.bind_render_target(&asset_mgr, target, window_width, window_height);
+
+        unsafe {
+            gl::Disable(gl::DEPTH_TEST);
+            gl::DepthMask(gl::FALSE);
+            gl::Disable(gl::CULL_FACE);
+            gl::Disable(gl::BLEND);
+            gl::Disable(gl::SCISSOR_TEST);
+            gl::Disable(gl::STENCIL_TEST);
+        }
+
+        // 清空测试 - 用明显的颜色
+        unsafe {
+            gl::Clear(gl::COLOR_BUFFER_BIT);
+            gl::ClearColor(1.0, 0.0, 1.0, 1.0); // 洋红色
+        }
+
+        // 绑定材质（材质里应该已经包含了纹理）
+        bind_material(&asset_mgr, material_handle)?;
+
+        let material_manager = asset_mgr.material_manager.borrow();
+        let texture_manager = asset_mgr.texture_manager.borrow();
+        let shader_manager = asset_mgr.shader_manager.borrow();
+        // 注入源纹理到 material（假设 uniform 名为 "screenTexture"）
+        let material = material_manager
+            .get(material_handle)
+            .ok_or(MaterialError::FindMatFail)?;
+
+        let shader = shader_manager
+            .get(material.shader_handle)
+            .ok_or(MaterialError::FindShaderFail)?;
+
+        {
+            let name = "screenTexture";
+            shader
+                .set_uniform_i32(name, 0)
+                .map_err(|e| MaterialError::BindFail(e))?;
+
+            let texture = texture_manager
+                .get(source_texture)
+                .ok_or(MaterialError::FindTextureFail)?;
+
+            unsafe {
+                gl::ActiveTexture(gl::TEXTURE0 + 0);
+                gl::BindTexture(gl::TEXTURE_2D, texture.id);
+            }
+        }
+
+        // 绘制全屏四边形
+        let Some(quad) = self.fullscreen_quad else {
+            Err("post process quad Mesh does not exist")?
+        };
+
+        draw_mesh(&asset_mgr, quad)?;
+
+        // 解绑
+        unbind_material(&asset_mgr, material_handle)?;
+
+        self.unbind_render_target(target);
+
+        Ok(())
+    }
+}
+
+// 相机绑定目标
+impl RenderSystem {
+    fn bind_render_target(
+        &self,
+        asset_mgr: &AssetManager,
+        target: RenderTarget,
+        window_width: u32,
+        window_height: u32,
+    ) {
+        match target {
+            RenderTarget::Screen => unsafe {
+                gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+                gl::Viewport(0, 0, window_width as i32, window_height as i32);
+            },
+            RenderTarget::Framebuffer(fb) => {
+                if let Ok(_) = asset_mgr.framebuffer_manager.borrow().bind(fb) {
+                    // 获取 framebuffer 尺寸并设置 viewport
+                    if let Ok((w, h)) = asset_mgr.framebuffer_manager.borrow().get_size(fb) {
+                        unsafe {
+                            gl::Viewport(0, 0, w as i32, h as i32);
+                        }
+                    } else {
+                        error!("set viewport error");
+                    }
+                } else {
+                    error!("bind fb error");
+                }
+            }
+        }
+    }
+
+    fn unbind_render_target(&self, target: RenderTarget) {
+        match target {
+            RenderTarget::Screen => {
+                // 屏幕不需要解绑
+            }
+            RenderTarget::Framebuffer(_) => {
+                // 解绑 framebuffer，恢复到默认
+                FramebufferManager::unbind();
+            }
+        }
+    }
+
     /// 绑定相机的渲染目标
     fn bind_camera_render_target(
         &self,

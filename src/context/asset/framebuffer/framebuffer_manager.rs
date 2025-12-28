@@ -157,6 +157,15 @@ impl FramebufferManager {
         }
     }
 
+    pub fn get_size(&self, handle: FramebufferHandle) -> Result<(u32, u32), FramebufferError> {
+        let fb = self
+            .framebuffers
+            .get(handle)
+            .ok_or(FramebufferError::InvalidHandle)?;
+
+        Ok((fb.width, fb.height))
+    }
+
     /// 调整framebuffer大小
     pub fn resize(
         &mut self,

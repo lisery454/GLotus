@@ -1,6 +1,5 @@
-use std::error::Error;
-
 use glotus::*;
+use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let app = App::new_with_config(AppConfig {
@@ -9,6 +8,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     app.borrow().build(|context| {
+        let grayscale_shader = context.borrow().create_shader_from_sources(
+            include_str!("./assets/shaders/post_process.vert"),
+            include_str!("./assets/shaders/offset_shader.frag"),
+        )?;
+        let grayscale_material = context.borrow().create_material(grayscale_shader)?;
+
         let shader = context.borrow().create_shader_from_sources(
             include_str!("./assets/shaders/vs.vert"),
             include_str!("./assets/shaders/fs.frag"),
@@ -80,7 +85,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         context.borrow().spawn_entity_with((
             TransformComponent::new(Transform::from_position(1.5, 0.0, 6.0)),
-            CameraComponent::new(true),
+            CameraComponent::new(true).with_postprocess_materials(vec![grayscale_material]),
         ));
 
         context.borrow().spawn_entity_with((
@@ -97,6 +102,5 @@ fn main() -> Result<(), Box<dyn Error>> {
     })?;
 
     app.borrow_mut().run();
-
     Ok(())
 }
