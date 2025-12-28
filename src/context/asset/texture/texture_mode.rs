@@ -1,5 +1,5 @@
 /// 循环模式
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum WrappingMode {
     /// 重复
     Repeat,
@@ -12,7 +12,7 @@ pub enum WrappingMode {
 }
 
 /// 过滤模式
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum FilteringMode {
     /// 最近的像素
     Nearest,

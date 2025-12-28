@@ -130,43 +130,25 @@ impl AppContext {
     pub fn create_texture_from_file(
         &self,
         path: &str,
-        wrapping_mode_s: WrappingMode,
-        wrapping_mode_t: WrappingMode,
-        filtering_mode_min: FilteringMode,
-        filtering_mode_mag: FilteringMode,
+        config: TextureConfig,
     ) -> Result<TextureHandle, TextureError> {
         self.asset_manager
             .borrow_mut()
             .texture_manager
             .borrow_mut()
-            .create_from_file(
-                path,
-                wrapping_mode_s,
-                wrapping_mode_t,
-                filtering_mode_min,
-                filtering_mode_mag,
-            )
+            .create_from_file(path, config)
     }
 
     pub fn create_texture_from_byte(
         &self,
         data: &[u8],
-        wrapping_mode_s: WrappingMode,
-        wrapping_mode_t: WrappingMode,
-        filtering_mode_min: FilteringMode,
-        filtering_mode_mag: FilteringMode,
+        config: TextureConfig,
     ) -> Result<TextureHandle, TextureError> {
         self.asset_manager
             .borrow_mut()
             .texture_manager
             .borrow_mut()
-            .create_from_byte(
-                data,
-                wrapping_mode_s,
-                wrapping_mode_t,
-                filtering_mode_min,
-                filtering_mode_mag,
-            )
+            .create_from_byte(data, config)
     }
 
     pub fn remove_texture(&mut self, texture: TextureHandle) {
@@ -181,23 +163,13 @@ impl AppContext {
         &self,
         width: u32,
         height: u32,
-        wrapping_mode_s: WrappingMode,
-        wrapping_mode_t: WrappingMode,
-        filtering_mode_min: FilteringMode,
-        filtering_mode_mag: FilteringMode,
+        config: TextureConfig,
     ) -> Result<TextureHandle, TextureError> {
         self.asset_manager
             .borrow_mut()
             .texture_manager
             .borrow_mut()
-            .create_empty(
-                width,
-                height,
-                wrapping_mode_s,
-                wrapping_mode_t,
-                filtering_mode_min,
-                filtering_mode_mag,
-            )
+            .create_empty(width, height, config)
     }
 }
 
@@ -207,21 +179,32 @@ impl AppContext {
         &self,
         width: u32,
         height: u32,
-        texture_handle: TextureHandle,
+        config: TextureConfig,
     ) -> Result<FramebufferHandle, FramebufferError> {
         self.asset_manager
             .borrow()
             .framebuffer_manager
             .borrow_mut()
-            .create(width, height, texture_handle)
+            .create(width, height, config)
     }
 
-    pub fn remove_framebuffer(&self, handle: FramebufferHandle) -> Option<TextureHandle> {
+    pub fn remove_framebuffer(&self, handle: FramebufferHandle) {
         self.asset_manager
             .borrow()
             .framebuffer_manager
             .borrow_mut()
             .remove(handle)
+    }
+
+    pub fn get_texture_of_framebuffer(
+        &self,
+        framebuffer: FramebufferHandle,
+    ) -> Result<TextureHandle, FramebufferError> {
+        self.asset_manager
+            .borrow()
+            .framebuffer_manager
+            .borrow_mut()
+            .get_color_texture(framebuffer)
     }
 }
 

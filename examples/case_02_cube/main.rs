@@ -13,10 +13,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let texture = context.borrow().create_texture_from_byte(
             include_bytes!("./assets/textures/brick.png"),
-            WrappingMode::Repeat,
-            WrappingMode::Repeat,
-            FilteringMode::LinearMipmapLinear,
-            FilteringMode::Linear,
+            TextureConfig::new()
+                .with_wrapping(WrappingMode::Repeat, WrappingMode::Repeat)
+                .with_filtering(FilteringMode::LinearMipmapLinear, FilteringMode::Linear),
         )?;
 
         let material = context

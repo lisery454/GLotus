@@ -30,6 +30,6 @@ void main() {
   pp.diff_color = diff_tex;
   pp.spec_color = spec_tex;
 
-  vec3 result = CalcPhong(normal, view_dir, frag_pos_in_world, pp);
-  frag_color = vec4(result, 1.0);
+  vec4 result = CalcPhong(normal, view_dir, frag_pos_in_world, pp);
+  frag_color = result;
 }

@@ -21,18 +21,16 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let grass_texture = context.borrow().create_texture_from_byte(
             include_bytes!("./assets/textures/grass.png"),
-            WrappingMode::ClampToEdge,
-            WrappingMode::ClampToEdge,
-            FilteringMode::LinearMipmapLinear,
-            FilteringMode::Linear,
+            TextureConfig::new()
+                .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
+                .with_filtering(FilteringMode::LinearMipmapLinear, FilteringMode::Linear),
         )?;
 
         let window_texture = context.borrow().create_texture_from_byte(
             include_bytes!("./assets/textures/window.png"),
-            WrappingMode::ClampToEdge,
-            WrappingMode::ClampToEdge,
-            FilteringMode::LinearMipmapLinear,
-            FilteringMode::Linear,
+            TextureConfig::new()
+                .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
+                .with_filtering(FilteringMode::LinearMipmapLinear, FilteringMode::Linear),
         )?;
 
         let transparent_grass_material = context

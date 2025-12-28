@@ -28,6 +28,6 @@ void main() {
   pp.diff_color = material.diff_color;
   pp.spec_color = material.spec_color;
 
-  vec3 result = CalcPhong(normal, view_dir, frag_position, pp);
-  frag_color = vec4(result, 1.0);
+  vec4 result = CalcPhong(normal, view_dir, frag_position, pp);
+  frag_color = result;
 }

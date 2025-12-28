@@ -16,18 +16,16 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let texture_diffuse = context.borrow().create_texture_from_byte(
             include_bytes!("./assets/textures/texture_diffuse.png"),
-            WrappingMode::Repeat,
-            WrappingMode::Repeat,
-            FilteringMode::LinearMipmapLinear,
-            FilteringMode::Linear,
+            TextureConfig::new()
+                .with_wrapping(WrappingMode::Repeat, WrappingMode::Repeat)
+                .with_filtering(FilteringMode::LinearMipmapLinear, FilteringMode::Linear),
         )?;
 
         let texture_specular = context.borrow().create_texture_from_byte(
             include_bytes!("./assets/textures/texture_specular.png"),
-            WrappingMode::Repeat,
-            WrappingMode::Repeat,
-            FilteringMode::LinearMipmapLinear,
-            FilteringMode::Linear,
+            TextureConfig::new()
+                .with_wrapping(WrappingMode::Repeat, WrappingMode::Repeat)
+                .with_filtering(FilteringMode::LinearMipmapLinear, FilteringMode::Linear),
         )?;
 
         let material = context

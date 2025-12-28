@@ -6,4 +6,6 @@ pub enum TextureError {
     FileReadError(String),
     #[error("Failed to read texture from byte data")]
     ByteReadError,
+    #[error("Failed to get texture by handle")]
+    InvalidHandle,
 }

@@ -20,59 +20,46 @@ fn main() -> Result<(), Box<dyn Error>> {
             include_str!("./assets/shaders/fs_2.frag"),
         )?;
 
-        let topview_texture = context.borrow().create_empty_texture(
-            tex_size,
-            tex_size,
-            WrappingMode::Repeat,
-            WrappingMode::Repeat,
-            FilteringMode::Nearest,
-            FilteringMode::Nearest,
-        )?;
-        let frontview_texture = context.borrow().create_empty_texture(
-            tex_size,
-            tex_size,
-            WrappingMode::Repeat,
-            WrappingMode::Repeat,
-            FilteringMode::Nearest,
-            FilteringMode::Nearest,
-        )?;
-        let sideview_texture = context.borrow().create_empty_texture(
-            tex_size,
-            tex_size,
-            WrappingMode::Repeat,
-            WrappingMode::Repeat,
-            FilteringMode::Nearest,
-            FilteringMode::Nearest,
-        )?;
+        let texture_config = TextureConfig::new()
+            .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
+            .with_filtering(FilteringMode::Nearest, FilteringMode::Nearest);
+        let topview_framebuffer =
+            context
+                .borrow()
+                .create_framebuffer(tex_size, tex_size, texture_config)?;
+        let frontview_framebuffer =
+            context
+                .borrow()
+                .create_framebuffer(tex_size, tex_size, texture_config)?;
+        let sideview_framebuffer =
+            context
+                .borrow()
+                .create_framebuffer(tex_size, tex_size, texture_config)?;
 
+        let topview_texture = context
+            .borrow()
+            .get_texture_of_framebuffer(topview_framebuffer)?;
         let topview_material = context
             .borrow()
             .get_material_builder(shader_2)?
             .with("texture1", UniformValue::Texture(0, topview_texture))
             .build();
+        let frontview_texture = context
+            .borrow()
+            .get_texture_of_framebuffer(frontview_framebuffer)?;
         let frontview_material = context
             .borrow()
             .get_material_builder(shader_2)?
             .with("texture1", UniformValue::Texture(0, frontview_texture))
             .build();
+        let sideview_texture = context
+            .borrow()
+            .get_texture_of_framebuffer(sideview_framebuffer)?;
         let sideview_material = context
             .borrow()
             .get_material_builder(shader_2)?
             .with("texture1", UniformValue::Texture(0, sideview_texture))
             .build();
-
-        let topview_framebuffer =
-            context
-                .borrow()
-                .create_framebuffer(tex_size, tex_size, topview_texture)?;
-        let frontview_framebuffer =
-            context
-                .borrow()
-                .create_framebuffer(tex_size, tex_size, frontview_texture)?;
-        let sideview_framebuffer =
-            context
-                .borrow()
-                .create_framebuffer(tex_size, tex_size, sideview_texture)?;
 
         let tree_mesh = context
             .borrow()
