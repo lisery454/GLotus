@@ -1,0 +1,194 @@
+@startuml glotus
+
+title GLotus
+
+Class App
+
+package "base" {
+    package "transform" {
+        Class Transform
+        Class Rotation
+        Class Scaling
+        Class Translation
+        Transform o--- Rotation
+        Transform o--- Scaling
+        Transform o--- Translation
+    }
+    package "color" {
+        Class Color
+    }
+}
+
+package "context" {
+
+    Class AppContext
+    AppContext o--- event.AppEventQueue
+    AppContext o--- input.InputState
+    AppContext o--- pipeline.Pipeline
+    AppContext o--- asset.AssetManager
+    AppContext o--- ecs.World
+
+    package "asset" {
+        Class AssetManager
+        AssetManager o--- shader.ShaderManager
+        AssetManager o--- mesh.MeshManager
+        package "shader" {
+            Class ShaderManager
+            Class Shader
+            Class ShaderHandle
+            ShaderManager o--- Shader
+            ShaderManager ...> ShaderHandle : key
+        }
+        package "mesh" {
+            Class MeshManager
+            Class Mesh
+            Class MeshGPUWrapper
+            Class MeshHandle
+            MeshManager o--- MeshGPUWrapper
+            MeshGPUWrapper ---> Mesh
+            MeshManager ---> Mesh
+            MeshManager ...> MeshHandle : key
+        }
+        package "texture" {
+            Class TextureManager
+            Class Texture2D
+            Class TextureHandle
+            Class WrappingMode
+            Class FilteringMode
+            Class TextureConfig
+            TextureConfig o--- WrappingMode
+            TextureConfig o--- FilteringMode
+            TextureManager o--- Texture2D
+            TextureManager ...> TextureHandle : key
+            TextureManager ...> TextureConfig
+            Texture2D ...> TextureConfig
+        }
+        package "material" {
+            Class MaterialManager
+            Class MaterialHandle
+            Class Material
+            Class UniformValue
+            MaterialManager o--- Material
+            MaterialManager ...> MaterialHandle
+            Material ...> ShaderHandle
+            Material o--- UniformValue
+            UniformValue ...> TextureHandle
+            MaterialManager ...> TextureManager : TODO
+            MaterialManager ...> ShaderManager : TODO
+        }
+        package "framebuffer" {
+            Class FramebufferManager
+            Class Framebuffer
+            Class FramebufferHandle
+            FramebufferManager o--- Framebuffer
+            FramebufferManager ...> FramebufferHandle
+            Framebuffer ...> TextureHandle
+            FramebufferManager ...> TextureManager
+        }
+    }
+    package "ecs" {
+        Interface ISystem
+        Class SystemDispatcher
+        SystemDispatcher o--- ISystem
+        Class World
+        Class EntityHandle
+        Interface IComponentManager
+        World o--- EntityHandle
+        World o--- IComponentManager
+        Interface IComponent
+        Class ComponentManager
+        ComponentManager ...> EntityHandle
+        ComponentManager ---> IComponentManager
+        ComponentManager o--- IComponent
+        SystemDispatcher ...> AppContext
+
+        package "impl"{
+            package "component" {
+                package "trasform" {
+                    Class TransformComponent
+                    IComponent <--- TransformComponent
+                    TransformComponent o--- Transform
+                }
+                package "light" {
+                    Class LightComponent
+                    Interface Light
+                    Class DirectionalLight
+                    Class PointLight
+                    Class SpotLight
+                    Light <--- DirectionalLight
+                    Light <--- PointLight
+                    Light <--- SpotLight
+                    IComponent <--- LightComponent
+                    LightComponent o--- Light
+                }
+                package "camera" {
+                    Class CameraComponent
+                    Class Camera
+                    Class ProjectionType
+                    Class RenderTarget
+                    IComponent <--- CameraComponent
+                    CameraComponent o--- Camera
+                    Camera ...> ProjectionType
+                    Camera ...> RenderTarget
+                    RenderTarget ...> FramebufferHandle : TODO
+                }
+                package "script" {
+                    Class ScriptComponent
+                    Interface IBehavior
+                    IComponent <--- ScriptComponent
+                    ScriptComponent o--- IBehavior
+                }
+                package "renderable" {
+                    Class RenderableComponent
+                    IComponent <--- RenderableComponent
+                    RenderableComponent ...> MaterialHandle
+                    RenderableComponent ...> MeshHandle
+                }
+            }
+            package "system" {
+                Class CameraSystem
+                Class RenderSystem
+                Class ScriptSystem
+                ISystem <-- CameraSystem
+                ISystem <-- RenderSystem
+                ISystem <-- ScriptSystem
+            }
+        }
+    }
+    package "event" {
+        Class AppEvent
+        Class AppEventQueue
+        AppEventQueue o--- AppEvent
+    }
+    package "input" {
+        Class InputState
+    }
+    package "pipeline" {
+        Class Pipeline
+        Class Pass
+        Class RenderJob
+        Pipeline o--- Pass
+        Pass o--- render_state.RenderState
+        Pass o--- RenderJob
+        RenderJob ...> MeshHandle
+        RenderJob ...> MaterialHandle
+        RenderJob ...> EntityHandle
+        package "render_state" {
+            Class RenderState
+            Class DepthMode
+            Class BlendMode
+            Class PolygonMode
+            Class StencilMode
+            Class CullFaceMode
+            RenderState o--- DepthMode
+            RenderState o--- BlendMode
+            RenderState o--- PolygonMode
+            RenderState o--- StencilMode
+            RenderState o--- CullFaceMode
+        }
+    }
+}
+
+App o-- AppContext
+
+@enduml
