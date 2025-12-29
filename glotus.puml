@@ -1,0 +1,107 @@
+@startuml glotus
+
+title GLotus
+
+Class App
+
+package "base" {
+    package "transform" {
+        Class Transform
+        Class Rotation
+        Class Scaling
+        Class Translation
+        Transform o-- Rotation
+        Transform o-- Scaling
+        Transform o-- Translation
+    }
+    package "color" {
+        Class Color
+    }
+}
+
+package "context" {
+
+    Class AppContext
+    AppContext o-- event.AppEventQueue
+    AppContext o-- input.InputState
+    AppContext o-- pipeline.Pipeline
+    AppContext o-- asset.AssetManager
+
+    package "asset" {
+        Class AssetManager
+        AssetManager o-- shader.ShaderManager
+        AssetManager o-- mesh.MeshManager
+        package "shader" {
+            Class ShaderManager
+            Class Shader
+            Class ShaderHandle
+            ShaderManager o-- Shader
+            ShaderManager ..> ShaderHandle : key
+        }
+        package "mesh" {
+            Class MeshManager
+            Class Mesh
+            Class MeshGPUWrapper
+            Class MeshHandle
+            MeshManager o-- MeshGPUWrapper
+            MeshGPUWrapper --> Mesh
+            MeshManager --> Mesh
+            MeshManager ..> MeshHandle : key
+        }
+        package "texture" {
+            Class TextureManager
+            Class Texture2D
+            Class TextureHandle
+            Class WrappingMode
+            Class FilteringMode
+            Class TextureConfig
+            TextureConfig o-- WrappingMode
+            TextureConfig o-- FilteringMode
+            TextureManager o-- Texture2D
+            TextureManager ..> TextureHandle : key
+            TextureManager ..> TextureConfig
+            Texture2D ..> TextureConfig
+        }
+        package "material" {
+        }
+        package "framebuffer" {
+        }
+    }
+    package "ecs" {
+
+    }
+    package "event" {
+        Class AppEvent
+        Class AppEventQueue
+        AppEventQueue o-- AppEvent
+    }
+    package "input" {
+        Class InputState
+    }
+    package "pipeline" {
+        Class Pipeline
+        Class Pass
+        Class RenderJob
+        Pipeline o-- Pass
+        Pass o-- render_state.RenderState
+        Pass o-- RenderJob
+        RenderJob ..> MeshHandle
+        RenderJob ..> MaterialHandle
+        RenderJob ..> EntityHandle
+        package "render_state" {
+            Class RenderState
+            Class DepthMode
+            Class BlendMode
+            Class PolygonMode
+            Class StencilMode
+            Class CullFaceMode
+            RenderState o-- DepthMode
+            RenderState o-- BlendMode
+            RenderState o-- PolygonMode
+            RenderState o-- StencilMode
+            RenderState o-- CullFaceMode
+        }
+    }
+}
+
+@enduml
