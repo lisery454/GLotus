@@ -130,8 +130,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
 
                     context.borrow().spawn_entity_with((
-                        Renderable::new(mesh)
-                            .with_material(DefaultPipeline::main_pass(), material),
+                        Renderable::new(mesh).with_material(DefaultPipeline::main_pass(), material),
                         Transform::from_position(
                             3.0 * (i as f32),
                             3.0 * (j as f32),
@@ -149,16 +148,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         // 灯光
         context.borrow().spawn_entity_with((
             Transform::from_position(0.0, 0.0, 0.0),
-            Light::from(
-                PointLight::new()
-                    .with_color(Color::GREEN)
-                    .with_intensity(3.0)
-                    .with_range(10.0),
-            ),
+            Light::point()
+                .with_color(Color::GREEN)
+                .with_intensity(3.0)
+                .with_range(10.0),
         ));
 
         context.borrow().spawn_entity_with((
-            Light::from(DirectionalLight::new().with_color(Color::RED)),
+            Light::directional().with_color(Color::RED),
             Transform::new(
                 Translation::default(),
                 Rotation::new(0.0, 180.0, 0.0),
@@ -167,7 +164,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         ));
 
         context.borrow().spawn_entity_with((
-            Light::from(SpotLight::new().with_color(Color::BLUE)),
+            Light::spot().with_color(Color::BLUE),
             Transform::new(
                 Translation::new(0.0, 0.0, 8.0),
                 Rotation::default(),

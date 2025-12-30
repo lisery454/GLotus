@@ -109,7 +109,7 @@ impl ISystem for RenderSystem {
                 .iter()
                 .map(|(entity, light)| {
                     if let Some(light_transform) = transform_mgr.get(entity) {
-                        return light_to_shader_data(light, light_transform);
+                        return Some(light_to_shader_data(light, light_transform));
                     }
                     None
                 })
@@ -589,43 +589,45 @@ pub fn camera_to_shader_data(
 pub fn light_to_shader_data(
     light: &Light,
     transform: &Transform,
-) -> Option<LightShaderData> {
-    if let Some(directional_light) = light.downcast_ref::<DirectionalLight>() {
-        return Some(LightShaderData {
-            light_type: 0, // directional
-            color: directional_light.color.to_arr(),
-            position: [0.0; 3],
-            direction: transform.get_rotation().forward().into(),
-            intensity: directional_light.intensity,
+) -> LightShaderData {
+    // 预提取通用属性
+    let color = light.color.to_arr();
+    let intensity = light.intensity;
+    let position = transform.get_translation().get_arr();
+    let direction = transform.get_rotation().forward().into();
+
+    match light.data {
+        LightData::Directional => LightShaderData {
+            light_type: 0,
+            color,
+            position: [0.0; 3], // 方向光通常不需要位置
+            direction,
+            intensity,
             range: 0.0,
             inner_cone: 0.0,
             outer_cone: 0.0,
-        });
-    } else if let Some(point_light) = light.downcast_ref::<PointLight>() {
-        return Some(LightShaderData {
-            light_type: 1, // point
-            color: point_light.color.to_arr(),
-            position: transform.get_translation().get_arr().into(),
+        },
+        LightData::Point { range } => LightShaderData {
+            light_type: 1,
+            color,
+            position,
             direction: [0.0; 3],
-            intensity: point_light.intensity,
-            range: point_light.range,
+            intensity,
+            range,
             inner_cone: 0.0,
             outer_cone: 0.0,
-        });
-    } else if let Some(spot_light) = light.downcast_ref::<SpotLight>() {
-        return Some(LightShaderData {
-            light_type: 2, // spot
-            color: spot_light.color.to_arr(),
-            position: transform.get_translation().get_arr().into(),
-            direction: transform.get_rotation().forward().into(),
-            intensity: spot_light.intensity,
-            range: spot_light.range,
-            inner_cone: spot_light.inner,
-            outer_cone: spot_light.outer,
-        });
+        },
+        LightData::Spot { range, inner, outer } => LightShaderData {
+            light_type: 2,
+            color,
+            position,
+            direction,
+            intensity,
+            range,
+            inner_cone: inner,
+            outer_cone: outer,
+        },
     }
-
-    None
 }
 
 pub(crate) fn inject_global_uniform(

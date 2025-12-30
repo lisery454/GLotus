@@ -133,12 +133,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         context.borrow().spawn_entity_with((
             Transform::from_position(5.0, 0.0, 0.0),
-            Light::from(
-                PointLight::new()
-                    .with_color(Color::GREEN)
-                    .with_intensity(1.0)
-                    .with_range(10.0),
-            ),
+            Light::point()
+                .with_color(Color::GREEN)
+                .with_intensity(1.0)
+                .with_range(10.0),
             Scriptable::new().with(LightTickable::new()),
         ));
 
@@ -181,10 +179,9 @@ impl IBehavior for LightTickable {
         let z = self.total_time.sin() * 5.0 * (self.total_time * 0.5).cos();
 
         // 修改灯光颜色
+
         if let Some(light) = light_mgr.get_mut(entity) {
-            if let Some(point_light) = light.downcast_mut::<PointLight>() {
-                point_light.color = new_color;
-            }
+            light.color = new_color;
         }
 
         // 修改变换位置

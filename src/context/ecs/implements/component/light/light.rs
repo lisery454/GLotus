@@ -1,54 +1,92 @@
 use crate::{Color, IComponent};
-use downcast_rs::{Downcast, impl_downcast};
-use std::ops::{Deref, DerefMut};
+use log::warn;
 
-/// 光源类型
+/// 光源
+pub struct Light {
+    pub color: Color,
+    pub intensity: f32,
+    pub data: LightData,
+}
+
 #[derive(Clone, Copy)]
-pub enum LightType {
+pub enum LightData {
     Directional,
-    Point,
-    Spot,
+    Point { range: f32 },
+    Spot { range: f32, inner: f32, outer: f32 },
 }
-
-/// 光源的trait
-pub trait ILight: Downcast {
-    /// 光强信息
-    fn color(&self) -> Color;
-    fn intensity(&self) -> f32;
-
-    /// 返回光源类型
-    fn light_type(&self) -> LightType;
-}
-impl_downcast!(ILight);
-
-pub struct Light(pub Box<dyn ILight>);
 
 impl IComponent for Light {}
 
-// 从 Box<dyn ILight> 转换
-impl From<Box<dyn ILight>> for Light {
-    fn from(light: Box<dyn ILight>) -> Self {
-        Light(light)
+impl Light {
+    pub fn directional() -> Self {
+        Self {
+            color: Default::default(),
+            intensity: 1.0,
+            data: LightData::Directional,
+        }
     }
-}
 
-// 从具体类型转换（会自动装箱）
-impl<T: ILight + 'static> From<T> for Light {
-    fn from(light: T) -> Self {
-        Light(Box::new(light))
+    pub fn point() -> Self {
+        Self {
+            color: Default::default(),
+            intensity: 1.0,
+            data: LightData::Point { range: 100.0 },
+        }
     }
-}
 
-impl Deref for Light {
-    type Target = Box<dyn ILight>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+    pub fn spot() -> Self {
+        Self {
+            color: Default::default(),
+            intensity: 1.0,
+            data: LightData::Spot {
+                range: 100.0,
+                inner: 1.0,
+                outer: 0.8,
+            },
+        }
     }
-}
 
-impl DerefMut for Light {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+    pub fn with_color(mut self, color: Color) -> Self {
+        self.color = color;
+        self
+    }
+
+    pub fn with_intensity(mut self, intensity: f32) -> Self {
+        self.intensity = intensity;
+        self
+    }
+
+    pub fn with_range(mut self, new_range: f32) -> Self {
+        match &mut self.data {
+            // 对于有 range 字段的变体，直接修改
+            LightData::Point { range } => {
+                *range = new_range;
+            }
+            LightData::Spot { range, .. } => {
+                *range = new_range;
+            }
+            LightData::Directional => {
+                warn!("should not set directional light range");
+            }
+        }
+        self
+    }
+
+    pub fn with_inner(mut self, inner_angle: f32) -> Self {
+        if let LightData::Spot { inner, .. } = &mut self.data {
+            *inner = inner_angle;
+        } else {
+            warn!("should not set directional or point light inner");
+        }
+        self
+    }
+
+    pub fn with_outer(mut self, outer_angle: f32) -> Self {
+        if let LightData::Spot { outer, .. } = &mut self.data {
+            *outer = outer_angle;
+        } else {
+            warn!("should not set directional or point light outer");
+        }
+        self
     }
 }

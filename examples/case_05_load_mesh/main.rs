@@ -83,12 +83,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             .spawn_entity_with((Transform::from_position(1.5, 0.0, 6.0), Camera::new(true)));
 
         context.borrow().spawn_entity_with((
-            Light::from(
-                PointLight::new()
-                    .with_color(Color::WHITE)
-                    .with_intensity(4.0)
-                    .with_range(20.0),
-            ),
+            Light::point()
+                .with_color(Color::WHITE)
+                .with_intensity(4.0)
+                .with_range(20.0),
             Transform::from_position(5.0, 6.0, 3.0),
         ));
 
