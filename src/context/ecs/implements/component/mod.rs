@@ -6,6 +6,5 @@ mod script;
 
 pub use camera::*;
 pub use light::*;
-pub use transform::*;
 pub use renderable::*;
 pub use script::*;
