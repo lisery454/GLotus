@@ -37,15 +37,15 @@ impl ISystem for RenderSystem {
         let config = context.app_config.borrow();
         let asset_mgr = context.asset_manager.borrow();
         let pipeline = context.pipeline.borrow();
-        let camera_mgr = world.get_manager_mut::<CameraComponent>();
-        let transform_mgr = world.get_manager_mut::<TransformComponent>();
-        let light_mgr = world.get_manager_mut::<LightComponent>();
-        let renderable_mgr = world.get_manager_mut::<RenderableComponent>();
+        let camera_mgr = world.get_manager_mut::<Camera>();
+        let transform_mgr = world.get_manager_mut::<Transform>();
+        let light_mgr = world.get_manager_mut::<Light>();
+        let renderable_mgr = world.get_manager_mut::<Renderable>();
         let window_width = config.width;
         let window_height = config.height;
 
         // 收集所有相机
-        let mut cameras: Vec<(EntityHandle, &CameraComponent)> =
+        let mut cameras: Vec<(EntityHandle, &Camera)> =
             camera_mgr.iter().map(|(id, cam)| (id, cam)).collect();
         cameras.sort_by_key(|(_, cam)| cam.order);
         if cameras.is_empty() {
@@ -92,16 +92,16 @@ impl ISystem for RenderSystem {
                 continue;
             };
             // 计算相机相关矩阵
-            let view_matrix = camera_transform.transform.get_view_matrix();
+            let view_matrix = camera_transform.get_view_matrix();
             let view_matrix_arr = view_matrix.into();
 
-            let projection_matrix = if camera_transform.transform.space == TransformSpace::World {
+            let projection_matrix = if camera_transform.space == TransformSpace::World {
                 camera.get_projection_matrix()
             } else {
                 Matrix4::one().into()
             };
 
-            let view_position = get_view_position(&camera_transform.transform);
+            let view_position = get_view_position(&camera_transform);
             let camera_shader_data = camera_to_shader_data(camera, camera_transform);
 
             // 计算光源 shader 信息
@@ -136,7 +136,7 @@ impl ISystem for RenderSystem {
                         // 获取 transform 用于计算深度
                         let depth = if let Some(transform) = transform_mgr.get(entity) {
                             let world_pos_v4 =
-                                transform.transform.translation.data.to_homogeneous();
+                                transform.translation.data.to_homogeneous();
                             let view_pos = view_matrix * world_pos_v4;
                             -view_pos.z
                         } else {
@@ -163,8 +163,8 @@ impl ISystem for RenderSystem {
                         warn!("Cannot find transform for entity {:?}", entity_handle);
                         continue;
                     };
-                    let model_matrix = transform.transform.to_matrix();
-                    let normal_matrix = transform.transform.to_normal_matrix().unwrap();
+                    let model_matrix = transform.to_matrix();
+                    let normal_matrix = transform.to_normal_matrix().unwrap();
 
                     // 注入全局 Uniform
                     let global_uniform = GlobalUniform {
@@ -517,7 +517,7 @@ impl RenderSystem {
     /// 绑定相机的渲染目标
     fn bind_camera_render_target(
         &self,
-        camera: &CameraComponent,
+        camera: &Camera,
         asset_mgr: &AssetManager,
         window_width: u32,
         window_height: u32,
@@ -540,7 +540,7 @@ impl RenderSystem {
     }
 
     /// 解绑相机的渲染目标
-    fn unbind_camera_render_target(&self, camera: &CameraComponent) {
+    fn unbind_camera_render_target(&self, camera: &Camera) {
         match camera.target {
             RenderTarget::Screen => {
                 // 屏幕不需要解绑
@@ -568,8 +568,8 @@ fn get_view_position(camera_transform: &Transform) -> [f32; 3] {
 }
 
 pub fn camera_to_shader_data(
-    camera: &CameraComponent,
-    transform: &TransformComponent,
+    camera: &Camera,
+    transform: &Transform,
 ) -> CameraShaderData {
     CameraShaderData {
         camera_type: if camera.projection_type == ProjectionType::Perspective {
@@ -578,8 +578,8 @@ pub fn camera_to_shader_data(
             1
         },
         fov: camera.fov.0, // Deg<f32> 解包成 f32
-        position: transform.transform.get_translation().get_arr().into(),
-        direction: transform.transform.get_rotation().forward().into(),
+        position: transform.get_translation().get_arr().into(),
+        direction: transform.get_rotation().forward().into(),
         aspect_ratio: camera.aspect_ratio,
         near_plane: camera.near_plane,
         far_plane: camera.far_plane,
@@ -587,37 +587,37 @@ pub fn camera_to_shader_data(
 }
 
 pub fn light_to_shader_data(
-    light: &LightComponent,
-    transform: &TransformComponent,
+    light: &Light,
+    transform: &Transform,
 ) -> Option<LightShaderData> {
-    if let Some(directional_light) = light.light.downcast_ref::<DirectionalLight>() {
+    if let Some(directional_light) = light.downcast_ref::<DirectionalLight>() {
         return Some(LightShaderData {
             light_type: 0, // directional
             color: directional_light.color.to_arr(),
             position: [0.0; 3],
-            direction: transform.transform.get_rotation().forward().into(),
+            direction: transform.get_rotation().forward().into(),
             intensity: directional_light.intensity,
             range: 0.0,
             inner_cone: 0.0,
             outer_cone: 0.0,
         });
-    } else if let Some(point_light) = light.light.downcast_ref::<PointLight>() {
+    } else if let Some(point_light) = light.downcast_ref::<PointLight>() {
         return Some(LightShaderData {
             light_type: 1, // point
             color: point_light.color.to_arr(),
-            position: transform.transform.get_translation().get_arr().into(),
+            position: transform.get_translation().get_arr().into(),
             direction: [0.0; 3],
             intensity: point_light.intensity,
             range: point_light.range,
             inner_cone: 0.0,
             outer_cone: 0.0,
         });
-    } else if let Some(spot_light) = light.light.downcast_ref::<SpotLight>() {
+    } else if let Some(spot_light) = light.downcast_ref::<SpotLight>() {
         return Some(LightShaderData {
             light_type: 2, // spot
             color: spot_light.color.to_arr(),
-            position: transform.transform.get_translation().get_arr().into(),
-            direction: transform.transform.get_rotation().forward().into(),
+            position: transform.get_translation().get_arr().into(),
+            direction: transform.get_rotation().forward().into(),
             intensity: spot_light.intensity,
             range: spot_light.range,
             inner_cone: spot_light.inner,

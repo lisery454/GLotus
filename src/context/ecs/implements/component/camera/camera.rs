@@ -4,7 +4,7 @@ use crate::{FramebufferHandle, IComponent, MaterialHandle};
 
 use super::{RenderTarget, projection_type::ProjectionType};
 
-pub struct CameraComponent {
+pub struct Camera {
     pub fov: Deg<f32>,
     pub aspect_ratio: f32,
     pub near_plane: f32,
@@ -17,9 +17,9 @@ pub struct CameraComponent {
     pub postprocess_materials: Vec<MaterialHandle>,
 }
 
-impl IComponent for CameraComponent {}
+impl IComponent for Camera {}
 
-impl CameraComponent {
+impl Camera {
     /// 创建一个默认的相机
     pub fn new(is_active: bool) -> Self {
         Self {

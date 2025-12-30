@@ -81,50 +81,49 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         // tree
         context.borrow().spawn_entity_with((
-            RenderableComponent::new(tree_mesh)
+            Renderable::new(tree_mesh)
                 .with_material(DefaultPipeline::main_pass(), material_1),
-            TransformComponent::new(Transform::new(
+            Transform::new(
                 Translation::new(0.0, -1.2, 0.0),
                 Rotation::new(0.0, 0.0, 0.0),
                 Scaling::new(0.1, 0.1, 0.1),
-            )),
+            ),
         ));
 
         // topview
         context.borrow().spawn_entity_with((
-            RenderableComponent::new(plane_mesh)
+            Renderable::new(plane_mesh)
                 .with_material(DefaultPipeline::main_pass(), topview_material),
-            TransformComponent::new(Transform::from_position(-3.0, -3.0, 0.0)),
+            Transform::from_position(-3.0, -3.0, 0.0),
         ));
 
         // frontview
         context.borrow().spawn_entity_with((
-            RenderableComponent::new(plane_mesh)
+            Renderable::new(plane_mesh)
                 .with_material(DefaultPipeline::main_pass(), frontview_material),
-            TransformComponent::new(Transform::from_position(0.0, -3.0, 0.0)),
+            Transform::from_position(0.0, -3.0, 0.0),
         ));
 
         // sideview
         context.borrow().spawn_entity_with((
-            RenderableComponent::new(plane_mesh)
+            Renderable::new(plane_mesh)
                 .with_material(DefaultPipeline::main_pass(), sideview_material),
-            TransformComponent::new(Transform::from_position(3.0, -3.0, 0.0)),
+            Transform::from_position(3.0, -3.0, 0.0),
         ));
 
         // main camera
-        context.borrow().spawn_entity_with((
-            TransformComponent::new(Transform::from_position(0.0, -1.5, 10.0)),
-            CameraComponent::new(true),
-        ));
+        context
+            .borrow()
+            .spawn_entity_with((Transform::from_position(0.0, -1.5, 10.0), Camera::new(true)));
 
         // topview camera
         context.borrow().spawn_entity_with((
-            TransformComponent::new(Transform::new(
+            Transform::new(
                 Translation::new(0.0, 3.0, 0.0),
                 Rotation::new(-90.0, 0.0, 0.0),
                 Scaling::default(),
-            )),
-            CameraComponent::new(false)
+            ),
+            Camera::new(false)
                 .with_target_framebuffer(topview_framebuffer)
                 .with_projection_type(ProjectionType::Orthographic)
                 .with_aspect_ratio(1.0)
@@ -134,12 +133,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         // frontview camera
         context.borrow().spawn_entity_with((
-            TransformComponent::new(Transform::new(
+            Transform::new(
                 Translation::new(0.0, 0.0, 3.0),
                 Rotation::new(0.0, 0.0, 0.0),
                 Scaling::default(),
-            )),
-            CameraComponent::new(false)
+            ),
+            Camera::new(false)
                 .with_target_framebuffer(frontview_framebuffer)
                 .with_projection_type(ProjectionType::Orthographic)
                 .with_aspect_ratio(1.0)
@@ -149,12 +148,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         // sideview camera
         context.borrow().spawn_entity_with((
-            TransformComponent::new(Transform::new(
+            Transform::new(
                 Translation::new(3.0, 0.0, 0.0),
                 Rotation::new(0.0, 90.0, 0.0),
                 Scaling::default(),
-            )),
-            CameraComponent::new(false)
+            ),
+            Camera::new(false)
                 .with_target_framebuffer(sideview_framebuffer)
                 .with_projection_type(ProjectionType::Orthographic)
                 .with_aspect_ratio(1.0)

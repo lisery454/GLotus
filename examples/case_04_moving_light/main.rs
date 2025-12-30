@@ -123,24 +123,23 @@ fn main() -> Result<(), Box<dyn Error>> {
         )?;
 
         context.borrow().spawn_entity_with((
-            RenderableComponent::new(mesh).with_material(DefaultPipeline::main_pass(), material),
-            TransformComponent::new(Transform::default()),
+            Renderable::new(mesh).with_material(DefaultPipeline::main_pass(), material),
+            Transform::default(),
         ));
 
-        context.borrow().spawn_entity_with((
-            TransformComponent::new(Transform::from_position(0.0, 0.0, 4.0)),
-            CameraComponent::new(true),
-        ));
+        context
+            .borrow()
+            .spawn_entity_with((Transform::from_position(0.0, 0.0, 4.0), Camera::new(true)));
 
         context.borrow().spawn_entity_with((
-            TransformComponent::new(Transform::from_position(5.0, 0.0, 0.0)),
-            LightComponent::new(
+            Transform::from_position(5.0, 0.0, 0.0),
+            Light::from(
                 PointLight::new()
                     .with_color(Color::GREEN)
                     .with_intensity(1.0)
                     .with_range(10.0),
             ),
-            ScriptComponent::new().with(LightTickable::new()),
+            Scriptable::new().with(LightTickable::new()),
         ));
 
         Ok(())
@@ -169,8 +168,8 @@ impl IBehavior for LightTickable {
     fn on_fixed_update(&mut self, entity: EntityHandle, context: Rc<RefCell<AppContext>>, dt: f32) {
         let ctx = context.borrow();
         let world = ctx.world.borrow();
-        let mut light_mgr = world.get_manager_mut::<LightComponent>();
-        let mut transform_mgr = world.get_manager_mut::<TransformComponent>();
+        let mut light_mgr = world.get_manager_mut::<Light>();
+        let mut transform_mgr = world.get_manager_mut::<Transform>();
 
         self.total_time += dt;
 
@@ -182,18 +181,17 @@ impl IBehavior for LightTickable {
         let z = self.total_time.sin() * 5.0 * (self.total_time * 0.5).cos();
 
         // 修改灯光颜色
-        if let Some(light_comp) = light_mgr.get_mut(entity) {
-            let light_dyn = &mut *light_comp.light;
-            if let Some(point_light) = light_dyn.downcast_mut::<PointLight>() {
+        if let Some(light) = light_mgr.get_mut(entity) {
+            if let Some(point_light) = light.downcast_mut::<PointLight>() {
                 point_light.color = new_color;
             }
         }
 
         // 修改变换位置
         if let Some(transform) = transform_mgr.get_mut(entity) {
-            transform.transform.get_translation_mut().set_x(x);
-            transform.transform.get_translation_mut().set_y(y);
-            transform.transform.get_translation_mut().set_z(z);
+            transform.get_translation_mut().set_x(x);
+            transform.get_translation_mut().set_y(y);
+            transform.get_translation_mut().set_z(z);
         }
     }
 }

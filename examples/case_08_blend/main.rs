@@ -62,51 +62,50 @@ fn main() -> Result<(), Box<dyn Error>> {
             .borrow()
             .create_mesh_from_obj_in_bytes(include_bytes!("./assets/meshes/box.obj"))?;
 
-        context.borrow().spawn_entity_with((
-            CameraComponent::new(true),
-            TransformComponent::new(Transform::from_position(0.0, 0.0, 6.0)),
-        ));
+        context
+            .borrow()
+            .spawn_entity_with((Camera::new(true), Transform::from_position(0.0, 0.0, 6.0)));
 
         context.borrow().spawn_entity_with((
-            RenderableComponent::new(plane_mesh).with_material(
+            Renderable::new(plane_mesh).with_material(
                 DefaultPipeline::transparent_pass(),
                 transparent_grass_material,
             ),
-            TransformComponent::new(Transform::from_position(0.0, 0.0, 0.0)),
+            Transform::from_position(0.0, 0.0, 0.0),
         ));
 
         context.borrow().spawn_entity_with((
-            RenderableComponent::new(plane_mesh).with_material(
+            Renderable::new(plane_mesh).with_material(
                 DefaultPipeline::transparent_pass(),
                 transparent_window_material,
             ),
-            TransformComponent::new(Transform::from_position(1.5, 0.0, 3.0)),
+            Transform::from_position(1.5, 0.0, 3.0),
         ));
 
         context.borrow().spawn_entity_with((
-            RenderableComponent::new(box_mesh)
+            Renderable::new(box_mesh)
                 .with_material(DefaultPipeline::main_pass(), solid_material),
-            TransformComponent::new(Transform::new(
+            Transform::new(
                 Translation::new(0.0, -1.2, 0.0),
                 Default::default(),
                 Scaling::new(100.0, 0.1, 100.0),
-            )),
+            ),
         ));
 
         context.borrow().spawn_entity_with((
-            RenderableComponent::new(plane_mesh).with_material(
+            Renderable::new(plane_mesh).with_material(
                 DefaultPipeline::transparent_pass(),
                 transparent_window_material,
             ),
-            TransformComponent::new(Transform::from_position(0.4, -1.0, -2.0)),
+            Transform::from_position(0.4, -1.0, -2.0),
         ));
 
         context.borrow().spawn_entity_with((
-            RenderableComponent::new(plane_mesh).with_material(
+            Renderable::new(plane_mesh).with_material(
                 DefaultPipeline::transparent_pass(),
                 transparent_window_material,
             ),
-            TransformComponent::new(Transform::from_position(1.9, 1.0, 1.0)),
+            Transform::from_position(1.9, 1.0, 1.0),
         ));
 
         Ok(())

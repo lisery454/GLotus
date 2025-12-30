@@ -1,6 +1,4 @@
-use crate::{
-    AppContext, AppEvent, CameraComponent, ISystem, Rotation, TransformComponent, Translation,
-};
+use crate::{AppContext, AppEvent, Camera, ISystem, Rotation, Transform, Translation};
 use cgmath::{Deg, InnerSpace, Quaternion, Rad, Rotation3, Vector2, Vector3};
 use glfw::Key;
 use std::cell::RefCell;
@@ -36,7 +34,7 @@ impl ISystem for CameraSystem {
         {
             let app = app_context.borrow();
             let world = app.world.borrow();
-            let mut camera_mgr = world.get_manager_mut::<CameraComponent>();
+            let mut camera_mgr = world.get_manager_mut::<Camera>();
 
             if let Some((_entity, main_cam)) = camera_mgr.find_mut(|cam| cam.is_active) {
                 if let Some((w, h)) = resize_data {
@@ -85,8 +83,8 @@ impl ISystem for CameraSystem {
             let app = app_context.borrow();
             let world = app.world.borrow_mut();
 
-            let mut camera_mgr = world.get_manager_mut::<CameraComponent>();
-            let mut transform_mgr = world.get_manager_mut::<TransformComponent>();
+            let mut camera_mgr = world.get_manager_mut::<Camera>();
+            let mut transform_mgr = world.get_manager_mut::<Transform>();
 
             if let Some((entity, main_cam)) = camera_mgr.find_mut(|cam| cam.is_active) {
                 if let Some(transform) = transform_mgr.get_mut(entity) {
@@ -115,12 +113,11 @@ pub enum CameraMovement {
 }
 
 fn process_move(
-    transform: &mut TransformComponent,
+    transform: &mut Transform,
     movement: CameraMovement,
     velocity: f32,
     delta_time: f32,
 ) {
-    let transform = &mut transform.transform;
     let delta_position = match movement {
         CameraMovement::Forward => transform.get_forward(),
         CameraMovement::Backward => transform.get_forward() * -1f32,
@@ -137,14 +134,12 @@ fn process_move(
 }
 
 fn process_turn(
-    transform: &mut TransformComponent,
+    transform: &mut Transform,
     xoffset: f32,
     yoffset: f32,
     sensitivity: f32,
     constrain_pitch: bool,
 ) {
-    let transform = &mut transform.transform;
-
     let yaw_delta = Rad(-xoffset * sensitivity);
     let pitch_delta = Rad(-yoffset * sensitivity);
 
@@ -186,7 +181,7 @@ fn process_turn(
     transform.set_rotation(Rotation::from(final_rotation.normalize()));
 }
 
-fn process_zoom(camera: &mut CameraComponent, yoffset: f32, sensitivity: f32) {
+fn process_zoom(camera: &mut Camera, yoffset: f32, sensitivity: f32) {
     // 计算新的FOV值
     let mut new_fov = camera.fov.0 - yoffset * sensitivity;
 

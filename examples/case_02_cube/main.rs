@@ -83,15 +83,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         // 渲染物体
         context.borrow().spawn_entity_with((
-            RenderableComponent::new(mesh).with_material(DefaultPipeline::main_pass(), material),
-            TransformComponent::new(Transform::default()),
+            Renderable::new(mesh).with_material(DefaultPipeline::main_pass(), material),
+            Transform::default(),
         ));
 
         // 相机
-        context.borrow().spawn_entity_with((
-            CameraComponent::new(true),
-            TransformComponent::new(Transform::from_position(0.0, 0.0, 10.0)),
-        ));
+        context
+            .borrow()
+            .spawn_entity_with((Camera::new(true), Transform::from_position(0.0, 0.0, 10.0)));
 
         Ok(())
     })?;

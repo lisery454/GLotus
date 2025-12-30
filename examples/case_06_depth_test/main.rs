@@ -28,28 +28,27 @@ fn main() -> Result<(), Box<dyn Error>> {
             .create_mesh_from_obj_in_bytes(include_bytes!("./assets/meshes/box.obj"))?;
 
         context.borrow().spawn_entity_with((
-            TransformComponent::new(Transform::from_position(0.0, 0.0, 0.0)),
-            RenderableComponent::new(mesh).with_material(DefaultPipeline::main_pass(), material),
+            Transform::from_position(0.0, 0.0, 0.0),
+            Renderable::new(mesh).with_material(DefaultPipeline::main_pass(), material),
         ));
 
         context.borrow().spawn_entity_with((
-            RenderableComponent::new(mesh2).with_material(DefaultPipeline::main_pass(), material),
-            TransformComponent::new(Transform::from_position(3.0, 0.0, 0.0)),
+            Renderable::new(mesh2).with_material(DefaultPipeline::main_pass(), material),
+            Transform::from_position(3.0, 0.0, 0.0),
         ));
 
         context.borrow().spawn_entity_with((
-            RenderableComponent::new(mesh3).with_material(DefaultPipeline::main_pass(), material),
-            TransformComponent::new(Transform::new(
+            Renderable::new(mesh3).with_material(DefaultPipeline::main_pass(), material),
+            Transform::new(
                 Translation::new(0.0, -1.2, 0.0),
                 Default::default(),
                 Scaling::new(100.0, 0.1, 100.0),
-            )),
+            ),
         ));
 
-        context.borrow().spawn_entity_with((
-            CameraComponent::new(true),
-            TransformComponent::new(Transform::from_position(1.5, 0.0, 6.0)),
-        ));
+        context
+            .borrow()
+            .spawn_entity_with((Camera::new(true), Transform::from_position(1.5, 0.0, 6.0)));
 
         Ok(())
     })?;

@@ -1,16 +1,16 @@
 use crate::{IComponent, MaterialHandle, MeshHandle, PassId};
 use std::collections::HashMap;
 
-pub struct RenderableComponent {
+pub struct Renderable {
     // 每个pass的material
     pub materials: HashMap<PassId, MaterialHandle>,
     // mesh
     pub mesh: MeshHandle,
 }
 
-impl IComponent for RenderableComponent {}
+impl IComponent for Renderable {}
 
-impl RenderableComponent {
+impl Renderable {
     pub fn new(mesh: MeshHandle) -> Self {
         Self {
             materials: HashMap::new(),

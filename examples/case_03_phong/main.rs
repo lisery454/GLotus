@@ -130,27 +130,26 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
 
                     context.borrow().spawn_entity_with((
-                        RenderableComponent::new(mesh)
+                        Renderable::new(mesh)
                             .with_material(DefaultPipeline::main_pass(), material),
-                        TransformComponent::new(Transform::from_position(
+                        Transform::from_position(
                             3.0 * (i as f32),
                             3.0 * (j as f32),
                             3.0 * (k as f32),
-                        )),
+                        ),
                     ));
                 }
             }
         }
 
-        context.borrow().spawn_entity_with((
-            CameraComponent::new(true),
-            TransformComponent::new(Transform::from_position(0.0, 1.0, 4.0)),
-        ));
+        context
+            .borrow()
+            .spawn_entity_with((Camera::new(true), Transform::from_position(0.0, 1.0, 4.0)));
 
         // 灯光
         context.borrow().spawn_entity_with((
-            TransformComponent::new(Transform::from_position(0.0, 0.0, 0.0)),
-            LightComponent::new(
+            Transform::from_position(0.0, 0.0, 0.0),
+            Light::from(
                 PointLight::new()
                     .with_color(Color::GREEN)
                     .with_intensity(3.0)
@@ -159,21 +158,21 @@ fn main() -> Result<(), Box<dyn Error>> {
         ));
 
         context.borrow().spawn_entity_with((
-            LightComponent::new(DirectionalLight::new().with_color(Color::RED)),
-            TransformComponent::new(Transform::new(
+            Light::from(DirectionalLight::new().with_color(Color::RED)),
+            Transform::new(
                 Translation::default(),
                 Rotation::new(0.0, 180.0, 0.0),
                 Scaling::default(),
-            )),
+            ),
         ));
 
         context.borrow().spawn_entity_with((
-            LightComponent::new(SpotLight::new().with_color(Color::BLUE)),
-            TransformComponent::new(Transform::new(
+            Light::from(SpotLight::new().with_color(Color::BLUE)),
+            Transform::new(
                 Translation::new(0.0, 0.0, 8.0),
                 Rotation::default(),
                 Scaling::default(),
-            )),
+            ),
         ));
 
         Ok(())

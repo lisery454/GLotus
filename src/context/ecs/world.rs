@@ -25,11 +25,11 @@ impl World {
             entities: SlotMap::with_key(),
         };
 
-        result.register_component::<super::TransformComponent>();
-        result.register_component::<super::LightComponent>();
-        result.register_component::<super::CameraComponent>();
-        result.register_component::<super::RenderableComponent>();
-        result.register_component::<super::ScriptComponent>();
+        result.register_component::<crate::Transform>();
+        result.register_component::<crate::Light>();
+        result.register_component::<crate::Camera>();
+        result.register_component::<crate::Renderable>();
+        result.register_component::<crate::Scriptable>();
 
         result
     }

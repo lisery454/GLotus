@@ -2,13 +2,13 @@ use crate::IComponent;
 
 use super::IBehavior;
 
-pub struct ScriptComponent {
+pub struct Scriptable {
     pub behaviors: Vec<Box<dyn IBehavior>>,
 }
 
-impl IComponent for ScriptComponent {}
+impl IComponent for Scriptable {}
 
-impl ScriptComponent {
+impl Scriptable {
     pub fn new() -> Self {
         Self {
             behaviors: Vec::new(),

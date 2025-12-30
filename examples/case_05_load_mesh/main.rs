@@ -59,38 +59,37 @@ fn main() -> Result<(), Box<dyn Error>> {
             .create_mesh_from_obj_in_bytes(include_bytes!("./assets/meshes/suzanne.obj"))?;
 
         context.borrow().spawn_entity_with((
-            RenderableComponent::new(mesh).with_material(DefaultPipeline::main_pass(), material),
-            TransformComponent::new(Transform::from_position(0.0, 0.0, 0.0)),
+            Renderable::new(mesh).with_material(DefaultPipeline::main_pass(), material),
+            Transform::from_position(0.0, 0.0, 0.0),
         ));
 
         context.borrow().spawn_entity_with((
-            RenderableComponent::new(mesh2).with_material(DefaultPipeline::main_pass(), material),
-            TransformComponent::new(Transform::from_position(3.0, 0.0, 0.0)),
+            Renderable::new(mesh2).with_material(DefaultPipeline::main_pass(), material),
+            Transform::from_position(3.0, 0.0, 0.0),
         ));
 
         context.borrow().spawn_entity_with((
-            RenderableComponent::new(mesh3).with_material(DefaultPipeline::main_pass(), material),
-            TransformComponent::new(Transform::from_position(0.0, 0.0, 3.0)),
+            Renderable::new(mesh3).with_material(DefaultPipeline::main_pass(), material),
+            Transform::from_position(0.0, 0.0, 3.0),
         ));
 
         context.borrow().spawn_entity_with((
-            RenderableComponent::new(mesh4).with_material(DefaultPipeline::main_pass(), material),
-            TransformComponent::new(Transform::from_position(3.0, 0.0, 3.0)),
+            Renderable::new(mesh4).with_material(DefaultPipeline::main_pass(), material),
+            Transform::from_position(3.0, 0.0, 3.0),
         ));
 
-        context.borrow().spawn_entity_with((
-            TransformComponent::new(Transform::from_position(1.5, 0.0, 6.0)),
-            CameraComponent::new(true),
-        ));
+        context
+            .borrow()
+            .spawn_entity_with((Transform::from_position(1.5, 0.0, 6.0), Camera::new(true)));
 
         context.borrow().spawn_entity_with((
-            LightComponent::new(
+            Light::from(
                 PointLight::new()
                     .with_color(Color::WHITE)
                     .with_intensity(4.0)
                     .with_range(20.0),
             ),
-            TransformComponent::new(Transform::from_position(5.0, 6.0, 3.0)),
+            Transform::from_position(5.0, 6.0, 3.0),
         ));
 
         Ok(())
