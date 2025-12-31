@@ -147,8 +147,8 @@ impl App {
     fn init(&mut self) {
         let context = self.context.borrow();
         let config = context.app_config.borrow();
-        let width = config.width;
-        let height = config.height;
+        let width = config.resolution.width;
+        let height = config.resolution.height;
         // 初始化 GLFW
         let mut glfw = glfw::init(glfw::fail_on_errors).unwrap();
 

@@ -1,6 +1,6 @@
 use cgmath::{Deg, Matrix4, Ortho, PerspectiveFov, Rad};
 
-use crate::{FramebufferHandle, IComponent, MaterialHandle};
+use crate::{FramebufferHandle, IComponent, MaterialHandle, Resolution};
 
 use super::{RenderTarget, projection_type::ProjectionType};
 
@@ -110,8 +110,8 @@ impl Camera {
         self
     }
     /// 设置相机比例
-    pub fn set_aspect_ratio(&mut self, width: u32, height: u32) {
-        self.aspect_ratio = width as f32 / height as f32;
+    pub fn set_aspect_ratio(&mut self, resolution: Resolution) {
+        self.aspect_ratio = resolution.aspect_ratio();
     }
 
     /// 获取相机比例

@@ -23,18 +23,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         let texture_config = TextureConfig::new()
             .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
             .with_filtering(FilteringMode::Nearest, FilteringMode::Nearest);
-        let topview_framebuffer =
-            context
-                .borrow()
-                .create_framebuffer(tex_size, tex_size, texture_config)?;
-        let frontview_framebuffer =
-            context
-                .borrow()
-                .create_framebuffer(tex_size, tex_size, texture_config)?;
-        let sideview_framebuffer =
-            context
-                .borrow()
-                .create_framebuffer(tex_size, tex_size, texture_config)?;
+        let topview_framebuffer = context
+            .borrow()
+            .create_framebuffer(Resolution::new(tex_size, tex_size), texture_config)?;
+        let frontview_framebuffer = context
+            .borrow()
+            .create_framebuffer(Resolution::new(tex_size, tex_size), texture_config)?;
+        let sideview_framebuffer = context
+            .borrow()
+            .create_framebuffer(Resolution::new(tex_size, tex_size), texture_config)?;
 
         let topview_texture = context
             .borrow()
@@ -81,8 +78,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         // tree
         context.borrow().spawn_entity_with((
-            Renderable::new(tree_mesh)
-                .with_material(DefaultPipeline::main_pass(), material_1),
+            Renderable::new(tree_mesh).with_material(DefaultPipeline::main_pass(), material_1),
             Transform::new(
                 Translation::new(0.0, -1.2, 0.0),
                 Rotation::new(0.0, 0.0, 0.0),

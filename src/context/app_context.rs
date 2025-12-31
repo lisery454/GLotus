@@ -161,15 +161,14 @@ impl AppContext {
 
     pub fn create_empty_texture(
         &self,
-        width: u32,
-        height: u32,
+        resolution: Resolution,
         config: TextureConfig,
     ) -> Result<TextureHandle, TextureError> {
         self.asset_manager
             .borrow_mut()
             .texture_manager
             .borrow_mut()
-            .create_empty(width, height, config)
+            .create_empty(resolution, config)
     }
 }
 
@@ -177,18 +176,17 @@ impl AppContext {
 impl AppContext {
     pub fn create_framebuffer(
         &self,
-        width: u32,
-        height: u32,
+        resolution: Resolution,
         config: TextureConfig,
     ) -> Result<FramebufferHandle, FramebufferError> {
         self.asset_manager
             .borrow()
             .framebuffer_manager
             .borrow_mut()
-            .create(width, height, config)
+            .create(resolution, config)
     }
 
-    pub fn remove_framebuffer(&self, handle: FramebufferHandle) {
+    pub fn remove_framebuffer(&self, handle: FramebufferHandle) -> Result<(), FramebufferError> {
         self.asset_manager
             .borrow()
             .framebuffer_manager

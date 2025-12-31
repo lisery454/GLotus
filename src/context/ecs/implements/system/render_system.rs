@@ -16,7 +16,7 @@ pub struct RenderSystem {
 
     // ping-pong framebuffers（用于多遍后处理）
     ping_pong_framebuffers: [Option<FramebufferHandle>; 2],
-    ping_pong_size: (u32, u32),
+    ping_pong_size: Resolution,
 }
 
 impl ISystem for RenderSystem {
@@ -41,8 +41,7 @@ impl ISystem for RenderSystem {
         let transform_mgr = world.get_manager_mut::<Transform>();
         let light_mgr = world.get_manager_mut::<Light>();
         let renderable_mgr = world.get_manager_mut::<Renderable>();
-        let window_width = config.width;
-        let window_height = config.height;
+        let window_resolution = config.resolution;
 
         // 收集所有相机
         let mut cameras: Vec<(EntityHandle, &Camera)> =
@@ -63,8 +62,7 @@ impl ISystem for RenderSystem {
                 match self.get_or_create_temp_framebuffer(
                     &context,
                     *camera_entity_id,
-                    window_width,
-                    window_height,
+                    window_resolution,
                 ) {
                     Ok(fb) => RenderTarget::Framebuffer(fb),
                     Err(e) => {
@@ -77,7 +75,7 @@ impl ISystem for RenderSystem {
             };
 
             // 绑定相机对应的渲染目标
-            self.bind_render_target(&asset_mgr, render_target, window_width, window_height);
+            self.bind_render_target(&asset_mgr, render_target, window_resolution);
             // 清空缓冲区
             if render_target == RenderTarget::Screen {
                 clear_frame(config.bg_color);
@@ -135,8 +133,7 @@ impl ISystem for RenderSystem {
 
                         // 获取 transform 用于计算深度
                         let depth = if let Some(transform) = transform_mgr.get(entity) {
-                            let world_pos_v4 =
-                                transform.translation.data.to_homogeneous();
+                            let world_pos_v4 = transform.translation.data.to_homogeneous();
                             let view_pos = view_matrix * world_pos_v4;
                             -view_pos.z
                         } else {
@@ -207,7 +204,7 @@ impl ISystem for RenderSystem {
             }
 
             // 相机渲染完成后解绑 rendertarget
-            self.unbind_render_target(render_target);
+            self.unbind_render_target(&asset_mgr, render_target);
 
             // ========== 应用后处理 ==========
             if needs_postprocess {
@@ -216,8 +213,7 @@ impl ISystem for RenderSystem {
                     render_target,
                     original_target,
                     &camera.postprocess_materials,
-                    window_width,
-                    window_height,
+                    window_resolution,
                 ) {
                     error!("Failed to apply postprocess: {:?}", e);
                 }
@@ -263,8 +259,7 @@ impl RenderSystem {
         &mut self,
         context: &AppContext,
         camera_entity: EntityHandle,
-        width: u32,
-        height: u32,
+        resolution: Resolution,
     ) -> Result<FramebufferHandle, Box<dyn Error>> {
         // 检查是否已存在
         if let Some(&fb) = self.camera_temp_framebuffers.get(&camera_entity) {
@@ -277,7 +272,7 @@ impl RenderSystem {
             .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
             .with_filtering(FilteringMode::Linear, FilteringMode::Linear);
 
-        let fb = context.create_framebuffer(width, height, texture_config)?;
+        let fb = context.create_framebuffer(resolution, texture_config)?;
         self.camera_temp_framebuffers.insert(camera_entity, fb);
         Ok(fb)
     }
@@ -286,17 +281,16 @@ impl RenderSystem {
     fn ensure_ping_pong_framebuffers(
         &mut self,
         context: &AppContext,
-        width: u32,
-        height: u32,
+        resolution: Resolution,
     ) -> Result<(), Box<dyn Error>> {
         let needs_recreate =
-            self.ping_pong_framebuffers[0].is_none() || self.ping_pong_size != (width, height);
+            self.ping_pong_framebuffers[0].is_none() || self.ping_pong_size != resolution;
 
         if needs_recreate {
             // 删除旧的
             for fb_opt in &self.ping_pong_framebuffers {
                 if let Some(fb) = fb_opt {
-                    context.remove_framebuffer(*fb);
+                    context.remove_framebuffer(*fb)?;
                 }
             }
 
@@ -306,11 +300,11 @@ impl RenderSystem {
                 .with_filtering(FilteringMode::Linear, FilteringMode::Linear);
 
             self.ping_pong_framebuffers[0] =
-                Some(context.create_framebuffer(width, height, texture_config)?);
+                Some(context.create_framebuffer(resolution, texture_config)?);
             self.ping_pong_framebuffers[1] =
-                Some(context.create_framebuffer(width, height, texture_config)?);
+                Some(context.create_framebuffer(resolution, texture_config)?);
 
-            self.ping_pong_size = (width, height);
+            self.ping_pong_size = resolution;
         }
 
         Ok(())
@@ -323,8 +317,7 @@ impl RenderSystem {
         source_target: RenderTarget,
         final_target: RenderTarget,
         materials: &Vec<MaterialHandle>,
-        width: u32,
-        height: u32,
+        window_resolution: Resolution,
     ) -> Result<(), Box<dyn Error>> {
         if materials.is_empty() {
             return Ok(());
@@ -346,13 +339,12 @@ impl RenderSystem {
                 source_texture,
                 final_target,
                 materials[0],
-                width,
-                height,
+                window_resolution,
             );
         }
 
         // 多个后处理，需要 ping-pong
-        self.ensure_ping_pong_framebuffers(context, width, height)?;
+        self.ensure_ping_pong_framebuffers(context, window_resolution)?;
 
         let mut current_source = source_texture;
         let num_materials = materials.len();
@@ -374,8 +366,7 @@ impl RenderSystem {
                 current_source,
                 current_target,
                 material,
-                width,
-                height,
+                window_resolution,
             )?;
 
             // 更新 source
@@ -395,8 +386,7 @@ impl RenderSystem {
         source_texture: TextureHandle,
         target: RenderTarget,
         material_handle: MaterialHandle,
-        window_width: u32,
-        window_height: u32,
+        window_resolution: Resolution,
     ) -> Result<(), Box<dyn Error>> {
         let asset_mgr = context.asset_manager.borrow();
 
@@ -407,7 +397,7 @@ impl RenderSystem {
         }
 
         // 绑定目标 framebuffer
-        self.bind_render_target(&asset_mgr, target, window_width, window_height);
+        self.bind_render_target(&asset_mgr, target, window_resolution);
 
         unsafe {
             gl::Disable(gl::DEPTH_TEST);
@@ -465,7 +455,7 @@ impl RenderSystem {
         // 解绑
         unbind_material(&asset_mgr, material_handle)?;
 
-        self.unbind_render_target(target);
+        self.unbind_render_target(&asset_mgr, target);
 
         Ok(())
     }
@@ -477,20 +467,24 @@ impl RenderSystem {
         &self,
         asset_mgr: &AssetManager,
         target: RenderTarget,
-        window_width: u32,
-        window_height: u32,
+        window_resolution: Resolution,
     ) {
         match target {
             RenderTarget::Screen => unsafe {
                 gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
-                gl::Viewport(0, 0, window_width as i32, window_height as i32);
+                gl::Viewport(
+                    0,
+                    0,
+                    window_resolution.width as i32,
+                    window_resolution.height as i32,
+                );
             },
             RenderTarget::Framebuffer(fb) => {
                 if let Ok(_) = asset_mgr.framebuffer_manager.borrow().bind(fb) {
                     // 获取 framebuffer 尺寸并设置 viewport
-                    if let Ok((w, h)) = asset_mgr.framebuffer_manager.borrow().get_size(fb) {
+                    if let Ok(reso) = asset_mgr.framebuffer_manager.borrow().get_size(fb) {
                         unsafe {
-                            gl::Viewport(0, 0, w as i32, h as i32);
+                            gl::Viewport(0, 0, reso.width as i32, reso.height as i32);
                         }
                     } else {
                         error!("set viewport error");
@@ -502,52 +496,17 @@ impl RenderSystem {
         }
     }
 
-    fn unbind_render_target(&self, target: RenderTarget) {
+    fn unbind_render_target(&self, asset_mgr: &AssetManager, target: RenderTarget) {
         match target {
             RenderTarget::Screen => {
                 // 屏幕不需要解绑
             }
-            RenderTarget::Framebuffer(_) => {
+            RenderTarget::Framebuffer(fb) => {
                 // 解绑 framebuffer，恢复到默认
-                FramebufferManager::unbind();
-            }
-        }
-    }
-
-    /// 绑定相机的渲染目标
-    fn bind_camera_render_target(
-        &self,
-        camera: &Camera,
-        asset_mgr: &AssetManager,
-        window_width: u32,
-        window_height: u32,
-    ) {
-        match camera.target {
-            RenderTarget::Screen => {
-                // 绑定默认 framebuffer (屏幕)
-                unsafe {
-                    gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
-                    gl::Viewport(0, 0, window_width as i32, window_height as i32);
+                if let Ok(_) = asset_mgr.framebuffer_manager.borrow().unbind(fb) {
+                } else {
+                    error!("bind fb error");
                 }
-            }
-            RenderTarget::Framebuffer(fb_handle) => {
-                // 绑定自定义 framebuffer
-                if let Err(e) = asset_mgr.framebuffer_manager.borrow().bind(fb_handle) {
-                    error!("Failed to bind framebuffer: {:?}", e);
-                }
-            }
-        }
-    }
-
-    /// 解绑相机的渲染目标
-    fn unbind_camera_render_target(&self, camera: &Camera) {
-        match camera.target {
-            RenderTarget::Screen => {
-                // 屏幕不需要解绑
-            }
-            RenderTarget::Framebuffer(_) => {
-                // 解绑 framebuffer，恢复到默认
-                FramebufferManager::unbind();
             }
         }
     }
@@ -567,10 +526,7 @@ fn get_view_position(camera_transform: &Transform) -> [f32; 3] {
     camera_transform.get_translation().get_arr()
 }
 
-pub fn camera_to_shader_data(
-    camera: &Camera,
-    transform: &Transform,
-) -> CameraShaderData {
+pub fn camera_to_shader_data(camera: &Camera, transform: &Transform) -> CameraShaderData {
     CameraShaderData {
         camera_type: if camera.projection_type == ProjectionType::Perspective {
             0
@@ -586,10 +542,7 @@ pub fn camera_to_shader_data(
     }
 }
 
-pub fn light_to_shader_data(
-    light: &Light,
-    transform: &Transform,
-) -> LightShaderData {
+pub fn light_to_shader_data(light: &Light, transform: &Transform) -> LightShaderData {
     // 预提取通用属性
     let color = light.color.to_arr();
     let intensity = light.intensity;
@@ -617,7 +570,11 @@ pub fn light_to_shader_data(
             inner_cone: 0.0,
             outer_cone: 0.0,
         },
-        LightData::Spot { range, inner, outer } => LightShaderData {
+        LightData::Spot {
+            range,
+            inner,
+            outer,
+        } => LightShaderData {
             light_type: 2,
             color,
             position,
