@@ -5,8 +5,9 @@ use std::rc::Rc;
 
 pub struct AppContext {
     pub app_config: RefCell<AppConfig>,
-    pub(crate) event_queue: RefCell<AppEventQueue>,
+    pub event_queue: RefCell<AppEventQueue>,
     pub input_state: RefCell<InputState>,
+    pub window_state: RefCell<WindowState>,
     pub asset_manager: RefCell<AssetManager>,
     pub pipeline: RefCell<Pipeline>,
     pub world: Rc<RefCell<World>>,
@@ -20,10 +21,13 @@ impl AppContext {
             configurer(&mut pipeline);
         }
 
+        let init_resolution = config.resolution;
+
         Self {
             app_config: RefCell::new(config),
             event_queue: RefCell::new(AppEventQueue::new()),
             input_state: RefCell::new(InputState::new()),
+            window_state: RefCell::new(WindowState::new(init_resolution)),
             asset_manager: RefCell::new(AssetManager::new()),
             pipeline: RefCell::new(pipeline),
             world: Rc::new(RefCell::new(World::new_with_default_registry())),

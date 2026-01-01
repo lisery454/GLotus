@@ -1,5 +1,5 @@
 use crate::{
-    AppConfig, AppContext, AppEvent, SystemDispatcher,
+    AppConfig, AppContext, AppEvent, Resolution, SystemDispatcher,
     utils::{self},
 };
 use glfw::{
@@ -341,6 +341,7 @@ impl App {
     fn handle_window_event(&mut self) {
         let context = self.context.borrow();
         let mut event_queue = context.event_queue.borrow_mut();
+        let mut window_state = context.window_state.borrow_mut();
         for (_, event) in
             glfw::flush_messages(&mut *(self.event_receiver.as_ref().unwrap().borrow_mut()))
         {
@@ -364,6 +365,7 @@ impl App {
                     event_queue.push(AppEvent::MouseButton { button, action });
                 }
                 WindowEvent::FramebufferSize(width, height) => {
+                    window_state.set_resolution(Resolution::new(width as u32, height as u32));
                     event_queue.push(AppEvent::Resize { width, height });
                 }
                 _ => (),

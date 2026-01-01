@@ -7,11 +7,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     app.borrow().build(|context| {
-        let grayscale_shader = context.borrow().create_shader_from_sources(
+        let offset_shader = context.borrow().create_shader_from_sources(
             include_str!("./assets/shaders/post_process.vert"),
             include_str!("./assets/shaders/offset_shader.frag"),
         )?;
-        let grayscale_material = context.borrow().create_material(grayscale_shader)?;
+        let offset_material = context.borrow().create_material(offset_shader)?;
+        let gaussian_blur_shader = context.borrow().create_shader_from_sources(
+            include_str!("./assets/shaders/post_process.vert"),
+            include_str!("./assets/shaders/gaussian_blur.frag"),
+        )?;
+        let gaussian_blur_material = context.borrow().create_material(gaussian_blur_shader)?;
+        let vignette_shader = context.borrow().create_shader_from_sources(
+            include_str!("./assets/shaders/post_process.vert"),
+            include_str!("./assets/shaders/vignette.frag"),
+        )?;
+        let vignette_material = context.borrow().create_material(vignette_shader)?;
 
         let shader = context.borrow().create_shader_from_sources(
             include_str!("./assets/shaders/vs.vert"),
@@ -84,7 +94,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         context.borrow().spawn_entity_with((
             Transform::from_position(1.5, 0.0, 6.0),
-            Camera::new(true).with_postprocess_materials(vec![grayscale_material]),
+            Camera::new(true).with_postprocess_materials(vec![
+                gaussian_blur_material,
+                offset_material,
+                vignette_material,
+            ]),
         ));
 
         context.borrow().spawn_entity_with((

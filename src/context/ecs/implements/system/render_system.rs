@@ -482,14 +482,14 @@ impl ISystem for RenderSystem {
     ) -> Result<(), Box<dyn Error>> {
         let context = app_context.borrow();
         let world = context.world.borrow();
-        let config = context.app_config.borrow();
         let asset_mgr = context.asset_manager.borrow();
         let pipeline = context.pipeline.borrow();
         let camera_mgr = world.get_manager_mut::<Camera>();
         let transform_mgr = world.get_manager_mut::<Transform>();
         let light_mgr = world.get_manager_mut::<Light>();
         let renderable_mgr = world.get_manager_mut::<Renderable>();
-        let window_resolution = config.resolution;
+        let window_state = context.window_state.borrow();
+        let window_resolution = window_state.get_resolution();
 
         let cameras = Self::get_all_cameras(&camera_mgr);
 
