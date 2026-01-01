@@ -261,6 +261,7 @@ impl RenderSystem {
         camera_entity: EntityHandle,
         resolution: Resolution,
     ) -> Result<FramebufferHandle, Box<dyn Error>> {
+        let anti_pixel = context.app_config.borrow().anti_pixel;
         // 检查是否已存在
         if let Some(&fb) = self.camera_temp_framebuffers.get(&camera_entity) {
             // TODO: 检查尺寸是否匹配
@@ -272,7 +273,7 @@ impl RenderSystem {
             .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
             .with_filtering(FilteringMode::Linear, FilteringMode::Linear);
 
-        let fb = context.create_framebuffer(resolution, texture_config)?;
+        let fb = context.create_framebuffer_multi_sample(resolution, anti_pixel, texture_config)?;
         self.camera_temp_framebuffers.insert(camera_entity, fb);
         Ok(fb)
     }
@@ -283,6 +284,8 @@ impl RenderSystem {
         context: &AppContext,
         resolution: Resolution,
     ) -> Result<(), Box<dyn Error>> {
+        let anti_pixel = context.app_config.borrow().anti_pixel;
+
         let needs_recreate =
             self.ping_pong_framebuffers[0].is_none() || self.ping_pong_size != resolution;
 
@@ -299,10 +302,16 @@ impl RenderSystem {
                 .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
                 .with_filtering(FilteringMode::Linear, FilteringMode::Linear);
 
-            self.ping_pong_framebuffers[0] =
-                Some(context.create_framebuffer(resolution, texture_config)?);
-            self.ping_pong_framebuffers[1] =
-                Some(context.create_framebuffer(resolution, texture_config)?);
+            self.ping_pong_framebuffers[0] = Some(context.create_framebuffer_multi_sample(
+                resolution,
+                anti_pixel,
+                texture_config,
+            )?);
+            self.ping_pong_framebuffers[1] = Some(context.create_framebuffer_multi_sample(
+                resolution,
+                anti_pixel,
+                texture_config,
+            )?);
 
             self.ping_pong_size = resolution;
         }

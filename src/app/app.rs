@@ -158,7 +158,7 @@ impl App {
             glfw::OpenGlProfileHint::Core,
         ));
         // 设置采样
-        glfw.window_hint(glfw::WindowHint::Samples(config.anti_pixel_msaa.to_num()));
+        glfw.window_hint(glfw::WindowHint::Samples(config.anti_pixel.to_num()));
 
         // 创建窗口
         let (mut window, events) = glfw
@@ -213,7 +213,7 @@ impl App {
         self.event_receiver = Some(Rc::new(RefCell::new(events)));
 
         // 抗锯齿
-        if config.anti_pixel_msaa.to_num().is_some() {
+        if config.anti_pixel.to_num().is_some() {
             unsafe {
                 gl::Enable(gl::MULTISAMPLE);
             }

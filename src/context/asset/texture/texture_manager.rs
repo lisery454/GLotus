@@ -1,5 +1,5 @@
-use super::{Texture2D, TextureError, texture2d::TextureConfig};
-use crate::Resolution;
+use super::{Texture2D, TextureConfig, TextureError};
+use crate::{AntiPixel, Resolution};
 use slotmap::{SlotMap, new_key_type};
 
 new_key_type! {
@@ -25,8 +25,16 @@ impl TextureManager {
     }
 }
 
-// create
 impl TextureManager {
+    pub fn create_empty_multi_sample(
+        &mut self,
+        resolution: Resolution,
+        anti_pixel: AntiPixel,
+    ) -> Result<TextureHandle, TextureError> {
+        let texture = Texture2D::empty_multi_sample(resolution, anti_pixel);
+        Ok(self.textures.insert(texture))
+    }
+
     pub fn create_empty(
         &mut self,
         resolution: Resolution,

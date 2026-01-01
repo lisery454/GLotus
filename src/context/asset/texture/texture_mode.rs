@@ -1,3 +1,5 @@
+use crate::Color;
+
 /// 循环模式
 #[derive(Debug, Clone, Copy)]
 pub enum WrappingMode {
@@ -8,7 +10,7 @@ pub enum WrappingMode {
     /// 边缘截至
     ClampToEdge,
     /// 边缘截至，外部是自定义的颜色
-    ClampToBorder { color: [f32; 4] },
+    ClampToBorder { color: Color },
 }
 
 /// 过滤模式

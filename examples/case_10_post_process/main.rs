@@ -3,7 +3,6 @@ use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let app = App::new_with_config(AppConfig {
-        anti_pixel_msaa: AntiPixel::MSAA16,
         ..Default::default()
     });
 

@@ -186,6 +186,19 @@ impl AppContext {
             .create(resolution, config)
     }
 
+    pub fn create_framebuffer_multi_sample(
+        &self,
+        resolution: Resolution,
+        anti_pixel: AntiPixel,
+        config: TextureConfig,
+    ) -> Result<FramebufferHandle, FramebufferError> {
+        self.asset_manager
+            .borrow()
+            .framebuffer_manager
+            .borrow_mut()
+            .create_multi_sample(resolution, anti_pixel, config)
+    }
+
     pub fn remove_framebuffer(&self, handle: FramebufferHandle) -> Result<(), FramebufferError> {
         self.asset_manager
             .borrow()
