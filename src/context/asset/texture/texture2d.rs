@@ -8,10 +8,18 @@ use super::{
     texture_mode::{FilteringMode, WrappingMode},
 };
 
+#[derive(Debug)]
+enum Texture2DType {
+    Normal(TextureConfig),
+    MultiSample(AntiPixel),
+}
+
 /// 二维贴图
 #[derive(Debug)]
 pub struct Texture2D {
     pub(crate) id: GLuint,
+    typ: Texture2DType,
+    resolution: Resolution,
 }
 
 impl Texture2D {
@@ -36,7 +44,11 @@ impl Texture2D {
             // 这些参数只在resolve后的普通纹理上有效
             gl::BindTexture(gl::TEXTURE_2D_MULTISAMPLE, 0);
         }
-        Self { id: texture_id }
+        Self {
+            id: texture_id,
+            typ: Texture2DType::MultiSample(anti_pixel),
+            resolution,
+        }
     }
 
     pub fn empty(resolution: Resolution, config: TextureConfig) -> Self {
@@ -65,7 +77,11 @@ impl Texture2D {
             gl::BindTexture(gl::TEXTURE_2D, 0);
         }
 
-        Self { id: texture_id }
+        Self {
+            id: texture_id,
+            typ: Texture2DType::Normal(config),
+            resolution,
+        }
     }
 
     pub fn from_file(path: &str, config: TextureConfig) -> Result<Self, TextureError> {
@@ -76,6 +92,42 @@ impl Texture2D {
     pub fn from_bytes(data: &[u8], config: TextureConfig) -> Result<Self, TextureError> {
         let img = image::load_from_memory(data).map_err(|_| TextureError::ByteReadError)?;
         Ok(Self::load(img, config))
+    }
+
+    pub fn resize(&mut self, new_resolution: Resolution) {
+        unsafe {
+            match self.typ {
+                Texture2DType::Normal(_) => {
+                    gl::BindTexture(gl::TEXTURE_2D, self.id);
+                    gl::TexImage2D(
+                        gl::TEXTURE_2D,
+                        0,
+                        gl::RGBA8 as i32, // 这里应使用创建时的 internal_format
+                        new_resolution.width as i32,
+                        new_resolution.height as i32,
+                        0,
+                        gl::RGBA,
+                        gl::UNSIGNED_BYTE,
+                        std::ptr::null(), // 重新分配空间，不传数据
+                    );
+                    gl::BindTexture(gl::TEXTURE_2D, 0);
+                }
+                Texture2DType::MultiSample(anti_pixel) => {
+                    gl::BindTexture(gl::TEXTURE_2D_MULTISAMPLE, self.id);
+                    gl::TexImage2DMultisample(
+                        gl::TEXTURE_2D_MULTISAMPLE,
+                        anti_pixel.samples() as i32,
+                        gl::RGBA8, // 这里应使用创建时的 internal_format
+                        new_resolution.width as i32,
+                        new_resolution.height as i32,
+                        gl::TRUE,
+                    );
+                    gl::BindTexture(gl::TEXTURE_2D_MULTISAMPLE, 0);
+                }
+            }
+
+            self.resolution = new_resolution;
+        }
     }
 
     fn load(img: DynamicImage, config: TextureConfig) -> Self {
@@ -107,7 +159,11 @@ impl Texture2D {
             gl::BindTexture(gl::TEXTURE_2D, 0);
         }
 
-        Self { id: texture_id }
+        Self {
+            id: texture_id,
+            typ: Texture2DType::Normal(config),
+            resolution: Resolution { height, width },
+        }
     }
 
     fn apply_config(config: TextureConfig) {

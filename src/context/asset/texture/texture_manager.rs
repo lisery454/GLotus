@@ -62,6 +62,21 @@ impl TextureManager {
         Ok(self.textures.insert(texture))
     }
 
+    pub fn resize(
+        &mut self,
+        handle: TextureHandle,
+        new_resolution: Resolution,
+    ) -> Result<(), TextureError> {
+        let texture = self
+            .textures
+            .get_mut(handle)
+            .ok_or(TextureError::InvalidHandle)?;
+
+        texture.resize(new_resolution);
+
+        Ok(())
+    }
+
     pub fn remove(&mut self, handle: TextureHandle) {
         self.textures.remove(handle);
     }

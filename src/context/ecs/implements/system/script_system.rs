@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, error::Error, rc::Rc};
 
 use crate::{AppContext, ISystem, Scriptable};
 
@@ -10,7 +10,11 @@ impl ISystem for ScriptSystem {
         "ScriptSystem"
     }
 
-    fn update(&mut self, app_context: Rc<RefCell<AppContext>>, dt: f32) {
+    fn update(
+        &mut self,
+        app_context: Rc<RefCell<AppContext>>,
+        dt: f32,
+    ) -> Result<(), Box<dyn Error>> {
         let context = app_context.borrow();
         let world = context.world.borrow();
 
@@ -21,9 +25,14 @@ impl ISystem for ScriptSystem {
                 behavior.on_update(entity, app_context.clone(), dt);
             }
         }
+        Ok(())
     }
 
-    fn fixed_update(&mut self, app_context: Rc<RefCell<AppContext>>, delta_dt: f32) {
+    fn fixed_update(
+        &mut self,
+        app_context: Rc<RefCell<AppContext>>,
+        delta_dt: f32,
+    ) -> Result<(), Box<dyn Error>> {
         let context = app_context.borrow();
         let world = context.world.borrow();
 
@@ -34,5 +43,7 @@ impl ISystem for ScriptSystem {
                 behavior.on_fixed_update(entity, app_context.clone(), delta_dt);
             }
         }
+
+        Ok(())
     }
 }

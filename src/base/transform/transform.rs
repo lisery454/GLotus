@@ -1,15 +1,9 @@
-use cgmath::{Matrix, Matrix3, Matrix4, One, SquareMatrix, Vector3};
+use cgmath::{Matrix, Matrix3, Matrix4, SquareMatrix, Vector3};
 
 use super::TransformError;
 use super::rotation::Rotation;
 use super::scaling::Scaling;
 use super::translation::Translation;
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum TransformSpace {
-    World,  // 3D 世界空间，受相机 View/Projection 矩阵影响
-    Screen, // 2D 屏幕空间 (NDC)，坐标范围 [-1, 1]，不受相机移动影响
-}
 
 /// 描述一个物体的位置旋转和缩放
 #[derive(Debug)]
@@ -17,7 +11,6 @@ pub struct Transform {
     pub(crate) translation: Translation,
     pub(crate) rotation: Rotation,
     pub(crate) scaling: Scaling,
-    pub(crate) space: TransformSpace,
 }
 
 impl Default for Transform {
@@ -26,7 +19,6 @@ impl Default for Transform {
             translation: Default::default(),
             rotation: Default::default(),
             scaling: Default::default(),
-            space: TransformSpace::World,
         }
     }
 }
@@ -38,7 +30,6 @@ impl Transform {
             translation,
             rotation,
             scaling,
-            space: TransformSpace::World,
         }
     }
 
@@ -46,7 +37,7 @@ impl Transform {
         Self {
             translation: Translation::new(x, y, 0.0), // Z 设为 0
             scaling: Scaling::new(scale_x, scale_y, 1.0),
-            space: TransformSpace::Screen,
+
             ..Default::default()
         }
     }
@@ -57,7 +48,6 @@ impl Transform {
             translation: Translation::new(x, y, z),
             rotation: Rotation::default(),
             scaling: Scaling::default(),
-            space: TransformSpace::World,
         }
     }
 
@@ -98,15 +88,11 @@ impl Transform {
     }
 
     pub(crate) fn get_view_matrix(&self) -> Matrix4<f32> {
-        if self.space == TransformSpace::World {
-            Matrix4::look_to_rh(
-                self.get_translation().data,
-                self.get_forward(),
-                self.get_up(),
-            )
-        } else {
-            Matrix4::one().into()
-        }
+        Matrix4::look_to_rh(
+            self.get_translation().data,
+            self.get_forward(),
+            self.get_up(),
+        )
     }
 
     /// 获取平移引用

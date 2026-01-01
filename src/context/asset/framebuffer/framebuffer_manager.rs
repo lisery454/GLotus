@@ -143,6 +143,63 @@ impl FramebufferManager {
         Ok(fb.resolution)
     }
 
+    pub fn resize(
+        &mut self,
+        handle: FramebufferHandle,
+        new_resolution: Resolution,
+    ) -> Result<(), FramebufferError> {
+        // 1. 获取 TextureManager 的可变借用
+        let tm_rc = self
+            .texture_manager
+            .upgrade()
+            .ok_or(FramebufferError::TextureManagerBorrowFail)?;
+        let mut tm = tm_rc.borrow_mut();
+
+        // 2. 更新关联的所有纹理尺寸
+        // 处理普通颜色纹理
+        let color_tex_handle = self
+            .fbo_textures
+            .get(handle)
+            .ok_or(FramebufferError::NotFoundTexture)?;
+        tm.resize(*color_tex_handle, new_resolution)?;
+        let color_tex_id = tm
+            .get(*color_tex_handle)
+            .map(|t| t.id)
+            .ok_or(FramebufferError::NotFoundTexture)?;
+
+        // 处理 MSAA 纹理（如果有）
+        let mut msaa_config = None;
+        if let Some(msaa_tex_handle) = self.msaa_fbo_textures.get(handle) {
+            tm.resize(*msaa_tex_handle, new_resolution)?;
+            let msaa_tex = tm
+                .get(*msaa_tex_handle)
+                .ok_or(FramebufferError::NotFoundTexture)?;
+
+            // 注意：这里需要知道之前的采样率。
+            // 如果你的 Framebuffer 结构体没存 samples，建议在此处获取（或从配置获取）
+            let samples = 4; // 示例：建议通过 fb.samples 获取
+            msaa_config = Some((msaa_tex.id, samples));
+        }
+
+        // 3. 创建新的 Framebuffer 对象
+        let new_fb = if let Some((msaa_id, samples)) = msaa_config {
+            Framebuffer::new_multi_sample(new_resolution, msaa_id, color_tex_id, samples)?
+        } else {
+            Framebuffer::new(new_resolution, color_tex_id)?
+        };
+
+        // 4. 【核心点】更新 SlotMap 中的值并触发旧对象的 Drop
+        if let Some(fb_entry) = self.framebuffers.get_mut(handle) {
+            // 解引用赋值：这会销毁旧的 fb_entry（调用其 Drop 释放 OpenGL 资源）
+            // 并将 new_fb 的内容移动进去
+            *fb_entry = new_fb;
+        } else {
+            return Err(FramebufferError::InvalidHandle);
+        }
+
+        Ok(())
+    }
+
     pub fn get_color_texture(
         &self,
         handle: FramebufferHandle,

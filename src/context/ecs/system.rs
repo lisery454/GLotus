@@ -1,12 +1,27 @@
 use crate::AppContext;
 use std::cell::RefCell;
+use std::error::Error;
 use std::rc::Rc;
 
 pub trait ISystem {
     fn name(&self) -> &str;
-    fn init(&mut self, _app_context: Rc<RefCell<AppContext>>) {}
-    fn update(&mut self, _app_context: Rc<RefCell<AppContext>>, _delta_dt: f32) {}
-    fn fixed_update(&mut self, _app_context: Rc<RefCell<AppContext>>, _delta_dt: f32) {}
+    fn init(&mut self, _app_context: Rc<RefCell<AppContext>>) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
+    fn update(
+        &mut self,
+        _app_context: Rc<RefCell<AppContext>>,
+        _delta_dt: f32,
+    ) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
+    fn fixed_update(
+        &mut self,
+        _app_context: Rc<RefCell<AppContext>>,
+        _delta_dt: f32,
+    ) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
 }
 
 pub struct SystemDispatcher {
@@ -35,25 +50,35 @@ impl SystemDispatcher {
         self.systems.push(Box::new(system));
     }
 
-    pub(crate) fn init_systems(&mut self, app_context: Rc<RefCell<AppContext>>) {
+    pub(crate) fn init_systems(
+        &mut self,
+        app_context: Rc<RefCell<AppContext>>,
+    ) -> Result<(), Box<dyn Error>> {
         for system in &mut self.systems {
-            system.init(app_context.clone());
+            system.init(app_context.clone())?;
         }
+        Ok(())
     }
 
-    pub(crate) fn run_systems(&mut self, app_context: Rc<RefCell<AppContext>>, delta_dt: f32) {
+    pub(crate) fn run_systems(
+        &mut self,
+        app_context: Rc<RefCell<AppContext>>,
+        delta_dt: f32,
+    ) -> Result<(), Box<dyn Error>> {
         for system in &mut self.systems {
-            system.update(app_context.clone(), delta_dt);
+            system.update(app_context.clone(), delta_dt)?;
         }
+        Ok(())
     }
 
     pub(crate) fn fixed_run_systems(
         &mut self,
         app_context: Rc<RefCell<AppContext>>,
         delta_dt: f32,
-    ) {
+    ) -> Result<(), Box<dyn Error>> {
         for system in &mut self.systems {
-            system.fixed_update(app_context.clone(), delta_dt);
+            system.fixed_update(app_context.clone(), delta_dt)?;
         }
+        Ok(())
     }
 }

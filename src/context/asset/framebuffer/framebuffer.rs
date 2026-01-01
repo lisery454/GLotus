@@ -7,6 +7,7 @@ pub struct Framebuffer {
     pub(crate) msaa_fbo_id: Option<u32>, // 多重采样 FBO (可选)
     pub(crate) rbo_id: u32,              // 深度模板缓冲
     pub(crate) resolution: Resolution,
+    pub(crate) samples: u32,
 }
 
 impl Framebuffer {
@@ -47,9 +48,11 @@ impl Framebuffer {
 
             let mut msaa_fbo_id = None;
             let mut rbo_id = 0;
+            let mut samples = 1;
 
             // 如果有 MSAA 配置，创建第二个渲染用的 FBO
-            if let Some((msaa_tex_id, samples)) = msaa_config {
+            if let Some((msaa_tex_id, s)) = msaa_config {
+                samples = s;
                 let mut mfbo = 0;
                 gl::GenFramebuffers(1, &mut mfbo);
                 gl::BindFramebuffer(gl::FRAMEBUFFER, mfbo);
@@ -111,6 +114,7 @@ impl Framebuffer {
                 msaa_fbo_id,
                 rbo_id,
                 resolution,
+                samples,
             })
         }
     }

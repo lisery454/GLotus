@@ -5,7 +5,7 @@ use crate::{
 use glfw::{
     Action, Context, Glfw, GlfwReceiver, Key, PWindow, SwapInterval, WindowEvent, ffi::glfwGetTime,
 };
-use log::info;
+use log::{error, info};
 use std::{cell::RefCell, error::Error, rc::Rc, time::Duration};
 
 pub struct App {
@@ -225,9 +225,13 @@ impl App {
         }
 
         // 初始化system
-        self.system_dispatcher
+        if let Err(e) = self
+            .system_dispatcher
             .borrow_mut()
-            .init_systems(self.context.clone());
+            .init_systems(self.context.clone())
+        {
+            error!("init system error: {}", e);
+        };
     }
 
     fn handle_event_queue(&mut self) {
@@ -297,9 +301,13 @@ impl App {
             self.is_running = false;
         }
 
-        self.system_dispatcher
+        if let Err(e) = self
+            .system_dispatcher
             .borrow_mut()
-            .fixed_run_systems(self.context.clone(), fixed_dt);
+            .fixed_run_systems(self.context.clone(), fixed_dt)
+        {
+            error!("fixed run system error: {}", e);
+        };
 
         self.context.borrow().input_state.borrow_mut().clear_delta();
     }
@@ -312,9 +320,13 @@ impl App {
     }
 
     fn render_update(&mut self, delta_dt: f32) {
-        self.system_dispatcher
+        if let Err(e) = self
+            .system_dispatcher
             .borrow_mut()
-            .run_systems(self.context.clone(), delta_dt);
+            .run_systems(self.context.clone(), delta_dt)
+        {
+            error!("render update system error: {}", e);
+        };
     }
 
     fn close(&mut self) {

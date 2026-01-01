@@ -2,6 +2,7 @@ use crate::{AppContext, AppEvent, Camera, ISystem, Resolution, Rotation, Transfo
 use cgmath::{Deg, InnerSpace, Quaternion, Rad, Rotation3, Vector2, Vector3};
 use glfw::Key;
 use std::cell::RefCell;
+use std::error::Error;
 use std::rc::Rc;
 
 #[derive(Default)]
@@ -12,7 +13,11 @@ impl ISystem for CameraSystem {
         "CameraSystem"
     }
 
-    fn update(&mut self, app_context: Rc<RefCell<AppContext>>, _delta_dt: f32) {
+    fn update(
+        &mut self,
+        app_context: Rc<RefCell<AppContext>>,
+        _delta_dt: f32,
+    ) -> Result<(), Box<dyn Error>> {
         let config_resolution = {
             let context = app_context.borrow();
             let config = context.app_config.borrow();
@@ -39,19 +44,25 @@ impl ISystem for CameraSystem {
             if let Some((_entity, main_cam)) = camera_mgr.find_mut(|cam| cam.is_active) {
                 if let Some((w, h)) = resize_data {
                     main_cam.set_aspect_ratio(Resolution::new(w as u32, h as u32));
-                    return;
+                    return Ok(());
                 }
 
                 if main_cam.is_initialized == false {
                     main_cam.set_aspect_ratio(config_resolution);
                     main_cam.is_initialized = true;
-                    return;
+                    return Ok(());
                 }
             }
         }
+
+        Ok(())
     }
 
-    fn fixed_update(&mut self, app_context: Rc<RefCell<AppContext>>, delta_dt: f32) {
+    fn fixed_update(
+        &mut self,
+        app_context: Rc<RefCell<AppContext>>,
+        delta_dt: f32,
+    ) -> Result<(), Box<dyn Error>> {
         // 1. 先提取所有需要的输入数据，然后立即释放 input_state 的锁
         let (movement, scroll_y, cursor_delta) = {
             let app = app_context.borrow(); // app 是 Ref<AppContext>
@@ -99,6 +110,8 @@ impl ISystem for CameraSystem {
                 }
             }
         }
+
+        Ok(())
     }
 }
 
