@@ -11,13 +11,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     app.borrow().build(|context| {
         let tex_size = 1024;
         let shader_1 = context.borrow().create_shader_from_sources(
-            include_str!("./assets/shaders/vs_1.vert"),
-            include_str!("./assets/shaders/fs_1.frag"),
+            include_str!("./assets/shaders/normal.vert"),
+            include_str!("./assets/shaders/normal.frag"),
         )?;
         let material_1 = context.borrow().create_material(shader_1)?;
         let shader_2 = context.borrow().create_shader_from_sources(
-            include_str!("./assets/shaders/vs_2.vert"),
-            include_str!("./assets/shaders/fs_2.frag"),
+            include_str!("./assets/shaders/tex.vert"),
+            include_str!("./assets/shaders/tex.frag"),
         )?;
 
         let texture_config = TextureConfig::new()

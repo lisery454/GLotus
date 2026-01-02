@@ -1,4 +1,4 @@
-use cgmath::{Matrix, Matrix3, Matrix4, SquareMatrix, Vector3};
+use cgmath::{Matrix, Matrix4, SquareMatrix, Vector3};
 
 use super::TransformError;
 use super::rotation::Rotation;
@@ -66,25 +66,26 @@ impl Transform {
     }
 
     /// 获取法线变化矩阵
-    pub(crate) fn to_normal_matrix(&self) -> Result<[[f32; 3]; 3], TransformError> {
+    pub(crate) fn to_normal_matrix(&self) -> Result<[[f32; 4]; 4], TransformError> {
         let inverse_matrix = self
             .get_matrix()
             .invert()
             .ok_or(TransformError::InverseMatrixFail)?;
 
-        let inverse_model_3x3 = Matrix3::new(
-            inverse_matrix[0][0],
-            inverse_matrix[0][1],
-            inverse_matrix[0][2],
-            inverse_matrix[1][0],
-            inverse_matrix[1][1],
-            inverse_matrix[1][2],
-            inverse_matrix[2][0],
-            inverse_matrix[2][1],
-            inverse_matrix[2][2],
-        );
+        let normal_matrix_3x3 = inverse_matrix.transpose();
+        let mut result = [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ];
+        for i in 0..3 {
+            for j in 0..3 {
+                result[i][j] = normal_matrix_3x3[i][j];
+            }
+        }
 
-        Ok(inverse_model_3x3.transpose().into())
+        Ok(result)
     }
 
     pub(crate) fn get_view_matrix(&self) -> Matrix4<f32> {

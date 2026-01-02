@@ -10,13 +10,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     app.borrow().build(|context| {
         let shader_1 = context.borrow().create_shader_from_sources(
-            include_str!("./assets/shaders/vs_1.vert"),
-            include_str!("./assets/shaders/fs_1.frag"),
+            include_str!("./assets/shaders/normal.vert"),
+            include_str!("./assets/shaders/normal.frag"),
         )?;
 
         let shader_2 = context.borrow().create_shader_from_sources(
-            include_str!("./assets/shaders/vs_2.vert"),
-            include_str!("./assets/shaders/fs_2.frag"),
+            include_str!("./assets/shaders/outline.vert"),
+            include_str!("./assets/shaders/outline.frag"),
         )?;
 
         let material_1 = context.borrow().create_material(shader_1)?;

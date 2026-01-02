@@ -41,6 +41,8 @@ pub struct RenderSystem {
     // ping-pong framebuffers（用于多遍后处理）
     ping_pong_framebuffers: [Option<FramebufferHandle>; 2],
     ping_pong_size: Resolution,
+
+    global_uniform: GlobalUniform,
 }
 
 impl RenderSystem {
@@ -140,7 +142,7 @@ impl RenderSystem {
             .iter()
             .map(|(entity, light)| {
                 if let Some(light_transform) = transform_mgr.get(entity) {
-                    return Some(Self::light_to_shader_data(light, light_transform));
+                    return Some(LightShaderData::from_light(light, light_transform));
                 }
                 None
             })
@@ -187,15 +189,10 @@ impl RenderSystem {
     }
 
     fn do_render_job(
+        &self,
         job: &RenderJob,
         transform_mgr: &ComponentManager<Transform>,
         asset_mgr: &AssetManager,
-        view_matrix: &[[f32; 4]; 4],
-        projection_matrix: &[[f32; 4]; 4],
-        view_position: &[f32; 3],
-        light_count: &i32,
-        lights_shader_data: &Vec<LightShaderData>,
-        camera_shader_data: &CameraShaderData,
     ) -> Result<(), RenderError> {
         let material_handle = job.get_material();
         let mesh_handle = job.get_mesh();
@@ -205,158 +202,18 @@ impl RenderSystem {
         let Some(transform) = transform_mgr.get(entity_handle) else {
             return Err(RenderError::NotFoundEntityTransform);
         };
-        let model_matrix = transform.to_matrix();
-        let normal_matrix = transform.to_normal_matrix()?;
 
-        // 注入全局 Uniform
-        let global_uniform = GlobalUniform {
-            view_matrix: &view_matrix,
-            projection_matrix: &projection_matrix,
-            view_position: &view_position,
-            model_matrix: &model_matrix,
-            normal_matrix: &normal_matrix,
-            light_count: &light_count,
-            lights_shader_data: &lights_shader_data,
-            camera_shader_data: &camera_shader_data,
-        };
+        self.global_uniform
+            .update_model_data(&ModelData::new(transform)?);
 
         // 绑定 Shader
         Self::bind_material(&asset_mgr, material_handle)?;
-
-        // 给这个材质注入全局变量
-        Self::inject_global_uniform(&asset_mgr, material_handle, &global_uniform)?;
 
         // 绘制 Mesh
         Self::draw_mesh(&asset_mgr, mesh_handle)?;
 
         // 卸载材质
         Self::unbind_material(&asset_mgr, material_handle)?;
-        Ok(())
-    }
-
-    fn camera_to_shader_data(camera: &Camera, transform: &Transform) -> CameraShaderData {
-        CameraShaderData {
-            camera_type: if camera.projection_type == ProjectionType::Perspective {
-                0
-            } else {
-                1
-            },
-            fov: camera.fov.0, // Deg<f32> 解包成 f32
-            position: transform.get_translation().get_arr().into(),
-            direction: transform.get_rotation().forward().into(),
-            aspect_ratio: camera.aspect_ratio,
-            near_plane: camera.near_plane,
-            far_plane: camera.far_plane,
-        }
-    }
-
-    fn light_to_shader_data(light: &Light, transform: &Transform) -> LightShaderData {
-        // 预提取通用属性
-        let color = light.color.to_arr();
-        let intensity = light.intensity;
-        let position = transform.get_translation().get_arr();
-        let direction = transform.get_rotation().forward().into();
-
-        match light.data {
-            LightData::Directional => LightShaderData {
-                light_type: 0,
-                color,
-                position: [0.0; 3], // 方向光通常不需要位置
-                direction,
-                intensity,
-                range: 0.0,
-                inner_cone: 0.0,
-                outer_cone: 0.0,
-            },
-            LightData::Point { range } => LightShaderData {
-                light_type: 1,
-                color,
-                position,
-                direction: [0.0; 3],
-                intensity,
-                range,
-                inner_cone: 0.0,
-                outer_cone: 0.0,
-            },
-            LightData::Spot {
-                range,
-                inner,
-                outer,
-            } => LightShaderData {
-                light_type: 2,
-                color,
-                position,
-                direction,
-                intensity,
-                range,
-                inner_cone: inner,
-                outer_cone: outer,
-            },
-        }
-    }
-
-    fn inject_global_uniform(
-        asset_manager: &AssetManager,
-        material_handle: MaterialHandle,
-        global_uniform: &GlobalUniform,
-    ) -> Result<(), RenderError> {
-        let material_manager = &asset_manager.material_manager.borrow();
-        let shader_manager = &asset_manager.shader_manager.borrow();
-        let material = material_manager
-            .get(material_handle)
-            .ok_or(MaterialError::FindMatFail)?;
-
-        let shader = shader_manager
-            .get(material.shader_handle)
-            .ok_or(MaterialError::FindShaderFail)?;
-
-        shader.set_uniform_vec3("g_view_position", &global_uniform.view_position)?;
-        shader.set_uniform_mat4("g_model_matrix", &global_uniform.model_matrix)?;
-        shader.set_uniform_mat3("g_normal_matrix", &global_uniform.normal_matrix)?;
-        shader.set_uniform_mat4("g_view_matrix", &global_uniform.view_matrix)?;
-        shader.set_uniform_mat4("g_projection_matrix", &global_uniform.projection_matrix)?;
-        shader.set_uniform_i32("g_light_count", *global_uniform.light_count)?;
-
-        for (i, v) in global_uniform.lights_shader_data.iter().enumerate() {
-            shader.set_uniform_i32(&format!("g_lights[{}].light_type", i), v.light_type)?;
-            shader.set_uniform_vec4(&format!("g_lights[{}].color", i), &v.color)?;
-            shader.set_uniform_vec3(&format!("g_lights[{}].position", i), &v.position)?;
-            shader.set_uniform_vec3(&format!("g_lights[{}].direction", i), &v.direction)?;
-            shader.set_uniform_f32(&format!("g_lights[{}].intensity", i), v.intensity)?;
-            shader.set_uniform_f32(&format!("g_lights[{}].range", i), v.range)?;
-            shader.set_uniform_f32(&format!("g_lights[{}].inner_cone", i), v.inner_cone)?;
-            shader.set_uniform_f32(&format!("g_lights[{}].outer_cone", i), v.outer_cone)?;
-        }
-        shader.set_uniform_i32(
-            "g_camera.camera_type",
-            global_uniform.camera_shader_data.camera_type,
-        )?;
-
-        shader.set_uniform_vec3(
-            "g_camera.direction",
-            &global_uniform.camera_shader_data.direction,
-        )?;
-
-        shader.set_uniform_vec3(
-            "g_camera.position",
-            &global_uniform.camera_shader_data.position,
-        )?;
-
-        shader.set_uniform_f32(
-            "g_camera.aspect_ratio",
-            global_uniform.camera_shader_data.aspect_ratio,
-        )?;
-
-        shader.set_uniform_f32(
-            "g_camera.near_plane",
-            global_uniform.camera_shader_data.near_plane,
-        )?;
-
-        shader.set_uniform_f32(
-            "g_camera.far_plane",
-            global_uniform.camera_shader_data.far_plane,
-        )?;
-
         Ok(())
     }
 
@@ -472,6 +329,7 @@ impl ISystem for RenderSystem {
 
     fn init(&mut self, app_context: Rc<RefCell<AppContext>>) -> Result<(), Box<dyn Error>> {
         self.create_guad_mesh(&app_context.borrow())?;
+        self.global_uniform.init();
         Ok(())
     }
 
@@ -492,6 +350,12 @@ impl ISystem for RenderSystem {
         let window_resolution = window_state.get_resolution();
 
         let cameras = Self::get_all_cameras(&camera_mgr);
+
+        // 计算光源 shader 信息
+        let lights_shader_data = Self::get_light_shader_data(&light_mgr, &transform_mgr)?;
+
+        self.global_uniform
+            .update_frame_data(&FrameData::new(&lights_shader_data));
 
         for (camera_entity, camera) in cameras.iter() {
             // 判断是否需要后处理
@@ -526,13 +390,9 @@ impl ISystem for RenderSystem {
 
             // 计算相机相关矩阵
             let view_matrix = camera_transform.get_view_matrix();
-            let projection_matrix = camera.get_projection_matrix();
-            let view_position = camera_transform.get_translation().get_arr();
-            let camera_shader_data = Self::camera_to_shader_data(camera, camera_transform);
 
-            // 计算光源 shader 信息
-            let lights_shader_data = Self::get_light_shader_data(&light_mgr, &transform_mgr)?;
-            let light_count = lights_shader_data.len() as i32;
+            self.global_uniform
+                .update_camera_data(&CameraData::new(camera, camera_transform));
 
             // 按 pass 渲染
             for pass in &pipeline.passes {
@@ -549,18 +409,8 @@ impl ISystem for RenderSystem {
 
                 // 渲染所有 job
                 for job in jobs {
-                    if let Err(e) = Self::do_render_job(
-                        &job,
-                        &transform_mgr,
-                        &asset_mgr,
-                        &(view_matrix.into()),
-                        &projection_matrix,
-                        &view_position,
-                        &light_count,
-                        &lights_shader_data,
-                        &camera_shader_data,
-                    ) {
-                        error!("one of render job fail: {}", e);
+                    if let Err(e) = self.do_render_job(&job, &transform_mgr, &asset_mgr) {
+                        error!("one of render job fail: {:?}", e);
                         continue;
                     }
                 }

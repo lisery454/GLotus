@@ -29,4 +29,10 @@ cargo run --example case_07_outline
 
 # blend实现的透明物体渲染
 cargo run --example case_08_blend
+
+# framebuffer实现三视图贴图
+cargo run --example case_09_to_texture
+
+# framebuffer实现后处理
+cargo run --example case_10_post_process
 ```

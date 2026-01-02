@@ -17,7 +17,7 @@ uniform Material material;
 
 void main() {
   vec3 normal = normalize(normal_in_world);
-  vec3 view_dir = normalize(g_view_position - frag_pos_in_world);
+  vec3 view_dir = normalize(VIEW_POS - frag_pos_in_world);
 
   vec3 diff_tex = texture(material.diffuse_texture, tex_coord).rgb;
   vec3 spec_tex = texture(material.specular_texture, tex_coord).rgb;

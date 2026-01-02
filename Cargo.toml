@@ -5,7 +5,7 @@ edition = "2024"
 build = "build.rs"
 
 [dependencies]
-cgmath = "0.18.0"
+cgmath = { version = "0.18.0", features = ["mint"] }
 chrono = "0.4.41"
 env_logger = "0.11.8"
 ffi = "0.1.1"
@@ -19,6 +19,8 @@ regex = "1.11.1"
 tobj = "4.0.3"
 slotmap = "1.1.1"
 downcast-rs = "2.0.2"
+# bytemuck = "1.24.0"
+# bytemuck_derive = "1.10.2"
 
 [build-dependencies]
 gl_generator = "0.14.0"

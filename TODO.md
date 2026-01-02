@@ -5,6 +5,7 @@
 - [ ] 光源相机的辅助显示
 - [ ] 资源未找到的默认值
 - [x] 排序方法用户自定义
-- [ ] SSBO UBO 优化传入全局 uniform
+- [x] UBO 优化传入全局 uniform
 - [ ] UI 层处理，包括 pass
-- [ ] framebuffer 的 msaa 处理
+- [x] framebuffer 的 msaa 处理
+- [ ] SSBO

@@ -18,7 +18,7 @@ uniform Material material;
 
 void main() {
   vec3 normal = normalize(frag_normal);
-  vec3 view_dir = normalize(g_view_position - frag_position);
+  vec3 view_dir = normalize(VIEW_POS - frag_position);
 
   PhongParams pp;
   pp.ambient_factor = material.ambient_factor;
