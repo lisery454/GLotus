@@ -16,5 +16,6 @@ pub enum UniformValue {
     /// mat4*4
     Matrix4([[f32; 4]; 4]),
     /// tex的slot，以及贴图数据
-    Texture(usize, TextureHandle), // 纹理槽位
+    Texture2D(usize, TextureHandle), // 纹理槽位
+    TextureCubeMap(usize, TextureHandle), // 纹理槽位
 }

@@ -131,7 +131,8 @@ impl AppContext {
 
 // texture
 impl AppContext {
-    pub fn create_texture_from_file(
+    /// 从文件创建 2D 纹理
+    pub fn create_texture_2d_from_file(
         &self,
         path: &str,
         config: TextureConfig,
@@ -143,7 +144,8 @@ impl AppContext {
             .create_from_file(path, config)
     }
 
-    pub fn create_texture_from_byte(
+    /// 从字节数据创建 2D 纹理
+    pub fn create_texture_2d_from_bytes(
         &self,
         data: &[u8],
         config: TextureConfig,
@@ -152,18 +154,11 @@ impl AppContext {
             .borrow_mut()
             .texture_manager
             .borrow_mut()
-            .create_from_byte(data, config)
+            .create_from_bytes(data, config)
     }
 
-    pub fn remove_texture(&mut self, texture: TextureHandle) {
-        self.asset_manager
-            .borrow_mut()
-            .texture_manager
-            .borrow_mut()
-            .remove(texture);
-    }
-
-    pub fn create_empty_texture(
+    /// 创建空的 2D 纹理
+    pub fn create_empty_texture_2d(
         &self,
         resolution: Resolution,
         config: TextureConfig,
@@ -173,6 +168,120 @@ impl AppContext {
             .texture_manager
             .borrow_mut()
             .create_empty(resolution, config)
+    }
+
+    /// 创建空的多重采样 2D 纹理
+    pub fn create_empty_multi_sample_texture_2d(
+        &self,
+        resolution: Resolution,
+        anti_pixel: AntiPixel,
+    ) -> Result<TextureHandle, TextureError> {
+        self.asset_manager
+            .borrow_mut()
+            .texture_manager
+            .borrow_mut()
+            .create_empty_multi_sample(resolution, anti_pixel)
+    }
+
+    /// 调整 2D 纹理大小
+    pub fn resize_texture_2d(
+        &self,
+        texture: TextureHandle,
+        new_resolution: Resolution,
+    ) -> Result<(), TextureError> {
+        self.asset_manager
+            .borrow_mut()
+            .texture_manager
+            .borrow_mut()
+            .resize_2d(texture, new_resolution)
+    }
+
+    /// 创建空的立方体贴图
+    pub fn create_empty_cube_map(
+        &self,
+        resolution: Resolution,
+        config: TextureConfig,
+    ) -> Result<TextureHandle, TextureError> {
+        self.asset_manager
+            .borrow_mut()
+            .texture_manager
+            .borrow_mut()
+            .create_empty_cube_map(resolution, config)
+    }
+
+    /// 从六个文件创建立方体贴图
+    ///
+    /// # 参数
+    /// - `paths`: 六个文件路径，顺序为 [右, 左, 上, 下, 前, 后] (+X, -X, +Y, -Y, +Z, -Z)
+    ///
+    /// # 示例
+    /// ```
+    /// let skybox = ctx.create_cube_map_from_files(
+    ///     [
+    ///         "skybox/right.jpg",
+    ///         "skybox/left.jpg",
+    ///         "skybox/top.jpg",
+    ///         "skybox/bottom.jpg",
+    ///         "skybox/front.jpg",
+    ///         "skybox/back.jpg",
+    ///     ],
+    ///     TextureConfig::default(),
+    /// )?;
+    /// ```
+    pub fn create_cube_map_from_files(
+        &self,
+        paths: [&str; 6],
+        config: TextureConfig,
+    ) -> Result<TextureHandle, TextureError> {
+        self.asset_manager
+            .borrow_mut()
+            .texture_manager
+            .borrow_mut()
+            .create_cube_map_from_files(paths, config)
+    }
+
+    /// 从六个字节数组创建立方体贴图
+    ///
+    /// # 参数
+    /// - `data_array`: 六个图像数据，顺序为 [右, 左, 上, 下, 前, 后] (+X, -X, +Y, -Y, +Z, -Z)
+    pub fn create_cube_map_from_bytes(
+        &self,
+        data_array: [&[u8]; 6],
+        config: TextureConfig,
+    ) -> Result<TextureHandle, TextureError> {
+        self.asset_manager
+            .borrow_mut()
+            .texture_manager
+            .borrow_mut()
+            .create_cube_map_from_bytes(data_array, config)
+    }
+
+    /// 更新立方体贴图的某个面
+    ///
+    /// # 参数
+    /// - `texture`: 立方体贴图的句柄
+    /// - `face`: 要更新的面（使用 CubeFace 枚举）
+    /// - `img`: 新的图像数据
+    pub fn update_cube_map_face(
+        &self,
+        texture: TextureHandle,
+        face: CubeFace,
+        img: image::DynamicImage,
+    ) -> Result<(), TextureError> {
+        self.asset_manager
+            .borrow_mut()
+            .texture_manager
+            .borrow_mut()
+            .update_cube_map_face(texture, face, img)
+    }
+
+    /// 删除纹理（支持 Texture2D 和 CubeMap）
+    pub fn remove_texture(&self, texture: TextureHandle) {
+        self.asset_manager
+            .borrow_mut()
+            .texture_manager
+            .borrow_mut()
+            .remove(texture);
     }
 }
 
@@ -225,56 +334,68 @@ impl AppContext {
 
 // mesh
 impl AppContext {
-    pub fn create_mesh_from_position(
+    pub fn create_mesh_from_positions(
         &self,
-        indices: &Vec<usize>,
-        positions: &Vec<f32>,
+        indices: Vec<u32>,
+        positions: Vec<f32>,
     ) -> Result<MeshHandle, MeshError> {
         self.asset_manager
             .borrow_mut()
             .mesh_manager
             .borrow_mut()
-            .create_from_position(indices, positions)
+            .create_from_positions(indices, positions)
     }
 
     pub fn create_mesh_from_position_normal(
         &self,
-        indices: &Vec<usize>,
-        positions: &Vec<f32>,
-        normals: &Vec<f32>,
+        indices: Vec<u32>,
+        positions: Vec<f32>,
+        normals: Vec<f32>,
     ) -> Result<MeshHandle, MeshError> {
         self.asset_manager
             .borrow_mut()
             .mesh_manager
             .borrow_mut()
-            .create_from_position_normal(indices, positions, normals)
+            .create_from_positions_normals(indices, positions, normals)
     }
 
-    pub fn create_mesh_from_position_texcoord(
+    pub fn create_mesh_from_positions_uvs(
         &self,
-        indices: &Vec<usize>,
-        positions: &Vec<f32>,
-        texcoords: &Vec<f32>,
+        indices: Vec<u32>,
+        positions: Vec<f32>,
+        texcoords: Vec<f32>,
     ) -> Result<MeshHandle, MeshError> {
         self.asset_manager
             .borrow_mut()
             .mesh_manager
             .borrow_mut()
-            .create_from_position_texcoord(indices, positions, texcoords)
+            .create_from_positions_uvs(indices, positions, texcoords)
     }
 
-    pub fn create_mesh_from_position_normal_texcoord(
+    pub fn create_mesh_from_positions_normals_uvs(
         &self,
-        indices: &Vec<usize>,
-        positions: &Vec<f32>,
-        normals: &Vec<f32>,
-        texcoords: &Vec<f32>,
+        indices: Vec<u32>,
+        positions: Vec<f32>,
+        normals: Vec<f32>,
+        texcoords: Vec<f32>,
     ) -> Result<MeshHandle, MeshError> {
         self.asset_manager
             .borrow_mut()
             .mesh_manager
             .borrow_mut()
-            .create_from_position_normal_texcoord(indices, positions, normals, texcoords)
+            .create_from_positions_normals_uvs(indices, positions, normals, texcoords)
+    }
+
+    pub fn create_mesh_from_vertex_data(
+        &self,
+        indices: Vec<u32>,
+        vertex_data: VertexData,
+    ) -> Result<MeshHandle, MeshError> {
+        self.asset_manager
+            .borrow_mut()
+            .mesh_manager
+            .borrow_mut()
+            .create_from_vertex_data(indices, vertex_data)
     }
 
     pub fn create_mesh_from_obj_path(&self, path: &str) -> Result<MeshHandle, MeshError> {
@@ -290,7 +411,7 @@ impl AppContext {
             .borrow_mut()
             .mesh_manager
             .borrow_mut()
-            .create_from_obj_in_bytes(data)
+            .create_from_obj_bytes(data)
     }
 
     pub fn remove_mesh(&mut self, mesh: MeshHandle) {

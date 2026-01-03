@@ -242,7 +242,7 @@ impl RenderSystem {
                 UniformValue::Vector4(v) => shader.set_uniform_vec4(name, v),
                 UniformValue::Matrix3(m) => shader.set_uniform_mat3(name, m),
                 UniformValue::Matrix4(m) => shader.set_uniform_mat4(name, m),
-                UniformValue::Texture(slot, texture_handle) => {
+                UniformValue::Texture2D(slot, texture_handle) => {
                     shader
                         .set_uniform_i32(name, *slot as i32)
                         .map_err(|e| MaterialError::BindFail(e))?;
@@ -253,7 +253,23 @@ impl RenderSystem {
 
                     unsafe {
                         gl::ActiveTexture(gl::TEXTURE0 + *slot as u32);
-                        gl::BindTexture(gl::TEXTURE_2D, texture.id);
+                        gl::BindTexture(gl::TEXTURE_2D, texture.id());
+                    }
+
+                    Ok(())
+                }
+                UniformValue::TextureCubeMap(slot, texture_handle) => {
+                    shader
+                        .set_uniform_i32(name, *slot as i32)
+                        .map_err(|e| MaterialError::BindFail(e))?;
+
+                    let texture = texture_manager
+                        .get(*texture_handle)
+                        .ok_or(MaterialError::FindTextureFail)?;
+
+                    unsafe {
+                        gl::ActiveTexture(gl::TEXTURE0 + *slot as u32);
+                        gl::BindTexture(gl::TEXTURE_CUBE_MAP, texture.id());
                     }
 
                     Ok(())
@@ -301,15 +317,15 @@ impl RenderSystem {
         }
 
         // 创建全屏四边形
-        let quad = app_context.create_mesh_from_position_texcoord(
-            &vec![0, 1, 2, 0, 2, 3],
-            &vec![
+        let quad = app_context.create_mesh_from_positions_uvs(
+            vec![0, 1, 2, 0, 2, 3],
+            vec![
                 -1.0, 1.0, 0.0, // 左上
                 -1.0, -1.0, 0.0, // 左下
                 1.0, -1.0, 0.0, // 右下
                 1.0, 1.0, 0.0, // 右上
             ],
-            &vec![
+            vec![
                 0.0, 1.0, // 左上 UV
                 0.0, 0.0, // 左下 UV
                 1.0, 0.0, // 右下 UV
@@ -641,7 +657,7 @@ impl RenderSystem {
 
             unsafe {
                 gl::ActiveTexture(gl::TEXTURE0 + 0);
-                gl::BindTexture(gl::TEXTURE_2D, texture.id);
+                gl::BindTexture(gl::TEXTURE_2D, texture.id());
             }
         }
 

@@ -11,8 +11,12 @@ pub struct Shader {
 }
 
 /// 预处理shader，加上glotus.glsl
-fn pre_process_shader(source: &str) -> String {
-    format!("{}\n{}", include_str!("./glotus.glsl"), source)
+fn pre_process_vert_shader(source: &str) -> String {
+    let s = format!("{}\n{}", include_str!("./preload_vert.glsl"), source);
+    format!("{}\n{}", include_str!("./preload.glsl"), s)
+}
+fn pre_process_frag_shader(source: &str) -> String {
+    format!("{}\n{}", include_str!("./preload.glsl"), source)
 }
 
 // create
@@ -30,11 +34,11 @@ impl Shader {
     /// 从代码生成shader
     pub fn from_sources(vertex_source: &str, fragment_source: &str) -> Result<Self, ShaderError> {
         let vertex_shader_id = Self::compile_shader(
-            pre_process_shader(vertex_source).as_str(),
+            pre_process_vert_shader(vertex_source).as_str(),
             gl::VERTEX_SHADER,
         )?;
         let fragment_shader_id = Self::compile_shader(
-            pre_process_shader(fragment_source).as_str(),
+            pre_process_frag_shader(fragment_source).as_str(),
             gl::FRAGMENT_SHADER,
         )?;
         let program_id = Self::link_program(vertex_shader_id, fragment_shader_id)?;

@@ -19,14 +19,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             include_str!("./assets/shaders/simple_fs.frag"),
         )?;
 
-        let grass_texture = context.borrow().create_texture_from_byte(
+        let grass_texture = context.borrow().create_texture_2d_from_bytes(
             include_bytes!("./assets/textures/grass.png"),
             TextureConfig::new()
                 .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
                 .with_filtering(FilteringMode::LinearMipmapLinear, FilteringMode::Linear),
         )?;
 
-        let window_texture = context.borrow().create_texture_from_byte(
+        let window_texture = context.borrow().create_texture_2d_from_bytes(
             include_bytes!("./assets/textures/window.png"),
             TextureConfig::new()
                 .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
@@ -36,26 +36,26 @@ fn main() -> Result<(), Box<dyn Error>> {
         let transparent_grass_material = context
             .borrow()
             .get_material_builder(transparent_texture_shader)?
-            .with("texture1", UniformValue::Texture(0, grass_texture))
+            .with("texture1", UniformValue::Texture2D(0, grass_texture))
             .build();
 
         let transparent_window_material = context
             .borrow()
             .get_material_builder(transparent_texture_shader)?
-            .with("texture1", UniformValue::Texture(0, window_texture))
+            .with("texture1", UniformValue::Texture2D(0, window_texture))
             .build();
 
         let solid_material = context.borrow().create_material(simple_solid_shader)?;
 
-        let plane_mesh = context.borrow().create_mesh_from_position_texcoord(
-            &vec![0, 1, 3, 1, 2, 3],
-            &vec![
+        let plane_mesh = context.borrow().create_mesh_from_positions_uvs(
+            vec![0, 1, 3, 1, 2, 3],
+            vec![
                 1.0, 1.0, -5.0, // 0
                 1.0, -1.0, -5.0, // 1
                 -1.0, -1.0, -5.0, // 2
                 -1.0, 1.0, -5.0, // 3
             ],
-            &vec![1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+            vec![1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
         )?;
 
         let box_mesh = context
@@ -83,8 +83,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         ));
 
         context.borrow().spawn_entity_with((
-            Renderable::new(box_mesh)
-                .with_material(DefaultPipeline::main_pass(), solid_material),
+            Renderable::new(box_mesh).with_material(DefaultPipeline::main_pass(), solid_material),
             Transform::new(
                 Translation::new(0.0, -1.2, 0.0),
                 Default::default(),

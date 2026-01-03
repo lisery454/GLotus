@@ -13,9 +13,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let material = context.borrow().create_material(shader)?;
 
-        let mesh = context.borrow().create_mesh_from_position(
-            &vec![0, 1, 3, 1, 2, 3],
-            &vec![
+        let mesh = context.borrow().create_mesh_from_positions(
+            vec![0, 1, 3, 1, 2, 3],
+            vec![
                 1.0, 1.0, -5.0, // 0
                 1.0, -1.0, -5.0, // 1
                 -1.0, -1.0, -5.0, // 2

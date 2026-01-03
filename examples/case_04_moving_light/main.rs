@@ -14,14 +14,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             include_str!("./assets/shaders/fs.frag"),
         )?;
 
-        let texture_diffuse = context.borrow().create_texture_from_byte(
+        let texture_diffuse = context.borrow().create_texture_2d_from_bytes(
             include_bytes!("./assets/textures/texture_diffuse.png"),
             TextureConfig::new()
                 .with_wrapping(WrappingMode::Repeat, WrappingMode::Repeat)
                 .with_filtering(FilteringMode::LinearMipmapLinear, FilteringMode::Linear),
         )?;
 
-        let texture_specular = context.borrow().create_texture_from_byte(
+        let texture_specular = context.borrow().create_texture_2d_from_bytes(
             include_bytes!("./assets/textures/texture_specular.png"),
             TextureConfig::new()
                 .with_wrapping(WrappingMode::Repeat, WrappingMode::Repeat)
@@ -33,11 +33,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             .get_material_builder(shader)?
             .with(
                 "material.diffuse_texture",
-                UniformValue::Texture(0, texture_diffuse),
+                UniformValue::Texture2D(0, texture_diffuse),
             )
             .with(
                 "material.specular_texture",
-                UniformValue::Texture(1, texture_specular),
+                UniformValue::Texture2D(1, texture_specular),
             )
             .with(
                 "material.ambient_factor",
@@ -54,9 +54,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             .with("material.specular_shininess", UniformValue::Float(256.0))
             .build();
 
-        let mesh = context.borrow().create_mesh_from_position_normal_texcoord(
-            &(0..36).collect(),
-            &vec![
+        let mesh = context.borrow().create_mesh_from_positions_normals_uvs(
+            (0..36).collect(),
+            vec![
                 // back
                 -0.5, -0.5, -0.5, // - - - 0
                 0.5, -0.5, -0.5, // + - - 1
@@ -100,7 +100,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 0.5, -0.5, 0.5, // + - + 5
                 0.5, -0.5, -0.5, // + - - 1
             ],
-            &[
+            [
                 [0.0, 0.0, -1.0].repeat(6),
                 [0.0, 0.0, 1.0].repeat(6),
                 [-1.0, 0.0, 0.0].repeat(6),
@@ -111,7 +111,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .into_iter()
             .flatten()
             .collect(),
-            &vec![
+            vec![
                 0.0, 0.0, // 0
                 1.0, 0.0, // 1
                 1.0, 1.0, // 2

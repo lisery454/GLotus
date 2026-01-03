@@ -8,4 +8,6 @@ pub enum TextureError {
     ByteReadError,
     #[error("Failed to get texture by handle")]
     InvalidHandle,
+    #[error("resolution is invalid")]
+    InvalidResolution,
 }

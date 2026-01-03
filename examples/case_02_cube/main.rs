@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             include_str!("./assets/shaders/fs.frag"),
         )?;
 
-        let texture = context.borrow().create_texture_from_byte(
+        let texture = context.borrow().create_texture_2d_from_bytes(
             include_bytes!("./assets/textures/brick.png"),
             TextureConfig::new()
                 .with_wrapping(WrappingMode::Repeat, WrappingMode::Repeat)
@@ -21,12 +21,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         let material = context
             .borrow()
             .get_material_builder(shader)?
-            .with("texture1", UniformValue::Texture(0, texture))
+            .with("texture1", UniformValue::Texture2D(0, texture))
             .build();
 
-        let mesh = context.borrow().create_mesh_from_position_texcoord(
-            &(0..36).collect(),
-            &vec![
+        let mesh = context.borrow().create_mesh_from_positions_uvs(
+            (0..36).collect(),
+            vec![
                 // back
                 -0.5, -0.5, -0.5, // - - - 0
                 0.5, -0.5, -0.5, // + - - 1
@@ -70,7 +70,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 0.5, -0.5, 0.5, // + - + 5
                 0.5, -0.5, -0.5, // + - - 1
             ],
-            &vec![
+            vec![
                 0.0, 0.0, // 0
                 1.0, 0.0, // 1
                 1.0, 1.0, // 2

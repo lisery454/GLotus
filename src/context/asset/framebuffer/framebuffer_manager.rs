@@ -45,7 +45,7 @@ impl FramebufferManager {
         // get tex id
         let tex_id = texture_manager
             .get(texture_handle)
-            .map(|t| t.id)
+            .map(|t| t.id())
             .ok_or(FramebufferError::NotFoundTexture)?;
 
         // create fb
@@ -79,11 +79,11 @@ impl FramebufferManager {
         // get tex id
         let tex_id = texture_manager
             .get(texture_handle)
-            .map(|t| t.id)
+            .map(|t| t.id())
             .ok_or(FramebufferError::NotFoundTexture)?;
         let mass_tex_id = texture_manager
             .get(mass_texture_handle)
-            .map(|t| t.id)
+            .map(|t| t.id())
             .ok_or(FramebufferError::NotFoundTexture)?;
 
         // create fb
@@ -161,16 +161,16 @@ impl FramebufferManager {
             .fbo_textures
             .get(handle)
             .ok_or(FramebufferError::NotFoundTexture)?;
-        tm.resize(*color_tex_handle, new_resolution)?;
+        tm.resize_2d(*color_tex_handle, new_resolution)?;
         let color_tex_id = tm
             .get(*color_tex_handle)
-            .map(|t| t.id)
+            .map(|t| t.id())
             .ok_or(FramebufferError::NotFoundTexture)?;
 
         // 处理 MSAA 纹理（如果有）
         let mut msaa_config = None;
         if let Some(msaa_tex_handle) = self.msaa_fbo_textures.get(handle) {
-            tm.resize(*msaa_tex_handle, new_resolution)?;
+            tm.resize_2d(*msaa_tex_handle, new_resolution)?;
             let msaa_tex = tm
                 .get(*msaa_tex_handle)
                 .ok_or(FramebufferError::NotFoundTexture)?;
@@ -178,7 +178,7 @@ impl FramebufferManager {
             // 注意：这里需要知道之前的采样率。
             // 如果你的 Framebuffer 结构体没存 samples，建议在此处获取（或从配置获取）
             let samples = 4; // 示例：建议通过 fb.samples 获取
-            msaa_config = Some((msaa_tex.id, samples));
+            msaa_config = Some((msaa_tex.id(), samples));
         }
 
         // 3. 创建新的 Framebuffer 对象

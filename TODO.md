@@ -9,3 +9,4 @@
 - [ ] UI 层处理，包括 pass
 - [x] framebuffer 的 msaa 处理
 - [ ] SSBO
+- [ ] 图片加载慢，预处理成 DDS 格式？

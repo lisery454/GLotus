@@ -1,5 +1,1 @@
-layout(location = 0) in vec3 position;
-layout(location = 1) in vec3 normal;
-layout(location = 2) in vec3 texcoord;
-
-void main() { gl_Position = PVM_MATRIX * vec4(position, 1.); }
+void main() { gl_Position = PVM_MATRIX * vec4(POSITION, 1.); }

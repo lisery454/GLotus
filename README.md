@@ -35,4 +35,7 @@ cargo run --example case_09_to_texture
 
 # framebuffer实现后处理
 cargo run --example case_10_post_process
+
+# 天空盒显示
+cargo run --example case_11_skybox
 ```

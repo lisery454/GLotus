@@ -28,6 +28,11 @@ impl DefaultPipeline {
         PassId::named("ui")
     }
 
+    #[inline]
+    pub fn skybox_pass() -> PassId {
+        PassId::named("skybox")
+    }
+
     pub(crate) fn build_default_pipeline() -> Pipeline {
         let mut pipeline = Pipeline::new();
         pipeline.insert(
@@ -101,6 +106,26 @@ impl DefaultPipeline {
                 ),
                 BlendMode::default(),
                 CullFaceMode::Front,
+                PolygonMode::default(),
+            ),
+        ));
+        pipeline.insert(Pass::new(
+            Self::skybox_pass(),
+            20,
+            RenderState::new(
+                DepthMode::new(true, false, DepthFunc::LessEqual),
+                StencilMode::new(
+                    false,
+                    StencilFunc::new(StencilFuncType::Always, 0, 0xFF),
+                    StencilOp::new(
+                        StencilOpType::Keep,
+                        StencilOpType::Keep,
+                        StencilOpType::Keep,
+                    ),
+                    0xFF,
+                ),
+                BlendMode::default(),
+                CullFaceMode::None,
                 PolygonMode::default(),
             ),
         ));
