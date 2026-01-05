@@ -33,11 +33,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             .get_material_builder(shader)?
             .with(
                 "material.diffuse_texture",
-                UniformValue::Texture2D(0, texture_diffuse),
+                UniformValue::Texture(0, texture_diffuse),
             )
             .with(
                 "material.specular_texture",
-                UniformValue::Texture2D(1, texture_specular),
+                UniformValue::Texture(1, texture_specular),
             )
             .with(
                 "material.ambient_factor",

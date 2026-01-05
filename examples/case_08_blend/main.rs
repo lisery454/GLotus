@@ -36,13 +36,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         let transparent_grass_material = context
             .borrow()
             .get_material_builder(transparent_texture_shader)?
-            .with("texture1", UniformValue::Texture2D(0, grass_texture))
+            .with("texture1", UniformValue::Texture(0, grass_texture))
             .build();
 
         let transparent_window_material = context
             .borrow()
             .get_material_builder(transparent_texture_shader)?
-            .with("texture1", UniformValue::Texture2D(0, window_texture))
+            .with("texture1", UniformValue::Texture(0, window_texture))
             .build();
 
         let solid_material = context.borrow().create_material(simple_solid_shader)?;

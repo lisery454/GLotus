@@ -39,7 +39,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let topview_material = context
             .borrow()
             .get_material_builder(shader_2)?
-            .with("texture1", UniformValue::Texture2D(0, topview_texture))
+            .with("texture1", UniformValue::Texture(0, topview_texture))
             .build();
         let frontview_texture = context
             .borrow()
@@ -47,7 +47,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let frontview_material = context
             .borrow()
             .get_material_builder(shader_2)?
-            .with("texture1", UniformValue::Texture2D(0, frontview_texture))
+            .with("texture1", UniformValue::Texture(0, frontview_texture))
             .build();
         let sideview_texture = context
             .borrow()
@@ -55,7 +55,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let sideview_material = context
             .borrow()
             .get_material_builder(shader_2)?
-            .with("texture1", UniformValue::Texture2D(0, sideview_texture))
+            .with("texture1", UniformValue::Texture(0, sideview_texture))
             .build();
 
         let tree_mesh = context

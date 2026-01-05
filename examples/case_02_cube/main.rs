@@ -21,7 +21,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let material = context
             .borrow()
             .get_material_builder(shader)?
-            .with("texture1", UniformValue::Texture2D(0, texture))
+            .with("texture1", UniformValue::Texture(0, texture))
             .build();
 
         let mesh = context.borrow().create_mesh_from_positions_uvs(

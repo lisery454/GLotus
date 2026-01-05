@@ -31,18 +31,28 @@ fn main() -> Result<(), Box<dyn Error>> {
         let sky_box_material = context
             .borrow()
             .get_material_builder(sky_box_shader)?
-            .with("skybox", UniformValue::TextureCubeMap(0, sky_box_texture))
+            .with("skybox", UniformValue::Texture(0, sky_box_texture))
             .build();
 
-        let normal_shader = context.borrow().create_shader_from_sources(
-            include_str!("./assets/shaders/normal.vert"),
-            include_str!("./assets/shaders/normal.frag"),
+        let refraction_shader = context.borrow().create_shader_from_sources(
+            include_str!("./assets/shaders/refraction.vert"),
+            include_str!("./assets/shaders/refraction.frag"),
         )?;
-        let normal_material = context.borrow().create_material(normal_shader)?;
+        let refraction_material = context.borrow().create_material(refraction_shader)?;
+
+        let reflection_shader = context.borrow().create_shader_from_sources(
+            include_str!("./assets/shaders/reflection.vert"),
+            include_str!("./assets/shaders/reflection.frag"),
+        )?;
+        let reflection_material = context.borrow().create_material(reflection_shader)?;
 
         let box_mesh = context
             .borrow()
             .create_mesh_from_obj_in_bytes(include_bytes!("./assets/meshes/box.obj"))?;
+
+        let ball_mesh = context
+            .borrow()
+            .create_mesh_from_obj_in_bytes(include_bytes!("./assets/meshes/ball.obj"))?;
 
         context.borrow().spawn_entity_with((
             Renderable::new(box_mesh)
@@ -51,9 +61,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         ));
 
         context.borrow().spawn_entity_with((
-            Renderable::new(box_mesh)
-                .with_material(DefaultPipeline::main_pass(), normal_material),
+            Renderable::new(ball_mesh)
+                .with_material(DefaultPipeline::main_pass(), reflection_material),
             Transform::default(),
+        ));
+
+        context.borrow().spawn_entity_with((
+            Renderable::new(ball_mesh)
+                .with_material(DefaultPipeline::main_pass(), refraction_material),
+            Transform::from_position(5.0, 0.0, 0.0),
         ));
 
         context

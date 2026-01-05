@@ -242,7 +242,7 @@ impl RenderSystem {
                 UniformValue::Vector4(v) => shader.set_uniform_vec4(name, v),
                 UniformValue::Matrix3(m) => shader.set_uniform_mat3(name, m),
                 UniformValue::Matrix4(m) => shader.set_uniform_mat4(name, m),
-                UniformValue::Texture2D(slot, texture_handle) => {
+                UniformValue::Texture(slot, texture_handle) => {
                     shader
                         .set_uniform_i32(name, *slot as i32)
                         .map_err(|e| MaterialError::BindFail(e))?;
@@ -251,25 +251,15 @@ impl RenderSystem {
                         .get(*texture_handle)
                         .ok_or(MaterialError::FindTextureFail)?;
 
-                    unsafe {
-                        gl::ActiveTexture(gl::TEXTURE0 + *slot as u32);
-                        gl::BindTexture(gl::TEXTURE_2D, texture.id());
-                    }
-
-                    Ok(())
-                }
-                UniformValue::TextureCubeMap(slot, texture_handle) => {
-                    shader
-                        .set_uniform_i32(name, *slot as i32)
-                        .map_err(|e| MaterialError::BindFail(e))?;
-
-                    let texture = texture_manager
-                        .get(*texture_handle)
-                        .ok_or(MaterialError::FindTextureFail)?;
-
-                    unsafe {
-                        gl::ActiveTexture(gl::TEXTURE0 + *slot as u32);
-                        gl::BindTexture(gl::TEXTURE_CUBE_MAP, texture.id());
+                    match texture {
+                        Texture::Texture2D(_) => unsafe {
+                            gl::ActiveTexture(gl::TEXTURE0 + *slot as u32);
+                            gl::BindTexture(gl::TEXTURE_2D, texture.id());
+                        },
+                        Texture::CubeMap(_) => unsafe {
+                            gl::ActiveTexture(gl::TEXTURE0 + *slot as u32);
+                            gl::BindTexture(gl::TEXTURE_CUBE_MAP, texture.id());
+                        },
                     }
 
                     Ok(())
