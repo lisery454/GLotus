@@ -1,8 +1,7 @@
-use std::time::Instant;
-use rayon::prelude::*; 
+use rayon::prelude::*;
 
 use gl::types::*;
-use image::DynamicImage;
+use image::{DynamicImage, GenericImageView};
 
 use crate::Resolution;
 
@@ -112,8 +111,6 @@ impl TextureCubeMap {
         data_array: [&[u8]; 6],
         config: TextureConfig,
     ) -> Result<Self, TextureError> {
-        let start = Instant::now();
-
         let images: Result<Vec<_>, TextureError> = data_array
             .par_iter()
             .map(|data| image::load_from_memory(data).map_err(|_| TextureError::ByteReadError))
@@ -121,17 +118,12 @@ impl TextureCubeMap {
 
         let images = images?;
 
-        let end = Instant::now();
-
-        println!("use time: {:?}", end - start);
-
         Ok(Self::load_from_images(images.try_into().unwrap(), config))
     }
 
     /// 更新单个面的数据
     pub fn update_face(&mut self, face: CubeFace, img: DynamicImage) -> Result<(), TextureError> {
-        let rgba = img.to_rgba8();
-        let (width, height) = rgba.dimensions();
+        let (width, height) = img.dimensions();
 
         // 检查尺寸是否匹配
         if width != self.resolution.width || height != self.resolution.height {
@@ -141,17 +133,66 @@ impl TextureCubeMap {
         unsafe {
             gl::BindTexture(gl::TEXTURE_CUBE_MAP, self.id);
 
-            gl::TexSubImage2D(
-                face.to_gl_enum(),
-                0,
-                0,
-                0,
-                width as i32,
-                height as i32,
-                gl::RGBA,
-                gl::UNSIGNED_BYTE,
-                rgba.as_ptr() as *const _,
-            );
+            // 根据图片格式选择最佳上传方式
+            match img {
+                DynamicImage::ImageRgba8(rgba) => {
+                    // 已经是 RGBA8，直接上传
+                    gl::TexSubImage2D(
+                        face.to_gl_enum(),
+                        0,
+                        0,
+                        0,
+                        width as i32,
+                        height as i32,
+                        gl::RGBA,
+                        gl::UNSIGNED_BYTE,
+                        rgba.as_ptr() as *const _,
+                    );
+                }
+                DynamicImage::ImageRgb8(rgb) => {
+                    // RGB8 直接上传为 RGB
+                    gl::TexSubImage2D(
+                        face.to_gl_enum(),
+                        0,
+                        0,
+                        0,
+                        width as i32,
+                        height as i32,
+                        gl::RGB,
+                        gl::UNSIGNED_BYTE,
+                        rgb.as_ptr() as *const _,
+                    );
+                }
+                DynamicImage::ImageLuma8(gray) => {
+                    // 灰度图上传为单通道
+                    gl::TexSubImage2D(
+                        face.to_gl_enum(),
+                        0,
+                        0,
+                        0,
+                        width as i32,
+                        height as i32,
+                        gl::RED,
+                        gl::UNSIGNED_BYTE,
+                        gray.as_ptr() as *const _,
+                    );
+                }
+                _ => {
+                    // 其他格式才转换
+                    let rgba = img.to_rgba8();
+                    gl::TexSubImage2D(
+                        face.to_gl_enum(),
+                        0,
+                        0,
+                        0,
+                        width as i32,
+                        height as i32,
+                        gl::RGBA,
+                        gl::UNSIGNED_BYTE,
+                        rgba.as_ptr() as *const _,
+                    );
+                }
+            }
 
             gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0);
         }
@@ -161,9 +202,7 @@ impl TextureCubeMap {
 
     /// 从六个图像加载立方体贴图
     fn load_from_images(images: [DynamicImage; 6], config: TextureConfig) -> Self {
-        // 获取第一个图像的尺寸作为标准
-        let first_rgba = images[0].to_rgba8();
-        let (width, height) = first_rgba.dimensions();
+        let (width, height) = images[0].dimensions();
 
         let mut texture_id: GLuint = 0;
         unsafe {
@@ -172,25 +211,70 @@ impl TextureCubeMap {
 
             // 加载六个面
             for (i, img) in images.iter().enumerate() {
-                let rgba = img.to_rgba8();
-                let (w, h) = rgba.dimensions();
+                let (w, h) = img.dimensions();
 
                 // 确保所有面的尺寸相同
                 assert_eq!(w, width, "all cube map tex should have equal width");
                 assert_eq!(h, height, "all cube map tex should have equal height");
 
                 let face = CubeFace::all()[i];
-                gl::TexImage2D(
-                    face.to_gl_enum(),
-                    0,
-                    gl::RGBA as i32,
-                    width as i32,
-                    height as i32,
-                    0,
-                    gl::RGBA,
-                    gl::UNSIGNED_BYTE,
-                    rgba.as_ptr() as *const _,
-                );
+
+                match img {
+                    DynamicImage::ImageRgba8(data) => {
+                        gl::TexImage2D(
+                            face.to_gl_enum(),
+                            0,
+                            gl::RGBA as i32,
+                            width as i32,
+                            height as i32,
+                            0,
+                            gl::RGBA,
+                            gl::UNSIGNED_BYTE,
+                            data.as_ptr() as *const _,
+                        );
+                    }
+                    DynamicImage::ImageRgb8(data) => {
+                        gl::TexImage2D(
+                            face.to_gl_enum(),
+                            0,
+                            gl::RGB as i32,
+                            width as i32,
+                            height as i32,
+                            0,
+                            gl::RGB,
+                            gl::UNSIGNED_BYTE,
+                            data.as_ptr() as *const _,
+                        );
+                    }
+                    DynamicImage::ImageRgba16(data) => {
+                        gl::TexImage2D(
+                            face.to_gl_enum(),
+                            0,
+                            gl::RGBA16 as i32,
+                            width as i32,
+                            height as i32,
+                            0,
+                            gl::RGBA,
+                            gl::UNSIGNED_SHORT,
+                            data.as_ptr() as *const _,
+                        );
+                    }
+                    _ => {
+                        // 不常见格式才转换
+                        let rgba = img.to_rgba8();
+                        gl::TexImage2D(
+                            face.to_gl_enum(),
+                            0,
+                            gl::RGBA as i32,
+                            width as i32,
+                            height as i32,
+                            0,
+                            gl::RGBA,
+                            gl::UNSIGNED_BYTE,
+                            rgba.as_ptr() as *const _,
+                        );
+                    }
+                }
             }
 
             // 应用纹理配置

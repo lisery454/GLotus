@@ -5,18 +5,19 @@ use glotus::*;
 fn main() -> Result<(), Box<dyn Error>> {
     let app = glotus::App::new_with_config(AppConfig {
         bg_color: Color::from_rgb(0, 0, 0),
+        resolution: Resolution::new(400, 300),
         ..Default::default()
     });
 
     app.borrow().build(|context| {
         let sky_box_texture = context.borrow().create_cube_map_from_bytes(
             [
-                include_bytes!("./assets/textures/right.jpg"),
-                include_bytes!("./assets/textures/left.jpg"),
-                include_bytes!("./assets/textures/top.jpg"),
-                include_bytes!("./assets/textures/bottom.jpg"),
-                include_bytes!("./assets/textures/front.jpg"),
-                include_bytes!("./assets/textures/back.jpg"),
+                include_bytes!("./assets/textures/right.png"),
+                include_bytes!("./assets/textures/left.png"),
+                include_bytes!("./assets/textures/top.png"),
+                include_bytes!("./assets/textures/bottom.png"),
+                include_bytes!("./assets/textures/front.png"),
+                include_bytes!("./assets/textures/back.png"),
             ],
             TextureConfig::new()
                 .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
