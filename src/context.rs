@@ -50,7 +50,7 @@ impl AppContext {
 
 // shader
 impl AppContext {
-    pub fn create_shader_from_files(
+    pub fn create_shader_from_files_vf(
         &self,
         vertex_path: &str,
         fragment_path: &str,
@@ -59,10 +59,10 @@ impl AppContext {
             .borrow_mut()
             .shader_manager
             .borrow_mut()
-            .create_from_files(vertex_path, fragment_path)
+            .create_from_files_vf(vertex_path, fragment_path)
     }
 
-    pub fn create_shader_from_sources(
+    pub fn create_shader_from_sources_vf(
         &self,
         vertex_source: &str,
         fragment_source: &str,
@@ -71,7 +71,33 @@ impl AppContext {
             .borrow_mut()
             .shader_manager
             .borrow_mut()
-            .create_from_sources(vertex_source, fragment_source)
+            .create_from_sources_vf(vertex_source, fragment_source)
+    }
+
+    pub fn create_shader_from_files_vfg(
+        &self,
+        vertex_path: &str,
+        fragment_path: &str,
+        geometry_path: &str,
+    ) -> Result<ShaderHandle, ShaderError> {
+        self.asset_manager
+            .borrow_mut()
+            .shader_manager
+            .borrow_mut()
+            .create_from_files_vfg(vertex_path, fragment_path, geometry_path)
+    }
+
+    pub fn create_shader_from_sources_vfg(
+        &self,
+        vertex_source: &str,
+        fragment_source: &str,
+        geometry_source: &str,
+    ) -> Result<ShaderHandle, ShaderError> {
+        self.asset_manager
+            .borrow_mut()
+            .shader_manager
+            .borrow_mut()
+            .create_from_sources_vfg(vertex_source, fragment_source, geometry_source)
     }
 
     pub fn remove_shader(&self, shader: ShaderHandle) {

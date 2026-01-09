@@ -28,21 +28,41 @@ impl ShaderManager {
         self.shaders.get_mut(handle)
     }
 
-    pub fn create_from_files(
+    pub fn create_from_files_vf(
         &mut self,
         vertex_path: &str,
         fragment_path: &str,
     ) -> Result<ShaderHandle, ShaderError> {
-        let shader = Shader::from_files(vertex_path, fragment_path)?;
+        let shader = Shader::from_files_vf(vertex_path, fragment_path)?;
         Ok(self.shaders.insert(shader))
     }
 
-    pub fn create_from_sources(
+    pub fn create_from_sources_vf(
         &mut self,
         vertex_source: &str,
         fragment_source: &str,
     ) -> Result<ShaderHandle, ShaderError> {
-        let shader = Shader::from_sources(vertex_source, fragment_source)?;
+        let shader = Shader::from_sources_vf(vertex_source, fragment_source)?;
+        Ok(self.shaders.insert(shader))
+    }
+
+    pub fn create_from_files_vfg(
+        &mut self,
+        vertex_path: &str,
+        fragment_path: &str,
+        geometry_path: &str,
+    ) -> Result<ShaderHandle, ShaderError> {
+        let shader = Shader::from_files_vfg(vertex_path, fragment_path, geometry_path)?;
+        Ok(self.shaders.insert(shader))
+    }
+
+    pub fn create_from_sources_vfg(
+        &mut self,
+        vertex_source: &str,
+        fragment_source: &str,
+        geometry_source: &str,
+    ) -> Result<ShaderHandle, ShaderError> {
+        let shader = Shader::from_sources_vfg(vertex_source, fragment_source, geometry_source)?;
         Ok(self.shaders.insert(shader))
     }
 

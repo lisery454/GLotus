@@ -7,23 +7,23 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     app.borrow().build(|context| {
-        let offset_shader = context.borrow().create_shader_from_sources(
+        let offset_shader = context.borrow().create_shader_from_sources_vf(
             include_str!("./assets/shaders/pp/post_process.vert"),
             include_str!("./assets/shaders/pp/offset_shader.frag"),
         )?;
         let offset_material = context.borrow().create_material(offset_shader)?;
-        let gaussian_blur_shader = context.borrow().create_shader_from_sources(
+        let gaussian_blur_shader = context.borrow().create_shader_from_sources_vf(
             include_str!("./assets/shaders/pp/post_process.vert"),
             include_str!("./assets/shaders/pp/gaussian_blur.frag"),
         )?;
         let gaussian_blur_material = context.borrow().create_material(gaussian_blur_shader)?;
-        let vignette_shader = context.borrow().create_shader_from_sources(
+        let vignette_shader = context.borrow().create_shader_from_sources_vf(
             include_str!("./assets/shaders/pp/post_process.vert"),
             include_str!("./assets/shaders/pp/vignette.frag"),
         )?;
         let vignette_material = context.borrow().create_material(vignette_shader)?;
 
-        let shader = context.borrow().create_shader_from_sources(
+        let shader = context.borrow().create_shader_from_sources_vf(
             include_str!("./assets/shaders/phong.vert"),
             include_str!("./assets/shaders/phong.frag"),
         )?;

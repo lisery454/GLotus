@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .with_filtering(FilteringMode::LinearMipmapLinear, FilteringMode::Linear),
         )?;
 
-        let sky_box_shader = context.borrow().create_shader_from_sources(
+        let sky_box_shader = context.borrow().create_shader_from_sources_vf(
             include_str!("./assets/shaders/skybox.vert"),
             include_str!("./assets/shaders/skybox.frag"),
         )?;
@@ -35,13 +35,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             .with("skybox", UniformValue::Texture(0, sky_box_texture))
             .build();
 
-        let refraction_shader = context.borrow().create_shader_from_sources(
+        let refraction_shader = context.borrow().create_shader_from_sources_vf(
             include_str!("./assets/shaders/refraction.vert"),
             include_str!("./assets/shaders/refraction.frag"),
         )?;
         let refraction_material = context.borrow().create_material(refraction_shader)?;
 
-        let reflection_shader = context.borrow().create_shader_from_sources(
+        let reflection_shader = context.borrow().create_shader_from_sources_vf(
             include_str!("./assets/shaders/reflection.vert"),
             include_str!("./assets/shaders/reflection.frag"),
         )?;

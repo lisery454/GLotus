@@ -33,6 +33,11 @@ impl DefaultPipeline {
         PassId::named("skybox")
     }
 
+    #[inline]
+    pub fn debug_pass() -> PassId {
+        PassId::named("debug")
+    }
+
     pub(crate) fn build_default_pipeline() -> Pipeline {
         let mut pipeline = Pipeline::new();
         pipeline.insert(
@@ -106,6 +111,27 @@ impl DefaultPipeline {
                 ),
                 BlendMode::default(),
                 CullFaceMode::Front,
+                PolygonMode::default(),
+            ),
+        ));
+        pipeline.insert(Pass::new(
+            Self::debug_pass(),
+            15,
+            RenderState::new(
+                // 开启深度测试但关闭深度写入，这样法线线段不会遮挡后续渲染
+                DepthMode::new(true, false, DepthFunc::Less),
+                StencilMode::new(
+                    false,
+                    StencilFunc::new(StencilFuncType::Always, 0, 0xFF),
+                    StencilOp::new(
+                        StencilOpType::Keep,
+                        StencilOpType::Keep,
+                        StencilOpType::Keep,
+                    ),
+                    0x00,
+                ),
+                BlendMode::default(),
+                CullFaceMode::None, // 法线线段通常是线段，关闭背面剔除
                 PolygonMode::default(),
             ),
         ));

@@ -6,7 +6,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let app = App::new();
 
     app.borrow().build(|context| {
-        let shader = context.borrow().create_shader_from_sources(
+        let shader = context.borrow().create_shader_from_sources_vf(
             include_str!("./assets/shaders/vs.vert"),
             include_str!("./assets/shaders/fs.frag"),
         )?;

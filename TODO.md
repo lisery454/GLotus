@@ -10,3 +10,4 @@
 - [x] framebuffer 的 msaa 处理
 - [ ] SSBO
 - [ ] 图片加载慢，预处理成 DDS 格式？
+- [ ] shader locate 缓存?

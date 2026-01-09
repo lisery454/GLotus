@@ -10,7 +10,7 @@ pub struct Shader {
     pub(crate) id: GLuint,
 }
 
-/// 预处理shader，加上glotus.glsl
+/// 预处理shader
 fn pre_process_vert_shader(source: &str) -> String {
     let s = format!("{}\n{}", include_str!("./preload_vert.glsl"), source);
     format!("{}\n{}", include_str!("./preload.glsl"), s)
@@ -18,21 +18,43 @@ fn pre_process_vert_shader(source: &str) -> String {
 fn pre_process_frag_shader(source: &str) -> String {
     format!("{}\n{}", include_str!("./preload.glsl"), source)
 }
+fn pre_process_geom_shader(source: &str) -> String {
+    format!("{}\n{}", include_str!("./preload.glsl"), source)
+}
 
 // create
 impl Shader {
     /// 从文件生成shader
-    pub fn from_files(vertex_path: &str, fragment_path: &str) -> Result<Self, ShaderError> {
+    pub fn from_files_vf(vertex_path: &str, fragment_path: &str) -> Result<Self, ShaderError> {
         let vertex_source = fs::read_to_string(vertex_path)
             .map_err(|e| ShaderError::FileReadError(e.to_string()))?;
         let fragment_source = fs::read_to_string(fragment_path)
             .map_err(|e| ShaderError::FileReadError(e.to_string()))?;
 
-        Self::from_sources(&vertex_source, &fragment_source)
+        Self::from_sources_vf(&vertex_source, &fragment_source)
+    }
+
+    /// 从三个文件生成shader
+    pub fn from_files_vfg(
+        vertex_path: &str,
+        fragment_path: &str,
+        geometry_path: &str,
+    ) -> Result<Self, ShaderError> {
+        let vertex_source = fs::read_to_string(vertex_path)
+            .map_err(|e| ShaderError::FileReadError(e.to_string()))?;
+        let fragment_source = fs::read_to_string(fragment_path)
+            .map_err(|e| ShaderError::FileReadError(e.to_string()))?;
+        let geomtry_source = fs::read_to_string(geometry_path)
+            .map_err(|e| ShaderError::FileReadError(e.to_string()))?;
+
+        Self::from_sources_vfg(&vertex_source, &fragment_source, &geomtry_source)
     }
 
     /// 从代码生成shader
-    pub fn from_sources(vertex_source: &str, fragment_source: &str) -> Result<Self, ShaderError> {
+    pub fn from_sources_vf(
+        vertex_source: &str,
+        fragment_source: &str,
+    ) -> Result<Self, ShaderError> {
         let vertex_shader_id = Self::compile_shader(
             pre_process_vert_shader(vertex_source).as_str(),
             gl::VERTEX_SHADER,
@@ -41,12 +63,43 @@ impl Shader {
             pre_process_frag_shader(fragment_source).as_str(),
             gl::FRAGMENT_SHADER,
         )?;
-        let program_id = Self::link_program(vertex_shader_id, fragment_shader_id)?;
+        let program_id = Self::link_program(vertex_shader_id, fragment_shader_id, None)?;
 
-        // 删除中间着色器对象
         unsafe {
             gl::DeleteShader(vertex_shader_id);
             gl::DeleteShader(fragment_shader_id);
+        }
+
+        Ok(Self { id: program_id })
+    }
+
+    pub fn from_sources_vfg(
+        vertex_source: &str,
+        fragment_source: &str,
+        geometry_source: &str,
+    ) -> Result<Self, ShaderError> {
+        let vertex_shader_id = Self::compile_shader(
+            pre_process_vert_shader(vertex_source).as_str(),
+            gl::VERTEX_SHADER,
+        )?;
+        let fragment_shader_id = Self::compile_shader(
+            pre_process_frag_shader(fragment_source).as_str(),
+            gl::FRAGMENT_SHADER,
+        )?;
+        let geomtry_shader_id = Self::compile_shader(
+            &pre_process_geom_shader(geometry_source).as_str(),
+            gl::GEOMETRY_SHADER,
+        )?;
+        let program_id = Self::link_program(
+            vertex_shader_id,
+            fragment_shader_id,
+            Some(geomtry_shader_id),
+        )?;
+
+        unsafe {
+            gl::DeleteShader(vertex_shader_id);
+            gl::DeleteShader(fragment_shader_id);
+            gl::DeleteShader(geomtry_shader_id);
         }
 
         Ok(Self { id: program_id })
@@ -84,11 +137,18 @@ impl Shader {
     }
 
     /// link shader program
-    fn link_program(vertex_shader: GLuint, fragment_shader: GLuint) -> Result<GLuint, ShaderError> {
+    fn link_program(
+        vertex_shader: GLuint,
+        fragment_shader: GLuint,
+        geometry_shader: Option<GLuint>,
+    ) -> Result<GLuint, ShaderError> {
         unsafe {
             let program = gl::CreateProgram();
             gl::AttachShader(program, vertex_shader);
             gl::AttachShader(program, fragment_shader);
+            if let Some(geometry_id) = geometry_shader {
+                gl::AttachShader(program, geometry_id);
+            }
             gl::LinkProgram(program);
 
             // 检查链接错误

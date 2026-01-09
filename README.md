@@ -2,6 +2,8 @@
 
 这是一个自己在学习 opengl 时练手用的封装库，简单地封装了一些 opengl 的功能。
 
+参考<https://learnopengl.com>
+
 ## utils
 
 ```shell
@@ -38,4 +40,7 @@ cargo run --example case_10_post_process
 
 # 天空盒显示
 cargo run --example case_11_skybox
+
+# 使用几何shader可视化法线
+cargo run --example case_12_visual_normal
 ```
