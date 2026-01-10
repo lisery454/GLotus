@@ -8,6 +8,7 @@ pub struct AppConfig {
     pub anti_pixel: AntiPixel,
     pub resolution: Resolution,
     pub bg_color: Color,
+    pub instancing: bool,
     pub pipeline_configurer: Option<Box<dyn Fn(&mut Pipeline)>>,
 }
 
@@ -18,6 +19,7 @@ impl Default for AppConfig {
             target_render_fps: None,
             fixed_update_fps: 60,
             v_sync: true,
+            instancing: false,
             anti_pixel: AntiPixel::MSAA4,
             resolution: Resolution::new(1440, 960),
             bg_color: Color::from_rgb(50, 75, 75),

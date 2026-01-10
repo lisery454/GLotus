@@ -5,6 +5,8 @@ layout(location = 3) in vec3 bitangent;  // 副切线（如果有）
 layout(location = 4) in vec2 texcoord;   // 2D UV坐标（如果有）- 注意是vec2
 layout(location = 5) in vec3 texcoord3d; // 3D UV坐标（如果有）
 layout(location = 6) in vec3 color;      // 顶点颜色（如果有）
+// 注意：它会自动占用 location 7, 8, 9, 10
+layout(location = 7) in mat4 instanceMatrix; // 实例化模型矩阵（如果有）
 
 #define POSITION position
 #define NORMAL normal
@@ -13,3 +15,4 @@ layout(location = 6) in vec3 color;      // 顶点颜色（如果有）
 #define TEXCOORD texcoord
 #define TEXCOORD3D texcoord3d
 #define COLOR color
+#define INSTANCE_MATRIX instanceMatrix

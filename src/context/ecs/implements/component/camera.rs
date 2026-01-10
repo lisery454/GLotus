@@ -54,6 +54,16 @@ impl Camera {
         }
     }
 
+    pub fn with_far_plane(mut self, far_plane: f32)-> Self {
+        self.far_plane = far_plane;
+        self
+    }
+
+    pub fn with_near_plane(mut self, near_plane: f32)-> Self {
+        self.near_plane = near_plane;
+        self
+    }
+
     /// 添加后处理材质
     pub fn with_postprocess_material(mut self, material: MaterialHandle) -> Self {
         self.postprocess_materials.push(material);

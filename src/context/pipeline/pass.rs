@@ -43,14 +43,51 @@ fn fnv1a_32(bytes: &[u8]) -> u32 {
     hash
 }
 
-pub struct RenderJob {
+pub enum RenderJob {
+    Single(SingleJob),
+    Instanced(InstancedJob),
+}
+
+pub struct InstancedJob {
+    mesh: MeshHandle,
+    material: MaterialHandle,
+    transforms: Vec<[[f32; 4]; 4]>,
+}
+
+impl InstancedJob {
+    pub fn new(mesh: MeshHandle, material: MaterialHandle) -> Self {
+        Self {
+            mesh,
+            material,
+            transforms: Vec::new(),
+        }
+    }
+
+    pub fn set_transforms(&mut self, transforms: Vec<[[f32; 4]; 4]>)  {
+        self.transforms = transforms;
+    }
+
+    pub fn get_transforms(&self) -> &Vec<[[f32; 4]; 4]> {
+        &self.transforms
+    }
+
+    pub fn get_mesh(&self) -> MeshHandle {
+        self.mesh
+    }
+
+    pub fn get_material(&self) -> MaterialHandle {
+        self.material
+    }
+}
+
+pub struct SingleJob {
     entity: EntityHandle,
     mesh: MeshHandle,
     material: MaterialHandle,
     depth: f32, // 用于排序
 }
 
-impl RenderJob {
+impl SingleJob {
     pub fn new(
         entity: EntityHandle,
         mesh: MeshHandle,
@@ -85,23 +122,25 @@ impl RenderJob {
 pub struct Pass {
     pub id: PassId,
     pub priority: i32,
-    pub sort_func: Option<Box<dyn Fn(&RenderJob, &RenderJob) -> Ordering>>,
+    pub is_opaque: bool,
+    pub sort_func: Option<Box<dyn Fn(&SingleJob, &SingleJob) -> Ordering>>,
     pub default_state: RenderState,
 }
 
 impl Pass {
-    pub fn new(id: PassId, priority: i32, state: RenderState) -> Self {
+    pub fn new(id: PassId, priority: i32, state: RenderState, is_opaque: bool) -> Self {
         Self {
             id,
             priority,
             default_state: state,
             sort_func: None,
+            is_opaque: is_opaque,
         }
     }
 
-    pub fn with_sort<F>(mut self, sort_func: F) -> Self 
-    where 
-        F: Fn(&RenderJob, &RenderJob) -> Ordering + 'static, 
+    pub fn with_sort<F>(mut self, sort_func: F) -> Self
+    where
+        F: Fn(&SingleJob, &SingleJob) -> Ordering + 'static,
     {
         self.sort_func = Some(Box::new(sort_func));
         self

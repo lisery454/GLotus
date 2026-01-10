@@ -1,7 +1,10 @@
 mod mesh;
 mod mesh_error;
+mod instance_buffer;
+
 
 pub use mesh::*;
+pub use instance_buffer::*;
 pub use mesh_error::*;
 
 use cgmath::{Vector2, Vector3};

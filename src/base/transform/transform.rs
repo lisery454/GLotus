@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 use cgmath::{Matrix, Matrix4, SquareMatrix, Vector3};
 
 use super::TransformError;
@@ -8,29 +10,48 @@ use super::translation::Translation;
 /// 描述一个物体的位置旋转和缩放
 #[derive(Debug)]
 pub struct Transform {
-    pub(crate) translation: Translation,
-    pub(crate) rotation: Rotation,
-    pub(crate) scaling: Scaling,
+    translation: Translation,
+    rotation: Rotation,
+    scaling: Scaling,
+
+    // 缓存相关
+    is_dirty: Cell<bool>,
+    cached_matrix: Cell<[[f32; 4]; 4]>,
 }
 
 impl Default for Transform {
     fn default() -> Self {
-        Self {
+        let s = Self {
             translation: Default::default(),
             rotation: Default::default(),
             scaling: Default::default(),
-        }
+            is_dirty: Cell::new(true),
+            cached_matrix: Cell::new(Matrix4::identity().into()),
+        };
+
+        s.update_cache();
+        s
     }
 }
 
 impl Transform {
     /// 从平移旋转和缩放新建
     pub fn new(translation: Translation, rotation: Rotation, scaling: Scaling) -> Self {
-        Self {
+        let s = Self {
             translation,
             rotation,
             scaling,
-        }
+            is_dirty: Cell::new(true),
+            cached_matrix: Cell::new(Matrix4::identity().into()),
+        };
+
+        s.update_cache();
+        s
+    }
+
+    fn update_cache(&self) {
+        self.cached_matrix.set(self.get_matrix().into());
+        self.is_dirty.set(false);
     }
 
     pub fn from_ui(x: f32, y: f32, scale_x: f32, scale_y: f32) -> Self {
@@ -44,11 +65,16 @@ impl Transform {
 
     /// 从位置的xyz生成，其他为默认
     pub fn from_position(x: f32, y: f32, z: f32) -> Self {
-        Self {
+        let s = Self {
             translation: Translation::new(x, y, z),
             rotation: Rotation::default(),
             scaling: Scaling::default(),
-        }
+            is_dirty: Cell::new(true),
+            cached_matrix: Cell::new(Matrix4::identity().into()),
+        };
+
+        s.update_cache();
+        s
     }
 
     /// 获取变换矩阵
@@ -62,7 +88,10 @@ impl Transform {
 
     /// 获取变换矩阵，用多维数组表示
     pub(crate) fn to_matrix(&self) -> [[f32; 4]; 4] {
-        self.get_matrix().into()
+        if self.is_dirty.get() {
+            self.update_cache();
+        }
+        self.cached_matrix.get()
     }
 
     /// 获取法线变化矩阵
@@ -103,6 +132,7 @@ impl Transform {
 
     /// 获取平移的可变引用
     pub fn get_translation_mut(&mut self) -> &mut Translation {
+        self.is_dirty.set(true);
         &mut self.translation
     }
 
@@ -118,6 +148,7 @@ impl Transform {
 
     /// 获取缩放的可变引用
     pub fn get_scaling_mut(&mut self) -> &mut Scaling {
+        self.is_dirty.set(true);
         &mut self.scaling
     }
 
@@ -133,6 +164,7 @@ impl Transform {
 
     /// 获取旋转的可变引用
     pub fn get_rotation_mut(&mut self) -> &mut Rotation {
+        self.is_dirty.set(true);
         &mut self.rotation
     }
 

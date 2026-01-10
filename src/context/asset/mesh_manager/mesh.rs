@@ -3,6 +3,13 @@ use gl::types::*;
 use std::mem;
 use std::ptr;
 
+use super::InstanceBuffer;
+
+// VAO: 
+// Location 0-6：请去 VBO_A（Mesh 数据）里读，每画一个顶点挪动一下指针。
+// Location 7-10：请去 VBO_B（实例矩阵）里读，每画完一个实例再挪动指针。
+// EBO：索引数据在这里
+
 /// 顶点属性标志位
 #[derive(Debug, Clone, Copy)]
 pub struct VertexAttributes {
@@ -227,6 +234,23 @@ impl Mesh {
         }
     }
 
+    pub fn draw_instanced(&self, transforms: &Vec<[[f32; 4]; 4]>, buffer: &mut InstanceBuffer) {
+        unsafe {
+            gl::BindVertexArray(self.vao);
+            buffer.upload(transforms);
+            buffer.bind_to_vao(7);
+            gl::DrawElementsInstanced(
+                gl::TRIANGLES,
+                self.index_count(),
+                gl::UNSIGNED_INT,
+                ptr::null(),
+                transforms.len() as i32,
+            );
+            buffer.unbind(7);
+            gl::BindVertexArray(0);
+        }
+    }
+
     /// 获取顶点属性信息
     pub fn attributes(&self) -> &VertexAttributes {
         &self.attributes
@@ -406,42 +430,4 @@ impl Drop for Mesh {
             gl::DeleteBuffers(1, &self.ebo);
         }
     }
-}
-
-// 使用示例
-#[allow(dead_code)]
-fn example_usage() {
-    // 方式1: 从数据创建
-    let positions = vec![
-        Vector3::new(-0.5, -0.5, 0.0),
-        Vector3::new(0.5, -0.5, 0.0),
-        Vector3::new(0.0, 0.5, 0.0),
-    ];
-
-    let normals = vec![
-        Vector3::new(0.0, 0.0, 1.0),
-        Vector3::new(0.0, 0.0, 1.0),
-        Vector3::new(0.0, 0.0, 1.0),
-    ];
-
-    let uvs = vec![
-        Vector2::new(0.0, 0.0),
-        Vector2::new(1.0, 0.0),
-        Vector2::new(0.5, 1.0),
-    ];
-
-    let indices = vec![0, 1, 2];
-
-    let vertex_data = VertexData::new(positions)
-        .with_normals(normals)
-        .with_uvs(uvs);
-
-    let mesh = Mesh::from_data(vertex_data, indices).unwrap();
-
-    // 绘制
-    mesh.draw();
-
-    // 方式2: 从OBJ文件创建
-    let mesh_from_file = Mesh::from_obj("model.obj").unwrap();
-    mesh_from_file.draw();
 }

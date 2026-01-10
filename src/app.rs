@@ -117,11 +117,12 @@ impl App {
 
             // 渲染
             let delta_dt = self.get_current_time() - last_render_update_time;
-            self.render_update(delta_dt);
-            self.window.as_ref().unwrap().borrow_mut().swap_buffers();
-
             //  更新记录的时间
             last_render_update_time = self.get_current_time();
+
+            self.render_update(delta_dt);
+
+            self.window.as_ref().unwrap().borrow_mut().swap_buffers();
 
             // FPS 统计
             frame_count += 1;

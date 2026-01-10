@@ -57,9 +57,10 @@ impl DefaultPipeline {
                         0xFF,
                     ),
                     BlendMode::default(),
-                    CullFaceMode::default(),
+                    CullFaceMode::Back,
                     PolygonMode::default(),
                 ),
+                true,
             )
             .with_sort(|a, b| {
                 a.get_depth()
@@ -87,6 +88,7 @@ impl DefaultPipeline {
                     CullFaceMode::default(),
                     PolygonMode::default(),
                 ),
+                false,
             )
             .with_sort(|a, b| {
                 b.get_depth()
@@ -113,6 +115,7 @@ impl DefaultPipeline {
                 CullFaceMode::Front,
                 PolygonMode::default(),
             ),
+            false,
         ));
         pipeline.insert(Pass::new(
             Self::debug_pass(),
@@ -134,6 +137,7 @@ impl DefaultPipeline {
                 CullFaceMode::None, // 法线线段通常是线段，关闭背面剔除
                 PolygonMode::default(),
             ),
+            false,
         ));
         pipeline.insert(Pass::new(
             Self::skybox_pass(),
@@ -154,6 +158,7 @@ impl DefaultPipeline {
                 CullFaceMode::None,
                 PolygonMode::default(),
             ),
+            false,
         ));
         pipeline.insert(Pass::new(
             Self::ui_pass(),
@@ -174,6 +179,7 @@ impl DefaultPipeline {
                 CullFaceMode::None,
                 PolygonMode::default(),
             ),
+            false,
         ));
         pipeline
     }

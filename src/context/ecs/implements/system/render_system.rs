@@ -49,6 +49,9 @@ pub struct RenderSystem {
     ping_pong_size: Resolution,
 
     global_uniform: GlobalUniform,
+
+    // instancing framebuffer
+    temp_instance_buffer: InstanceBuffer,
 }
 
 impl RenderSystem {
@@ -166,60 +169,110 @@ impl RenderSystem {
         transform_mgr: &ComponentManager<Transform>,
         camera_view_matrix: Matrix4<f32>,
         pass: &Pass,
+        instancing: bool,
     ) -> Result<Vec<RenderJob>, RenderError> {
-        let mut jobs = Vec::new();
+        let jobs: Vec<RenderJob>;
+        if instancing && pass.is_opaque {
+            let mut batch_map: HashMap<(MaterialHandle, MeshHandle), Vec<&Transform>> =
+                HashMap::new();
 
-        for (entity, renderable) in renderable_mgr.iter() {
-            if let Some(material) = renderable.get_material(pass.id) {
-                let mesh = renderable.mesh;
-
-                // 获取 transform 用于计算深度
-                let depth = if let Some(transform) = transform_mgr.get(entity) {
-                    let world_pos_v4 = transform.translation.data.to_homogeneous();
-                    let view_pos = camera_view_matrix * world_pos_v4;
-                    -view_pos.z
-                } else {
-                    0.0
-                };
-
-                jobs.push(RenderJob::new(entity, mesh, material, depth));
+            for (entity, renderable) in renderable_mgr.iter() {
+                if let Some(material) = renderable.get_material(pass.id) {
+                    if let Some(transform) = transform_mgr.get(entity) {
+                        let mesh = renderable.mesh;
+                        let key = (material, mesh);
+                        let entry = batch_map.entry(key).or_insert(vec![]);
+                        entry.push(transform);
+                    }
+                }
             }
-        }
 
-        // 进行远近排序
-        if let Some(sort_func) = &pass.sort_func {
-            jobs.sort_by(sort_func);
+            jobs = batch_map
+                .into_iter() // 并行处理 HashMap 的每个 Entry
+                .map(|((material, mesh), transform_refs)| {
+                    // 内部并行计算矩阵
+                    let matrices: Vec<[[f32; 4]; 4]> =
+                        transform_refs.iter().map(|t| t.to_matrix()).collect();
+
+                    // 创建具体的 InstancedJob 类型
+                    let mut instanced_job = InstancedJob::new(mesh, material);
+                    instanced_job.set_transforms(matrices);
+                    RenderJob::Instanced(instanced_job)
+                })
+                .collect();
+        } else {
+            let mut single_jobs = Vec::new();
+            for (entity, renderable) in renderable_mgr.iter() {
+                if let Some(material) = renderable.get_material(pass.id) {
+                    let mesh = renderable.mesh;
+                    // 获取 transform 用于计算深度
+                    let depth = if let Some(transform) = transform_mgr.get(entity) {
+                        let world_pos_v4 = transform.get_translation().data.to_homogeneous();
+                        let view_pos = camera_view_matrix * world_pos_v4;
+                        -view_pos.z
+                    } else {
+                        0.0
+                    };
+
+                    single_jobs.push(SingleJob::new(entity, mesh, material, depth));
+                }
+            }
+
+            // 进行远近排序
+            if let Some(sort_func) = &pass.sort_func {
+                single_jobs.sort_by(sort_func);
+            }
+            jobs = single_jobs
+                .into_iter()
+                .map(|sb| RenderJob::Single(sb))
+                .collect();
         }
 
         Ok(jobs)
     }
 
     fn do_render_job(
-        &self,
+        &mut self,
         job: &RenderJob,
         transform_mgr: &ComponentManager<Transform>,
         asset_mgr: &AssetManager,
     ) -> Result<(), RenderError> {
-        let material_handle = job.get_material();
-        let mesh_handle = job.get_mesh();
-        let entity_handle = job.get_entity();
+        match job {
+            RenderJob::Single(single_job) => {
+                let material_handle = single_job.get_material();
+                let mesh_handle = single_job.get_mesh();
+                let entity_handle = single_job.get_entity();
 
-        // 计算这个物体相关的数据
-        let Some(transform) = transform_mgr.get(entity_handle) else {
-            return Err(RenderError::NotFoundEntityTransform);
-        };
+                // 计算这个物体相关的数据
+                let Some(transform) = transform_mgr.get(entity_handle) else {
+                    return Err(RenderError::NotFoundEntityTransform);
+                };
 
-        self.global_uniform
-            .update_model_data(&ModelData::new(transform)?);
+                self.global_uniform
+                    .update_model_data(&ModelData::new(transform)?);
 
-        // 绑定 Shader
-        Self::bind_material(&asset_mgr, material_handle)?;
+                // 绑定 Shader
+                Self::bind_material(&asset_mgr, material_handle)?;
 
-        // 绘制 Mesh
-        Self::draw_mesh(&asset_mgr, mesh_handle)?;
+                // 绘制 Mesh
+                Self::draw_mesh(&asset_mgr, mesh_handle)?;
 
-        // 卸载材质
-        Self::unbind_material(&asset_mgr, material_handle)?;
+                // 卸载材质
+                Self::unbind_material(&asset_mgr, material_handle)?;
+            }
+            RenderJob::Instanced(instanced_job) => {
+                let material_handle = instanced_job.get_material();
+                let mesh_handle = instanced_job.get_mesh();
+                let transforms = instanced_job.get_transforms();
+
+                Self::bind_material(&asset_mgr, material_handle)?;
+
+                self.draw_mesh_instanced(&asset_mgr, mesh_handle, transforms)?;
+
+                Self::unbind_material(&asset_mgr, material_handle)?;
+            }
+        }
+
         Ok(())
     }
 
@@ -290,6 +343,23 @@ impl RenderSystem {
         Ok(())
     }
 
+    fn draw_mesh_instanced(
+        &mut self,
+        asset_manager: &AssetManager,
+        mesh_handle: MeshHandle,
+        transforms: &Vec<[[f32; 4]; 4]>,
+    ) -> Result<(), RenderError> {
+        let mesh_manager = asset_manager.mesh_manager.borrow();
+        let mesh = mesh_manager.get(mesh_handle);
+        let Some(mesh) = mesh else {
+            Err(RenderError::NotFoundMesh)?
+        };
+        let buffer = &mut self.temp_instance_buffer;
+        mesh.draw_instanced(transforms, buffer);
+
+        Ok(())
+    }
+
     fn unbind_material(
         asset_manager: &AssetManager,
         material_handle: MaterialHandle,
@@ -342,6 +412,7 @@ impl ISystem for RenderSystem {
     fn init(&mut self, app_context: Rc<RefCell<AppContext>>) -> Result<(), Box<dyn Error>> {
         self.create_guad_mesh(&app_context.borrow())?;
         self.global_uniform.init();
+        self.temp_instance_buffer.init();
         Ok(())
     }
 
@@ -417,6 +488,7 @@ impl ISystem for RenderSystem {
                     &transform_mgr,
                     view_matrix,
                     pass,
+                    context.app_config.borrow().instancing,
                 )?;
 
                 // 渲染所有 job
@@ -431,7 +503,6 @@ impl ISystem for RenderSystem {
             // 相机渲染完成后解绑 rendertarget
             Self::unbind_render_target(&asset_mgr, render_target);
 
-            // ========== 应用后处理 ==========
             if needs_postprocess {
                 if let Err(e) = self.apply_postprocess(
                     &app_context.borrow(),
