@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use cgmath::Vector2;
+use glam::Vec2;
 use glfw::{Key, MouseButton};
 use log::debug;
 
@@ -9,10 +9,10 @@ pub struct InputState {
     pressed_keys: HashSet<Key>,
 
     is_first_cursor_move: bool,
-    cursor_pos: Vector2<f32>,
-    cursor_delta: Vector2<f32>,
+    cursor_pos: Vec2,
+    cursor_delta: Vec2,
 
-    scroll_delta: Vector2<f32>,
+    scroll_delta: Vec2,
 
     pressed_mouse_buttons: HashSet<MouseButton>,
 }
@@ -23,9 +23,9 @@ impl InputState {
         Self {
             pressed_keys: HashSet::new(),
             is_first_cursor_move: true,
-            cursor_pos: Vector2::new(0.0, 0.0),
-            cursor_delta: Vector2::new(0.0, 0.0),
-            scroll_delta: Vector2::new(0.0, 0.0),
+            cursor_pos: Vec2::new(0.0, 0.0),
+            cursor_delta: Vec2::new(0.0, 0.0),
+            scroll_delta: Vec2::new(0.0, 0.0),
             pressed_mouse_buttons: HashSet::new(),
         }
     }
@@ -57,7 +57,7 @@ impl InputState {
     }
 
     /// 获取滚动的delta数据
-    pub fn get_scroll_delta(&self) -> &Vector2<f32> {
+    pub fn get_scroll_delta(&self) -> &Vec2 {
         &self.scroll_delta
     }
 
@@ -70,12 +70,12 @@ impl InputState {
     }
 
     /// 获取鼠标的位移
-    pub fn get_cursor_delta(&self) -> &Vector2<f32> {
+    pub fn get_cursor_delta(&self) -> &Vec2 {
         &self.cursor_delta
     }
 
     /// 获取鼠标的位置
-    pub fn get_cursor_pos(&self) -> &Vector2<f32> {
+    pub fn get_cursor_pos(&self) -> &Vec2 {
         &self.cursor_pos
     }
 
@@ -85,11 +85,11 @@ impl InputState {
 
         if self.is_first_cursor_move {
             self.is_first_cursor_move = false;
-            self.cursor_pos = Vector2::new(x, y);
+            self.cursor_pos = Vec2::new(x, y);
         } else {
             self.cursor_delta.x = x - self.cursor_pos.x;
             self.cursor_delta.y = y - self.cursor_pos.y;
-            self.cursor_pos = Vector2::new(x, y);
+            self.cursor_pos = Vec2::new(x, y);
         }
     }
 

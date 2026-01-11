@@ -43,4 +43,7 @@ cargo run --example case_11_skybox
 
 # 使用几何shader可视化法线
 cargo run --example case_12_visual_normal
+
+# 使用实例化技术优化渲染
+cargo run --example case_13_instancing
 ```

@@ -1,60 +1,63 @@
-use cgmath::{Euler, InnerSpace, Matrix4, Quaternion, Rad, Vector3};
+use glam::{EulerRot, Mat4, Quat, Vec3};
 
 /// 旋转
 #[derive(Debug, Clone, Copy)]
 pub struct Rotation {
-    data: Quaternion<f32>,
+    pub(crate) data: Quat,
 }
 
 impl Default for Rotation {
-    /// 默认是0
     fn default() -> Self {
-        Rotation::zero()
+        Self::IDENTITY
     }
 }
 
-impl From<Quaternion<f32>> for Rotation {
-    /// 从4元数生成
-    fn from(value: Quaternion<f32>) -> Self {
+impl From<Quat> for Rotation {
+    #[inline]
+    fn from(value: Quat) -> Self {
         Self { data: value }
     }
 }
 
 impl Rotation {
+    pub const IDENTITY: Self = Self {
+        data: Quat::IDENTITY,
+    };
+
     /// 从角度生成旋转，是角度值
     pub fn new(x: f32, y: f32, z: f32) -> Self {
         Self {
-            data: Quaternion::from(Euler {
-                x: Rad(x.to_radians()),
-                y: Rad(y.to_radians()),
-                z: Rad(z.to_radians()),
-            }),
+            // glam 使用 EulerRot 指定旋转顺序（通常是 YXZ 或 XYZ）
+            data: Quat::from_euler(
+                EulerRot::YXZ, // 常用顺序：偏航(Y)->俯仰(X)->翻滚(Z)
+                y.to_radians(),
+                x.to_radians(),
+                z.to_radians(),
+            ),
         }
     }
 
     /// 0旋转
     pub fn zero() -> Self {
-        Rotation::new(0.0, 0.0, 0.0)
+        Self::IDENTITY
     }
 
     /// 获取旋转对应的矩阵
-    pub(crate) fn get_rotation_matrix(&self) -> Matrix4<f32> {
-        Matrix4::from(self.data)
-    }
-
-    /// 获取内部4元数数据
-    pub(crate) fn get_data(&self) -> Quaternion<f32> {
-        self.data
+    pub(crate) fn get_rotation_matrix(&self) -> Mat4 {
+        // 直接从四元数生成 4x4 矩阵
+        Mat4::from_quat(self.data)
     }
 
     /// 旋转一个4元数的值
-    pub(crate) fn rotate(&mut self, delta: Quaternion<f32>) {
+    pub(crate) fn rotate(&mut self, delta: Quat) {
+        // glam 中四元数乘法顺序与 cgmath 一致：delta * self.data
         self.data = (delta * self.data).normalize();
     }
 
     /// 获取指向z负数方向轴的旋转分量
-    pub(crate) fn forward(&self) -> Vector3<f32> {
-        let forward = Vector3::new(0.0, 0.0, -1.0);
+    pub(crate) fn forward(&self) -> Vec3 {
+        // 直接乘法即可，glam 内部优化了四元数旋转向量的路径
+        let forward = Vec3::new(0.0, 0.0, -1.0);
         (self.data * forward).normalize()
     }
 }

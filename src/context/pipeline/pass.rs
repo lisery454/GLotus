@@ -1,5 +1,7 @@
 use std::cmp::Ordering;
 
+use glam::Mat4;
+
 use crate::{EntityHandle, MaterialHandle, MeshHandle};
 
 use super::RenderState;
@@ -51,7 +53,7 @@ pub enum RenderJob {
 pub struct InstancedJob {
     mesh: MeshHandle,
     material: MaterialHandle,
-    transforms: Vec<[[f32; 4]; 4]>,
+    transforms: Vec<Mat4>,
 }
 
 impl InstancedJob {
@@ -63,11 +65,11 @@ impl InstancedJob {
         }
     }
 
-    pub fn set_transforms(&mut self, transforms: Vec<[[f32; 4]; 4]>)  {
+    pub fn set_transforms(&mut self, transforms: Vec<Mat4>)  {
         self.transforms = transforms;
     }
 
-    pub fn get_transforms(&self) -> &Vec<[[f32; 4]; 4]> {
+    pub fn get_transforms(&self) -> &Vec<Mat4> {
         &self.transforms
     }
 

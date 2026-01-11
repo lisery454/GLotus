@@ -1,6 +1,7 @@
 use std::mem;
 
 use gl::types::*;
+use glam::Mat4;
 
 pub struct InstanceBuffer {
     vbo: GLuint,
@@ -29,10 +30,10 @@ impl InstanceBuffer {
         self.vbo = vbo;
     }
 
-    pub fn upload(&mut self, matrices: &Vec<[[f32; 4]; 4]>) {
+    pub fn upload(&mut self, matrices: &Vec<Mat4>) {
         unsafe {
             gl::BindBuffer(gl::ARRAY_BUFFER, self.vbo);
-            let size = (matrices.len() * mem::size_of::<[[f32; 4]; 4]>()) as GLsizeiptr;
+            let size = (matrices.len() * mem::size_of::<Mat4>()) as GLsizeiptr;
 
             // 如果数据量超过当前容量，重新分配内存；否则只更新数据
             if matrices.len() > self.capacity {

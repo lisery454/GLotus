@@ -1,6 +1,6 @@
 use std::cell::Cell;
 
-use cgmath::{Matrix, Matrix4, SquareMatrix, Vector3};
+use glam::{Mat4, Vec3};
 
 use super::TransformError;
 use super::rotation::Rotation;
@@ -16,110 +16,88 @@ pub struct Transform {
 
     // 缓存相关
     is_dirty: Cell<bool>,
-    cached_matrix: Cell<[[f32; 4]; 4]>,
+    cached_matrix: Cell<Mat4>,
 }
 
 impl Default for Transform {
     fn default() -> Self {
-        let s = Self {
+        Self {
             translation: Default::default(),
             rotation: Default::default(),
             scaling: Default::default(),
             is_dirty: Cell::new(true),
-            cached_matrix: Cell::new(Matrix4::identity().into()),
-        };
-
-        s.update_cache();
-        s
+            cached_matrix: Cell::new(Mat4::IDENTITY),
+        }
     }
 }
 
 impl Transform {
     /// 从平移旋转和缩放新建
     pub fn new(translation: Translation, rotation: Rotation, scaling: Scaling) -> Self {
-        let s = Self {
+        Self {
             translation,
             rotation,
             scaling,
             is_dirty: Cell::new(true),
-            cached_matrix: Cell::new(Matrix4::identity().into()),
-        };
-
-        s.update_cache();
-        s
+            cached_matrix: Cell::new(Mat4::IDENTITY),
+        }
     }
 
     fn update_cache(&self) {
-        self.cached_matrix.set(self.get_matrix().into());
+        let m = Mat4::from_scale_rotation_translation(
+            self.scaling.data.into(),     // Vec3A -> Vec3
+            self.rotation.data,           // Quat
+            self.translation.data.into(), // Vec3A -> Vec3
+        );
+        self.cached_matrix.set(m);
         self.is_dirty.set(false);
-    }
-
-    pub fn from_ui(x: f32, y: f32, scale_x: f32, scale_y: f32) -> Self {
-        Self {
-            translation: Translation::new(x, y, 0.0), // Z 设为 0
-            scaling: Scaling::new(scale_x, scale_y, 1.0),
-
-            ..Default::default()
-        }
     }
 
     /// 从位置的xyz生成，其他为默认
     pub fn from_position(x: f32, y: f32, z: f32) -> Self {
-        let s = Self {
+        Self {
             translation: Translation::new(x, y, z),
             rotation: Rotation::default(),
             scaling: Scaling::default(),
             is_dirty: Cell::new(true),
-            cached_matrix: Cell::new(Matrix4::identity().into()),
-        };
-
-        s.update_cache();
-        s
-    }
-
-    /// 获取变换矩阵
-    fn get_matrix(&self) -> Matrix4<f32> {
-        let scaling_matrix = self.scaling.get_scale_matrix();
-        let rotation_matrix = self.rotation.get_rotation_matrix();
-        let translation_matrix = self.translation.get_translation_matrix();
-        let matrix = translation_matrix * rotation_matrix * scaling_matrix;
-        matrix
+            cached_matrix: Cell::new(Mat4::IDENTITY),
+        }
     }
 
     /// 获取变换矩阵，用多维数组表示
-    pub(crate) fn to_matrix(&self) -> [[f32; 4]; 4] {
+    pub(crate) fn to_matrix(&self) -> Mat4 {
         if self.is_dirty.get() {
             self.update_cache();
         }
+        // glam 的 Mat4 转数组极快
         self.cached_matrix.get()
     }
 
     /// 获取法线变化矩阵
-    pub(crate) fn to_normal_matrix(&self) -> Result<[[f32; 4]; 4], TransformError> {
-        let inverse_matrix = self
-            .get_matrix()
-            .invert()
-            .ok_or(TransformError::InverseMatrixFail)?;
+    pub(crate) fn to_normal_matrix(&self) -> Result<Mat4, TransformError> {
+        // glam 的 Mat4 提供了更快的逆矩阵计算
+        let model_mat = if self.is_dirty.get() {
+            self.update_cache();
+            self.cached_matrix.get()
+        } else {
+            self.cached_matrix.get()
+        };
 
-        let normal_matrix_3x3 = inverse_matrix.transpose();
-        let mut result = [
-            [1.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 0.0, 1.0],
-        ];
-        for i in 0..3 {
-            for j in 0..3 {
-                result[i][j] = normal_matrix_3x3[i][j];
-            }
+        // 法线矩阵：模型矩阵的逆转置
+        // 注意：如果缩放是统一的，其实可以直接用旋转矩阵
+        let inverse = model_mat.inverse();
+        if inverse.is_nan() {
+            return Err(TransformError::InverseMatrixFail);
         }
 
-        Ok(result)
+        // 只有 3x3 部分对法线有用
+        Ok(inverse.transpose())
     }
 
-    pub(crate) fn get_view_matrix(&self) -> Matrix4<f32> {
-        Matrix4::look_to_rh(
-            self.get_translation().data,
+    pub(crate) fn get_view_matrix(&self) -> Mat4 {
+        // glam 使用的是 look_to_lh 或 look_to_rh
+        Mat4::look_to_rh(
+            self.translation.data.into(),
             self.get_forward(),
             self.get_up(),
         )
@@ -173,18 +151,16 @@ impl Transform {
         self.rotation = rotation;
     }
 
-    /// 获取前向的方向，也就是-z方向
-    pub fn get_forward(&self) -> Vector3<f32> {
-        self.get_rotation().get_data() * -Vector3::unit_z()
+    pub fn get_forward(&self) -> Vec3 {
+        // Quat * Vec3 是优化过的 SIMD 路径
+        (self.rotation.data * Vec3::NEG_Z).normalize()
     }
 
-    /// 获取右边的方向
-    pub fn get_right(&self) -> Vector3<f32> {
-        self.get_rotation().get_data() * Vector3::unit_x()
+    pub fn get_right(&self) -> Vec3 {
+        (self.rotation.data * Vec3::X).normalize()
     }
 
-    /// 获取向上的方向
-    pub fn get_up(&self) -> Vector3<f32> {
-        self.get_rotation().get_data() * Vector3::unit_y()
+    pub fn get_up(&self) -> Vec3 {
+        (self.rotation.data * Vec3::Y).normalize()
     }
 }

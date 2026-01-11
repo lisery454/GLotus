@@ -1,11 +1,13 @@
-use cgmath::{Vector2, Vector3};
 use gl::types::*;
+use glam::Mat4;
+use glam::Vec2;
+use glam::Vec3;
 use std::mem;
 use std::ptr;
 
 use super::InstanceBuffer;
 
-// VAO: 
+// VAO:
 // Location 0-6：请去 VBO_A（Mesh 数据）里读，每画一个顶点挪动一下指针。
 // Location 7-10：请去 VBO_B（实例矩阵）里读，每画完一个实例再挪动指针。
 // EBO：索引数据在这里
@@ -39,17 +41,17 @@ impl Default for VertexAttributes {
 /// 顶点数据
 #[derive(Debug, Clone)]
 pub struct VertexData {
-    pub positions: Vec<Vector3<f32>>,
-    pub normals: Option<Vec<Vector3<f32>>>,
-    pub tangents: Option<Vec<Vector3<f32>>>,
-    pub bitangents: Option<Vec<Vector3<f32>>>,
-    pub uvs: Option<Vec<Vector2<f32>>>,
-    pub uvs_3d: Option<Vec<Vector3<f32>>>,
-    pub colors: Option<Vec<Vector3<f32>>>,
+    pub positions: Vec<Vec3>,
+    pub normals: Option<Vec<Vec3>>,
+    pub tangents: Option<Vec<Vec3>>,
+    pub bitangents: Option<Vec<Vec3>>,
+    pub uvs: Option<Vec<Vec2>>,
+    pub uvs_3d: Option<Vec<Vec3>>,
+    pub colors: Option<Vec<Vec3>>,
 }
 
 impl VertexData {
-    pub fn new(positions: Vec<Vector3<f32>>) -> Self {
+    pub fn new(positions: Vec<Vec3>) -> Self {
         Self {
             positions,
             normals: None,
@@ -61,32 +63,32 @@ impl VertexData {
         }
     }
 
-    pub fn with_normals(mut self, normals: Vec<Vector3<f32>>) -> Self {
+    pub fn with_normals(mut self, normals: Vec<Vec3>) -> Self {
         self.normals = Some(normals);
         self
     }
 
-    pub fn with_tangents(mut self, tangents: Vec<Vector3<f32>>) -> Self {
+    pub fn with_tangents(mut self, tangents: Vec<Vec3>) -> Self {
         self.tangents = Some(tangents);
         self
     }
 
-    pub fn with_bitangents(mut self, bitangents: Vec<Vector3<f32>>) -> Self {
+    pub fn with_bitangents(mut self, bitangents: Vec<Vec3>) -> Self {
         self.bitangents = Some(bitangents);
         self
     }
 
-    pub fn with_uvs(mut self, uvs: Vec<Vector2<f32>>) -> Self {
+    pub fn with_uvs(mut self, uvs: Vec<Vec2>) -> Self {
         self.uvs = Some(uvs);
         self
     }
 
-    pub fn with_uvs_3d(mut self, uvs_3d: Vec<Vector3<f32>>) -> Self {
+    pub fn with_uvs_3d(mut self, uvs_3d: Vec<Vec3>) -> Self {
         self.uvs_3d = Some(uvs_3d);
         self
     }
 
-    pub fn with_colors(mut self, colors: Vec<Vector3<f32>>) -> Self {
+    pub fn with_colors(mut self, colors: Vec<Vec3>) -> Self {
         self.colors = Some(colors);
         self
     }
@@ -118,8 +120,6 @@ impl Mesh {
             uv3d: vertex_data.uvs_3d.is_some(),
             color: vertex_data.colors.is_some(),
         };
-
-        // 交错顶点数据
         let interleaved = Self::interleave_vertices(&vertex_data, &attributes)?;
 
         let (vao, vbo, ebo) = unsafe {
@@ -189,30 +189,30 @@ impl Mesh {
         let mesh = &models[0].mesh;
 
         // 转换位置
-        let positions: Vec<Vector3<f32>> = mesh
+        let positions: Vec<Vec3> = mesh
             .positions
             .chunks(3)
-            .map(|p| Vector3::new(p[0], p[1], p[2]))
+            .map(|p| Vec3::new(p[0], p[1], p[2]))
             .collect();
 
         let mut vertex_data = VertexData::new(positions);
 
         // 转换法线
         if !mesh.normals.is_empty() {
-            let normals: Vec<Vector3<f32>> = mesh
+            let normals: Vec<Vec3> = mesh
                 .normals
                 .chunks(3)
-                .map(|n| Vector3::new(n[0], n[1], n[2]))
+                .map(|n| Vec3::new(n[0], n[1], n[2]))
                 .collect();
             vertex_data = vertex_data.with_normals(normals);
         }
 
         // 转换UV
         if !mesh.texcoords.is_empty() {
-            let uvs: Vec<Vector2<f32>> = mesh
+            let uvs: Vec<Vec2> = mesh
                 .texcoords
                 .chunks(2)
-                .map(|uv| Vector2::new(uv[0], uv[1]))
+                .map(|uv| Vec2::new(uv[0], uv[1]))
                 .collect();
             vertex_data = vertex_data.with_uvs(uvs);
         }
@@ -234,7 +234,7 @@ impl Mesh {
         }
     }
 
-    pub fn draw_instanced(&self, transforms: &Vec<[[f32; 4]; 4]>, buffer: &mut InstanceBuffer) {
+    pub fn draw_instanced(&self, transforms: &Vec<Mat4>, buffer: &mut InstanceBuffer) {
         unsafe {
             gl::BindVertexArray(self.vao);
             buffer.upload(transforms);
@@ -290,51 +290,47 @@ impl Mesh {
 
         for i in 0..count {
             // 位置 (必需)
-            result.extend_from_slice(&[
-                data.positions[i].x,
-                data.positions[i].y,
-                data.positions[i].z,
-            ]);
+            result.extend_from_slice(&data.positions[i].to_array());
 
             // 法线
             if attrs.normal {
                 if let Some(ref normals) = data.normals {
-                    result.extend_from_slice(&[normals[i].x, normals[i].y, normals[i].z]);
+                    result.extend_from_slice(&normals[i].to_array());
                 }
             }
 
             // 切线
             if attrs.tangent {
                 if let Some(ref tangents) = data.tangents {
-                    result.extend_from_slice(&[tangents[i].x, tangents[i].y, tangents[i].z]);
+                    result.extend_from_slice(&tangents[i].to_array());
                 }
             }
 
             // 副切线
             if attrs.bitangent {
                 if let Some(ref bitangents) = data.bitangents {
-                    result.extend_from_slice(&[bitangents[i].x, bitangents[i].y, bitangents[i].z]);
+                    result.extend_from_slice(&bitangents[i].to_array());
                 }
             }
 
             // 2D UV
             if attrs.uv {
                 if let Some(ref uvs) = data.uvs {
-                    result.extend_from_slice(&[uvs[i].x, uvs[i].y]);
+                    result.extend_from_slice(&uvs[i].to_array());
                 }
             }
 
             // 3D UV
             if attrs.uv3d {
                 if let Some(ref uvs_3d) = data.uvs_3d {
-                    result.extend_from_slice(&[uvs_3d[i].x, uvs_3d[i].y, uvs_3d[i].z]);
+                    result.extend_from_slice(&uvs_3d[i].to_array());
                 }
             }
 
             // 颜色
             if attrs.color {
                 if let Some(ref colors) = data.colors {
-                    result.extend_from_slice(&[colors[i].x, colors[i].y, colors[i].z]);
+                    result.extend_from_slice(&colors[i].to_array());
                 }
             }
         }

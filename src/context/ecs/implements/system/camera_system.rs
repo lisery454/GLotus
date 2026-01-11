@@ -1,5 +1,5 @@
 use crate::{AppContext, AppEvent, Camera, ISystem, Resolution, Rotation, Transform, Translation};
-use cgmath::{Deg, InnerSpace, Quaternion, Rad, Rotation3, Vector2, Vector3};
+use glam::{Quat, Vec2, Vec3};
 use glfw::Key;
 use std::cell::RefCell;
 use std::error::Error;
@@ -85,7 +85,7 @@ impl ISystem for CameraSystem {
             };
 
             let scroll_y = input.get_scroll_delta().y;
-            let cursor_delta = Vector2::new(input.get_cursor_delta().x, input.get_cursor_delta().y);
+            let cursor_delta = Vec2::new(input.get_cursor_delta().x, input.get_cursor_delta().y);
 
             (move_dir, scroll_y, cursor_delta)
         };
@@ -153,25 +153,25 @@ fn process_turn(
     sensitivity: f32,
     constrain_pitch: bool,
 ) {
-    let yaw_delta = Rad(-xoffset * sensitivity);
-    let pitch_delta = Rad(-yoffset * sensitivity);
+    let yaw_delta = -xoffset * sensitivity;
+    let pitch_delta = -yoffset * sensitivity;
 
-    let current_rotation = Quaternion::<f32>::from(transform.get_rotation().get_data());
+    let current_rotation = transform.get_rotation().data.clone();
 
     // 1. 先应用偏航（绕世界Y轴）
-    let yaw_rotation = Quaternion::from_axis_angle(Vector3::unit_y(), yaw_delta);
+    let yaw_rotation = Quat::from_axis_angle(Vec3::Y, yaw_delta);
     let new_rotation = yaw_rotation * current_rotation;
 
     // 2. 计算当前的右向量（用于俯仰旋转）
-    let right = new_rotation * Vector3::unit_x();
+    let right = new_rotation * Vec3::X;
 
     // 3. 应用俯仰（绕局部X轴/右向量）
-    let pitch_rotation = Quaternion::from_axis_angle(right, pitch_delta);
+    let pitch_rotation = Quat::from_axis_angle(right, pitch_delta);
     let mut final_rotation = pitch_rotation * new_rotation;
 
     // 4. 检查俯仰角限制
     if constrain_pitch {
-        let forward = final_rotation * Vector3::unit_z();
+        let forward = final_rotation * Vec3::Z;
         let pitch_angle = forward.y.asin();
 
         const MAX_PITCH: f32 = 89.0;
@@ -183,10 +183,8 @@ fn process_turn(
             let clamped_pitch = pitch_angle.signum() * max_pitch_rad;
 
             // 从偏航旋转开始，应用限制后的俯仰
-            let clamped_pitch_rotation = Quaternion::from_axis_angle(
-                right,
-                Rad(clamped_pitch - (new_rotation * Vector3::unit_z()).y.asin()),
-            );
+            let clamped_pitch_rotation =
+                Quat::from_axis_angle(right, clamped_pitch - (new_rotation * Vec3::Z).y.asin());
             final_rotation = clamped_pitch_rotation * new_rotation;
         }
     }
@@ -196,10 +194,10 @@ fn process_turn(
 
 fn process_zoom(camera: &mut Camera, yoffset: f32, sensitivity: f32) {
     // 计算新的FOV值
-    let mut new_fov = camera.fov.0 - yoffset * sensitivity;
+    let mut new_fov = camera.fov.to_degrees() - yoffset * sensitivity;
 
     // 限制FOV范围（通常在1.0到120度之间）
     new_fov = new_fov.clamp(1.0, 120.0);
 
-    camera.fov = Deg(new_fov);
+    camera.fov = new_fov.to_radians();
 }

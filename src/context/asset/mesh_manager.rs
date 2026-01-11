@@ -1,13 +1,12 @@
+mod instance_buffer;
 mod mesh;
 mod mesh_error;
-mod instance_buffer;
 
-
-pub use mesh::*;
+use glam::{Vec2, Vec3};
 pub use instance_buffer::*;
+pub use mesh::*;
 pub use mesh_error::*;
 
-use cgmath::{Vector2, Vector3};
 use slotmap::{SlotMap, new_key_type};
 
 new_key_type! {
@@ -44,9 +43,9 @@ impl MeshManager {
             ));
         }
 
-        let positions: Vec<Vector3<f32>> = positions
+        let positions: Vec<Vec3> = positions
             .chunks_exact(3)
-            .map(|p| Vector3::new(p[0], p[1], p[2]))
+            .map(|p| Vec3::new(p[0], p[1], p[2]))
             .collect();
 
         let vertex_data = VertexData::new(positions);
@@ -74,14 +73,14 @@ impl MeshManager {
             ));
         }
 
-        let positions: Vec<Vector3<f32>> = positions
+        let positions: Vec<Vec3> = positions
             .chunks_exact(3)
-            .map(|p| Vector3::new(p[0], p[1], p[2]))
+            .map(|p| Vec3::new(p[0], p[1], p[2]))
             .collect();
 
-        let normals: Vec<Vector3<f32>> = normals
+        let normals: Vec<Vec3> = normals
             .chunks_exact(3)
-            .map(|n| Vector3::new(n[0], n[1], n[2]))
+            .map(|n| Vec3::new(n[0], n[1], n[2]))
             .collect();
 
         let vertex_data = VertexData::new(positions).with_normals(normals);
@@ -116,14 +115,14 @@ impl MeshManager {
             ));
         }
 
-        let positions: Vec<Vector3<f32>> = positions
+        let positions: Vec<Vec3> = positions
             .chunks_exact(3)
-            .map(|p| Vector3::new(p[0], p[1], p[2]))
+            .map(|p| Vec3::new(p[0], p[1], p[2]))
             .collect();
 
-        let uvs: Vec<Vector2<f32>> = uvs
+        let uvs: Vec<Vec2> = uvs
             .chunks_exact(2)
-            .map(|uv| Vector2::new(uv[0], uv[1]))
+            .map(|uv| Vec2::new(uv[0], uv[1]))
             .collect();
 
         let vertex_data = VertexData::new(positions).with_uvs(uvs);
@@ -159,19 +158,19 @@ impl MeshManager {
             ));
         }
 
-        let positions: Vec<Vector3<f32>> = positions
+        let positions: Vec<Vec3> = positions
             .chunks_exact(3)
-            .map(|p| Vector3::new(p[0], p[1], p[2]))
+            .map(|p| Vec3::new(p[0], p[1], p[2]))
             .collect();
 
-        let normals: Vec<Vector3<f32>> = normals
+        let normals: Vec<Vec3> = normals
             .chunks_exact(3)
-            .map(|n| Vector3::new(n[0], n[1], n[2]))
+            .map(|n| Vec3::new(n[0], n[1], n[2]))
             .collect();
 
-        let uvs: Vec<Vector2<f32>> = uvs
+        let uvs: Vec<Vec2> = uvs
             .chunks_exact(2)
-            .map(|uv| Vector2::new(uv[0], uv[1]))
+            .map(|uv| Vec2::new(uv[0], uv[1]))
             .collect();
 
         let vertex_data = VertexData::new(positions)
@@ -228,28 +227,28 @@ impl MeshManager {
         // 使用第一个模型
         let mesh_data = &models[0].mesh;
 
-        let positions: Vec<Vector3<f32>> = mesh_data
+        let positions: Vec<Vec3> = mesh_data
             .positions
             .chunks_exact(3)
-            .map(|p| Vector3::new(p[0], p[1], p[2]))
+            .map(|p| Vec3::new(p[0], p[1], p[2]))
             .collect();
 
         let mut vertex_data = VertexData::new(positions);
 
         if !mesh_data.normals.is_empty() {
-            let normals: Vec<Vector3<f32>> = mesh_data
+            let normals: Vec<Vec3> = mesh_data
                 .normals
                 .chunks_exact(3)
-                .map(|n| Vector3::new(n[0], n[1], n[2]))
+                .map(|n| Vec3::new(n[0], n[1], n[2]))
                 .collect();
             vertex_data = vertex_data.with_normals(normals);
         }
 
         if !mesh_data.texcoords.is_empty() {
-            let uvs: Vec<Vector2<f32>> = mesh_data
+            let uvs: Vec<Vec2> = mesh_data
                 .texcoords
                 .chunks_exact(2)
-                .map(|uv| Vector2::new(uv[0], uv[1]))
+                .map(|uv| Vec2::new(uv[0], uv[1]))
                 .collect();
             vertex_data = vertex_data.with_uvs(uvs);
         }

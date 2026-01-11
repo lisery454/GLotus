@@ -35,7 +35,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .create_mesh_from_obj_in_bytes(include_bytes!("./assets/meshes/rock.obj"))?;
 
         let mut rng = rand::rng();
-        for i in 0..2000 {
+        for i in 0..10000 {
             let s = rng.random_range(0.1..0.4);
             let r1 = rng.random_range(0.0..360.0);
             let r2 = rng.random_range(0.0..360.0);

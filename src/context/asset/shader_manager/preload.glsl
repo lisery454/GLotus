@@ -12,7 +12,9 @@ struct Camera {
   float near_plane;   // 44
 
   float far_plane; // 48
-  int _pad[3];     // 52 (显式填充，确保总长 64B)
+  int _pad0;
+  int _pad1;
+  int _pad2; // 52 (显式填充，确保总长 64B)
 };
 
 struct Light {

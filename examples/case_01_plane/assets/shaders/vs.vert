@@ -1,1 +1,1 @@
-void main() { gl_Position = PVM_MATRIX * vec4(POSITION, 1.); }
+void main() { gl_Position = PVM_MATRIX * vec4(POSITION, 1.0); }

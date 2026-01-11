@@ -1,9 +1,9 @@
-use cgmath::{Matrix4, Vector3};
+use glam::{Mat4, Vec3A};
 
 /// 缩放
 #[derive(Debug, Clone, Copy)]
 pub struct Scaling {
-    pub(crate) data: Vector3<f32>,
+    pub(crate) data: Vec3A,
 }
 
 impl Default for Scaling {
@@ -17,20 +17,20 @@ impl Scaling {
     /// 从三维数据创建缩放
     pub fn new(x: f32, y: f32, z: f32) -> Self {
         Self {
-            data: Vector3::new(x, y, z),
+            data: Vec3A::new(x, y, z),
         }
     }
 
     /// 1缩放
     pub fn one() -> Self {
         Self {
-            data: Vector3::new(1.0, 1.0, 1.0),
+            data: Vec3A::new(1.0, 1.0, 1.0),
         }
     }
 
     /// 获取缩放矩阵
-    pub(crate) fn get_scale_matrix(&self) -> Matrix4<f32> {
-        Matrix4::from_nonuniform_scale(self.data.x, self.data.y, self.data.z)
+    pub(crate) fn get_scale_matrix(&self) -> Mat4 {
+        Mat4::from_scale(self.data.into())
     }
 
     /// 缩放一个另一个缩放

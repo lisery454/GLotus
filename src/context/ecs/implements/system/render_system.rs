@@ -1,11 +1,11 @@
 mod global_uniform;
 mod uniform_model;
 
+use glam::Mat4;
 pub use global_uniform::*;
 pub use uniform_model::*;
 
 use crate::*;
-use cgmath::Matrix4;
 use log::{error, warn};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -52,6 +52,9 @@ pub struct RenderSystem {
 
     // instancing framebuffer
     temp_instance_buffer: InstanceBuffer,
+
+    // render stage
+    render_stages: HashMap<PassId, Vec<(MeshHandle, MaterialHandle, EntityHandle)>>,
 }
 
 impl RenderSystem {
@@ -165,9 +168,9 @@ impl RenderSystem {
     }
 
     fn get_render_jobs_of_pass(
-        renderable_mgr: &ComponentManager<Renderable>,
+        &self,
         transform_mgr: &ComponentManager<Transform>,
-        camera_view_matrix: Matrix4<f32>,
+        camera_view_matrix: Mat4,
         pass: &Pass,
         instancing: bool,
     ) -> Result<Vec<RenderJob>, RenderError> {
@@ -175,12 +178,10 @@ impl RenderSystem {
         if instancing && pass.is_opaque {
             let mut batch_map: HashMap<(MaterialHandle, MeshHandle), Vec<&Transform>> =
                 HashMap::new();
-
-            for (entity, renderable) in renderable_mgr.iter() {
-                if let Some(material) = renderable.get_material(pass.id) {
-                    if let Some(transform) = transform_mgr.get(entity) {
-                        let mesh = renderable.mesh;
-                        let key = (material, mesh);
+            if let Some(batches) = self.render_stages.get(&pass.id) {
+                for (mesh, material, entity) in batches.iter() {
+                    if let Some(transform) = transform_mgr.get(*entity) {
+                        let key = (*material, *mesh);
                         let entry = batch_map.entry(key).or_insert(vec![]);
                         entry.push(transform);
                     }
@@ -191,7 +192,7 @@ impl RenderSystem {
                 .into_iter() // 并行处理 HashMap 的每个 Entry
                 .map(|((material, mesh), transform_refs)| {
                     // 内部并行计算矩阵
-                    let matrices: Vec<[[f32; 4]; 4]> =
+                    let matrices: Vec<Mat4> =
                         transform_refs.iter().map(|t| t.to_matrix()).collect();
 
                     // 创建具体的 InstancedJob 类型
@@ -202,11 +203,9 @@ impl RenderSystem {
                 .collect();
         } else {
             let mut single_jobs = Vec::new();
-            for (entity, renderable) in renderable_mgr.iter() {
-                if let Some(material) = renderable.get_material(pass.id) {
-                    let mesh = renderable.mesh;
-                    // 获取 transform 用于计算深度
-                    let depth = if let Some(transform) = transform_mgr.get(entity) {
+            if let Some(batches) = self.render_stages.get(&pass.id) {
+                for (mesh, material, entity) in batches.iter() {
+                    let depth = if let Some(transform) = transform_mgr.get(*entity) {
                         let world_pos_v4 = transform.get_translation().data.to_homogeneous();
                         let view_pos = camera_view_matrix * world_pos_v4;
                         -view_pos.z
@@ -214,7 +213,7 @@ impl RenderSystem {
                         0.0
                     };
 
-                    single_jobs.push(SingleJob::new(entity, mesh, material, depth));
+                    single_jobs.push(SingleJob::new(*entity, *mesh, *material, depth));
                 }
             }
 
@@ -347,7 +346,7 @@ impl RenderSystem {
         &mut self,
         asset_manager: &AssetManager,
         mesh_handle: MeshHandle,
-        transforms: &Vec<[[f32; 4]; 4]>,
+        transforms: &Vec<Mat4>,
     ) -> Result<(), RenderError> {
         let mesh_manager = asset_manager.mesh_manager.borrow();
         let mesh = mesh_manager.get(mesh_handle);
@@ -402,6 +401,24 @@ impl RenderSystem {
         self.fullscreen_quad = Some(quad);
         Ok(())
     }
+
+    fn init_render_stage(&mut self, app_context: &AppContext) -> Result<(), RenderError> {
+        self.render_stages.clear();
+        let world = app_context.world.borrow();
+        let renderable_mgr = world.get_manager::<Renderable>();
+        let pipeline = app_context.pipeline.borrow();
+        for (entity, renderable) in renderable_mgr.iter() {
+            for pass in &pipeline.passes {
+                if let Some(material) = renderable.get_material(pass.id) {
+                    let mesh = renderable.mesh;
+                    let entry = self.render_stages.entry(pass.id).or_insert(vec![]);
+                    entry.push((mesh, material, entity));
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl ISystem for RenderSystem {
@@ -428,7 +445,6 @@ impl ISystem for RenderSystem {
         let camera_mgr = world.get_manager_mut::<Camera>();
         let transform_mgr = world.get_manager_mut::<Transform>();
         let light_mgr = world.get_manager_mut::<Light>();
-        let renderable_mgr = world.get_manager_mut::<Renderable>();
         let window_state = context.window_state.borrow();
         let window_resolution = window_state.get_resolution();
 
@@ -477,14 +493,15 @@ impl ISystem for RenderSystem {
             self.global_uniform
                 .update_camera_data(&CameraData::new(camera, camera_transform));
 
+            self.init_render_stage(&context)?;
+
             // 按 pass 渲染
             for pass in &pipeline.passes {
                 // 应用渲染状态
                 pass.default_state.apply();
 
                 // 收集当前 Pass 需要渲染的所有物体
-                let jobs = Self::get_render_jobs_of_pass(
-                    &renderable_mgr,
+                let jobs = self.get_render_jobs_of_pass(
                     &transform_mgr,
                     view_matrix,
                     pass,

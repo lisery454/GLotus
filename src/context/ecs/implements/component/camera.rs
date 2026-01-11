@@ -1,5 +1,7 @@
+use glam::Mat4;
+
 use crate::{FramebufferHandle, IComponent, MaterialHandle, Resolution};
-use cgmath::{Deg, Matrix4, Ortho, PerspectiveFov, Rad};
+// use cgmath::{Deg, Matrix4, Ortho, PerspectiveFov, Rad};
 
 /// 投影类型
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -23,7 +25,7 @@ impl Default for RenderTarget {
 }
 
 pub struct Camera {
-    pub fov: Deg<f32>,
+    pub fov: f32,
     pub aspect_ratio: f32,
     pub near_plane: f32,
     pub far_plane: f32,
@@ -41,7 +43,7 @@ impl Camera {
     /// 创建一个默认的相机
     pub fn new(is_active: bool) -> Self {
         Self {
-            fov: Deg(45.0),
+            fov: 45.0_f32.to_radians(),
             aspect_ratio: 16.0 / 9.0,
             near_plane: 0.1,
             far_plane: 100.0,
@@ -54,12 +56,12 @@ impl Camera {
         }
     }
 
-    pub fn with_far_plane(mut self, far_plane: f32)-> Self {
+    pub fn with_far_plane(mut self, far_plane: f32) -> Self {
         self.far_plane = far_plane;
         self
     }
 
-    pub fn with_near_plane(mut self, near_plane: f32)-> Self {
+    pub fn with_near_plane(mut self, near_plane: f32) -> Self {
         self.near_plane = near_plane;
         self
     }
@@ -92,7 +94,7 @@ impl Camera {
     }
 
     pub fn with_fov(mut self, angle: f32) -> Self {
-        self.fov = Deg(angle);
+        self.fov = angle.to_radians();
         self
     }
 
@@ -148,30 +150,33 @@ impl Camera {
     }
 
     /// 获取投影矩阵：视图空间到裁切空间
-    pub(crate) fn get_projection_matrix(&self) -> [[f32; 4]; 4] {
-        let matrix: Matrix4<f32> = match self.projection_type {
-            ProjectionType::Perspective => PerspectiveFov {
-                fovy: Rad::from(self.fov),
-                aspect: self.aspect_ratio,
-                near: self.near_plane,
-                far: self.far_plane,
+    pub(crate) fn get_projection_matrix(&self) -> Mat4 {
+        let matrix = match self.projection_type {
+            ProjectionType::Perspective => {
+                // 使用 _rh_gl 确保深度范围映射到 [-1.0, 1.0]
+                Mat4::perspective_rh_gl(
+                    self.fov,
+                    self.aspect_ratio,
+                    self.near_plane,
+                    self.far_plane,
+                )
             }
-            .into(),
             ProjectionType::Orthographic => {
-                let half_height = self.fov.0 / 2.0;
+                let half_height = self.fov / 2.0;
                 let half_width = half_height * self.aspect_ratio;
-                Ortho {
-                    left: -half_width,
-                    right: half_width,
-                    bottom: -half_height,
-                    top: half_height,
-                    near: self.near_plane,
-                    far: self.far_plane,
-                }
-                .into()
+
+                // 正交投影同样使用 _rh_gl
+                Mat4::orthographic_rh_gl(
+                    -half_width,  // left
+                    half_width,   // right
+                    -half_height, // bottom
+                    half_height,  // top
+                    self.near_plane,
+                    self.far_plane,
+                )
             }
         };
 
-        matrix.into()
+        matrix
     }
 }

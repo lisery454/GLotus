@@ -1,3 +1,5 @@
+use glam::Mat4;
+
 use crate::{Camera, Light, LightData, ProjectionType, Transform, TransformError};
 
 /// 相机的shader数据，用来传递给shader
@@ -52,9 +54,9 @@ pub struct FrameData {
 #[derive(Debug, Clone, Copy)]
 pub struct CameraData {
     // 64B (mat4 = 4 * vec4 = 4 * 16B)
-    pub view_matrix: [[f32; 4]; 4],
+    pub view_matrix: Mat4,
     // 64B
-    pub projection_matrix: [[f32; 4]; 4],
+    pub projection_matrix: Mat4,
     // 64B
     pub camera: CameraShaderData,
 }
@@ -63,9 +65,9 @@ pub struct CameraData {
 #[derive(Debug, Clone, Copy)]
 pub struct ModelData {
     // 64B (mat4 = 4 * vec4)
-    pub model_matrix: [[f32; 4]; 4],
+    pub model_matrix: Mat4,
     // 64B (mat4 = 4 * vec4)
-    pub normal_matrix: [[f32; 4]; 4],
+    pub normal_matrix: Mat4,
 }
 
 impl Default for CameraShaderData {
@@ -116,7 +118,7 @@ impl CameraShaderData {
             } else {
                 1
             },
-            camera.fov.0,
+            camera.fov,
             direction,
             position,
             camera.aspect_ratio,
@@ -234,7 +236,7 @@ impl Default for CameraData {
 
 impl CameraData {
     pub fn new(camera: &Camera, camera_transform: &Transform) -> Self {
-        let view_matrix = camera_transform.get_view_matrix().into();
+        let view_matrix = camera_transform.get_view_matrix();
         let projection_matrix = camera.get_projection_matrix();
         let camera_shader_data = CameraShaderData::from_camera(camera, camera_transform);
         Self {

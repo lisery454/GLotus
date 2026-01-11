@@ -57,7 +57,7 @@ impl DefaultPipeline {
                         0xFF,
                     ),
                     BlendMode::default(),
-                    CullFaceMode::Back,
+                    CullFaceMode::default(),
                     PolygonMode::default(),
                 ),
                 true,
