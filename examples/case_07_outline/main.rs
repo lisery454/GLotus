@@ -9,15 +9,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     app.borrow().build(|context| {
-        let shader_1 = context.borrow().create_shader_from_sources_vf(
-            include_str!("./assets/shaders/normal.vert"),
-            include_str!("./assets/shaders/normal.frag"),
-        )?;
-
-        let shader_2 = context.borrow().create_shader_from_sources_vf(
-            include_str!("./assets/shaders/outline.vert"),
-            include_str!("./assets/shaders/outline.frag"),
-        )?;
+        let shader_1 = context.borrow().create_shader(ShaderConfig::new_vert_frag(
+            ShaderInput::Source(include_str!("./assets/shaders/normal.vert").to_string()),
+            ShaderInput::Source(include_str!("./assets/shaders/normal.frag").to_string()),
+        ))?;
+        let shader_2 = context.borrow().create_shader(ShaderConfig::new_vert_frag(
+            ShaderInput::Source(include_str!("./assets/shaders/outline.vert").to_string()),
+            ShaderInput::Source(include_str!("./assets/shaders/outline.frag").to_string()),
+        ))?;
 
         let material_1 = context.borrow().create_material(shader_1)?;
         let material_2 = context.borrow().create_material(shader_2)?;

@@ -12,4 +12,5 @@
 - [ ] 图片加载慢，预处理成 DDS 格式？
 - [ ] shader locate 缓存?
 - [ ] CPU 端“视锥剔除”函数，来过滤掉屏幕外的实例矩阵
-- [ ] 优化渲染，每次只遍历一遍renderable数组
+- [x] 优化渲染，每次只遍历一遍 renderable 数组
+- [ ] shader 实例化渲染优化，可以和 ModelMatrix 统一

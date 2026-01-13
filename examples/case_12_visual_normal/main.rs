@@ -8,18 +8,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     app.borrow().build(|context| {
-        let solid_shader = context.borrow().create_shader_from_sources_vf(
-            include_str!("./assets/shaders/solid.vert"),
-            include_str!("./assets/shaders/solid.frag"),
-        )?;
+        let solid_shader = context.borrow().create_shader(ShaderConfig::new_vert_frag(
+            ShaderInput::Source(include_str!("./assets/shaders/solid.vert").to_string()),
+            ShaderInput::Source(include_str!("./assets/shaders/solid.frag").to_string()),
+        ))?;
 
         let solid_material = context.borrow().get_material_builder(solid_shader)?.build();
 
-        let normal_shader = context.borrow().create_shader_from_sources_vfg(
-            include_str!("./assets/shaders/normal.vert"),
-            include_str!("./assets/shaders/normal.frag"),
-            include_str!("./assets/shaders/normal.geom"),
-        )?;
+        let normal_shader = context.borrow().create_shader(ShaderConfig::new_vert_frag_gemo(
+            ShaderInput::Source(include_str!("./assets/shaders/normal.vert").to_string()),
+            ShaderInput::Source(include_str!("./assets/shaders/normal.frag").to_string()),
+            ShaderInput::Source(include_str!("./assets/shaders/normal.geom").to_string()),
+        ))?;
         let normal_material = context.borrow().create_material(normal_shader)?;
 
         let ball_mesh = context

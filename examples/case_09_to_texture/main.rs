@@ -10,15 +10,17 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     app.borrow().build(|context| {
         let tex_size = 1024;
-        let shader_1 = context.borrow().create_shader_from_sources_vf(
-            include_str!("./assets/shaders/normal.vert"),
-            include_str!("./assets/shaders/normal.frag"),
-        )?;
+        let shader_1 = context.borrow().create_shader(ShaderConfig::new_vert_frag(
+            ShaderInput::Source(include_str!("./assets/shaders/normal.vert").to_string()),
+            ShaderInput::Source(include_str!("./assets/shaders/normal.frag").to_string()),
+        ))?;
+
         let material_1 = context.borrow().create_material(shader_1)?;
-        let shader_2 = context.borrow().create_shader_from_sources_vf(
-            include_str!("./assets/shaders/tex.vert"),
-            include_str!("./assets/shaders/tex.frag"),
-        )?;
+
+        let shader_2 = context.borrow().create_shader(ShaderConfig::new_vert_frag(
+            ShaderInput::Source(include_str!("./assets/shaders/tex.vert").to_string()),
+            ShaderInput::Source(include_str!("./assets/shaders/tex.frag").to_string()),
+        ))?;
 
         let texture_config = TextureConfig::new()
             .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
@@ -123,7 +125,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .with_target_framebuffer(topview_framebuffer)
                 .with_projection_type(ProjectionType::Orthographic)
                 .with_aspect_ratio(1.0)
-                .with_fov(3.0)
+                .with_fov(200.0)
                 .with_order(-1),
         ));
 
@@ -138,7 +140,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .with_target_framebuffer(frontview_framebuffer)
                 .with_projection_type(ProjectionType::Orthographic)
                 .with_aspect_ratio(1.0)
-                .with_fov(3.0)
+                .with_fov(200.0)
                 .with_order(-1),
         ));
 
@@ -153,7 +155,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .with_target_framebuffer(sideview_framebuffer)
                 .with_projection_type(ProjectionType::Orthographic)
                 .with_aspect_ratio(1.0)
-                .with_fov(3.0)
+                .with_fov(200.0)
                 .with_order(-1),
         ));
 

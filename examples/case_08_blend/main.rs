@@ -9,15 +9,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     app.borrow().build(|context| {
-        let transparent_texture_shader = context.borrow().create_shader_from_sources_vf(
-            include_str!("./assets/shaders/grass_vs.vert"),
-            include_str!("./assets/shaders/grass_fs.frag"),
-        )?;
+        let transparent_texture_shader =
+            context.borrow().create_shader(ShaderConfig::new_vert_frag(
+                ShaderInput::Source(include_str!("./assets/shaders/grass_vs.vert").to_string()),
+                ShaderInput::Source(include_str!("./assets/shaders/grass_fs.frag").to_string()),
+            ))?;
 
-        let simple_solid_shader = context.borrow().create_shader_from_sources_vf(
-            include_str!("./assets/shaders/simple_vs.vert"),
-            include_str!("./assets/shaders/simple_fs.frag"),
-        )?;
+        let simple_solid_shader = context.borrow().create_shader(ShaderConfig::new_vert_frag(
+            ShaderInput::Source(include_str!("./assets/shaders/simple_vs.vert").to_string()),
+            ShaderInput::Source(include_str!("./assets/shaders/simple_fs.frag").to_string()),
+        ))?;
 
         let grass_texture = context.borrow().create_texture_2d_from_bytes(
             include_bytes!("./assets/textures/grass.png"),

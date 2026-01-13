@@ -1,8 +1,39 @@
 use gl::types::*;
 use log::warn;
-use std::{ffi::CString, fs, ptr};
+use std::{ffi::CString, fs, path::PathBuf, ptr};
 
 use super::shader_error::ShaderError;
+
+#[derive(Debug)]
+pub enum ShaderInput {
+    Path(PathBuf),
+    Source(String),
+}
+
+#[derive(Debug)]
+pub struct ShaderConfig {
+    vert_shader_input: ShaderInput,
+    frag_shader_input: ShaderInput,
+    gemo_shader_input: Option<ShaderInput>,
+}
+
+impl ShaderConfig {
+    pub fn new_vert_frag(vert: ShaderInput, frag: ShaderInput) -> Self {
+        Self {
+            vert_shader_input: vert,
+            frag_shader_input: frag,
+            gemo_shader_input: None,
+        }
+    }
+
+    pub fn new_vert_frag_gemo(vert: ShaderInput, frag: ShaderInput, gemo: ShaderInput) -> Self {
+        Self {
+            vert_shader_input: vert,
+            frag_shader_input: frag,
+            gemo_shader_input: Some(gemo),
+        }
+    }
+}
 
 /// shader类
 #[derive(Debug)]
@@ -11,95 +42,62 @@ pub struct Shader {
 }
 
 /// 预处理shader
-fn pre_process_vert_shader(source: &str) -> String {
+fn pre_process_vert_shader(source: String) -> String {
     let s = format!("{}\n{}", include_str!("./preload_vert.glsl"), source);
     format!("{}\n{}", include_str!("./preload.glsl"), s)
 }
-fn pre_process_frag_shader(source: &str) -> String {
+fn pre_process_frag_shader(source: String) -> String {
     format!("{}\n{}", include_str!("./preload.glsl"), source)
 }
-fn pre_process_geom_shader(source: &str) -> String {
+fn pre_process_geom_shader(source: String) -> String {
     format!("{}\n{}", include_str!("./preload.glsl"), source)
 }
 
 // create
 impl Shader {
-    /// 从文件生成shader
-    pub fn from_files_vf(vertex_path: &str, fragment_path: &str) -> Result<Self, ShaderError> {
-        let vertex_source = fs::read_to_string(vertex_path)
-            .map_err(|e| ShaderError::FileReadError(e.to_string()))?;
-        let fragment_source = fs::read_to_string(fragment_path)
-            .map_err(|e| ShaderError::FileReadError(e.to_string()))?;
+    fn input_to_source(input: ShaderInput) -> Result<String, ShaderError> {
+        let source = match input {
+            ShaderInput::Path(path_buf) => fs::read_to_string(path_buf)
+                .map_err(|e| ShaderError::FileReadError(e.to_string()))?,
+            ShaderInput::Source(s) => s,
+        };
 
-        Self::from_sources_vf(&vertex_source, &fragment_source)
+        Ok(source)
     }
-
-    /// 从三个文件生成shader
-    pub fn from_files_vfg(
-        vertex_path: &str,
-        fragment_path: &str,
-        geometry_path: &str,
-    ) -> Result<Self, ShaderError> {
-        let vertex_source = fs::read_to_string(vertex_path)
-            .map_err(|e| ShaderError::FileReadError(e.to_string()))?;
-        let fragment_source = fs::read_to_string(fragment_path)
-            .map_err(|e| ShaderError::FileReadError(e.to_string()))?;
-        let geomtry_source = fs::read_to_string(geometry_path)
-            .map_err(|e| ShaderError::FileReadError(e.to_string()))?;
-
-        Self::from_sources_vfg(&vertex_source, &fragment_source, &geomtry_source)
-    }
-
-    /// 从代码生成shader
-    pub fn from_sources_vf(
-        vertex_source: &str,
-        fragment_source: &str,
-    ) -> Result<Self, ShaderError> {
+    pub fn new(config: ShaderConfig) -> Result<Self, ShaderError> {
+        let vertex_source = Self::input_to_source(config.vert_shader_input)?;
         let vertex_shader_id = Self::compile_shader(
             pre_process_vert_shader(vertex_source).as_str(),
             gl::VERTEX_SHADER,
         )?;
+        let fragment_source = Self::input_to_source(config.frag_shader_input)?;
         let fragment_shader_id = Self::compile_shader(
             pre_process_frag_shader(fragment_source).as_str(),
             gl::FRAGMENT_SHADER,
         )?;
-        let program_id = Self::link_program(vertex_shader_id, fragment_shader_id, None)?;
+
+        let geometry_source = match config.gemo_shader_input {
+            Some(input) => Some(Self::input_to_source(input)?),
+            _ => None,
+        };
+
+        let geomtry_shader_id = match geometry_source {
+            Some(source) => Some(Self::compile_shader(
+                pre_process_geom_shader(source).as_str(),
+                gl::GEOMETRY_SHADER,
+            )?),
+            None => None,
+        };
+
+        let program_id =
+            Self::link_program(vertex_shader_id, fragment_shader_id, geomtry_shader_id)?;
 
         unsafe {
             gl::DeleteShader(vertex_shader_id);
             gl::DeleteShader(fragment_shader_id);
-        }
-
-        Ok(Self { id: program_id })
-    }
-
-    pub fn from_sources_vfg(
-        vertex_source: &str,
-        fragment_source: &str,
-        geometry_source: &str,
-    ) -> Result<Self, ShaderError> {
-        let vertex_shader_id = Self::compile_shader(
-            pre_process_vert_shader(vertex_source).as_str(),
-            gl::VERTEX_SHADER,
-        )?;
-        let fragment_shader_id = Self::compile_shader(
-            pre_process_frag_shader(fragment_source).as_str(),
-            gl::FRAGMENT_SHADER,
-        )?;
-        let geomtry_shader_id = Self::compile_shader(
-            &pre_process_geom_shader(geometry_source).as_str(),
-            gl::GEOMETRY_SHADER,
-        )?;
-        let program_id = Self::link_program(
-            vertex_shader_id,
-            fragment_shader_id,
-            Some(geomtry_shader_id),
-        )?;
-
-        unsafe {
-            gl::DeleteShader(vertex_shader_id);
-            gl::DeleteShader(fragment_shader_id);
-            gl::DeleteShader(geomtry_shader_id);
+            if let Some(id) = geomtry_shader_id {
+                gl::DeleteShader(id);
+            }
         }
 
         Ok(Self { id: program_id })

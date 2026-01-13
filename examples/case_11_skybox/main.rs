@@ -5,7 +5,7 @@ use glotus::*;
 fn main() -> Result<(), Box<dyn Error>> {
     let app = glotus::App::new_with_config(AppConfig {
         bg_color: Color::from_rgb(0, 0, 0),
-        resolution: Resolution::new(400, 300),
+        // resolution: Resolution::new(400, 300),
         ..Default::default()
     });
 
@@ -24,10 +24,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .with_filtering(FilteringMode::LinearMipmapLinear, FilteringMode::Linear),
         )?;
 
-        let sky_box_shader = context.borrow().create_shader_from_sources_vf(
-            include_str!("./assets/shaders/skybox.vert"),
-            include_str!("./assets/shaders/skybox.frag"),
-        )?;
+        let sky_box_shader = context.borrow().create_shader(ShaderConfig::new_vert_frag(
+            ShaderInput::Source(include_str!("./assets/shaders/skybox.vert").to_string()),
+            ShaderInput::Source(include_str!("./assets/shaders/skybox.frag").to_string()),
+        ))?;
 
         let sky_box_material = context
             .borrow()
@@ -35,16 +35,16 @@ fn main() -> Result<(), Box<dyn Error>> {
             .with("skybox", UniformValue::Texture(0, sky_box_texture))
             .build();
 
-        let refraction_shader = context.borrow().create_shader_from_sources_vf(
-            include_str!("./assets/shaders/refraction.vert"),
-            include_str!("./assets/shaders/refraction.frag"),
-        )?;
+        let refraction_shader = context.borrow().create_shader(ShaderConfig::new_vert_frag(
+            ShaderInput::Source(include_str!("./assets/shaders/refraction.vert").to_string()),
+            ShaderInput::Source(include_str!("./assets/shaders/refraction.frag").to_string()),
+        ))?;
         let refraction_material = context.borrow().create_material(refraction_shader)?;
 
-        let reflection_shader = context.borrow().create_shader_from_sources_vf(
-            include_str!("./assets/shaders/reflection.vert"),
-            include_str!("./assets/shaders/reflection.frag"),
-        )?;
+        let reflection_shader = context.borrow().create_shader(ShaderConfig::new_vert_frag(
+            ShaderInput::Source(include_str!("./assets/shaders/reflection.vert").to_string()),
+            ShaderInput::Source(include_str!("./assets/shaders/reflection.frag").to_string()),
+        ))?;
         let reflection_material = context.borrow().create_material(reflection_shader)?;
 
         let box_mesh = context
