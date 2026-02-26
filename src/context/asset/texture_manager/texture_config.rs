@@ -26,6 +26,12 @@ impl TextureConfig {
         self.mag_filter = mag;
         self
     }
+
+    pub fn simple() -> Self {
+        Self::new()
+            .with_wrapping(WrappingMode::Repeat, WrappingMode::Repeat)
+            .with_filtering(FilteringMode::LinearMipmapLinear, FilteringMode::Linear)
+    }
 }
 
 impl Default for TextureConfig {

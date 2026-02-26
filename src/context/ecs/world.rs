@@ -86,4 +86,54 @@ impl World {
             }
         }
     }
+
+    pub fn add_component<T: IComponent>(&self, entity: EntityHandle, component: T) {
+        self.get_manager_mut::<T>().add(entity, component);
+    }
+
+    pub fn spawn_entity_with<B: ComponentBundle>(&mut self, bundle: B) -> EntityHandle {
+        let entity = self.spawn_entity();
+        bundle.add_to_entity(self, entity);
+        entity
+    }
+
+    pub fn remove_component<T: IComponent>(&self, entity: EntityHandle) -> Option<T> {
+        self.get_manager_mut::<T>().remove(entity)
+    }
+}
+
+pub trait ComponentBundle {
+    fn add_to_entity(self, world: &World, entity: EntityHandle);
+}
+
+// 为单个组件实现
+impl<T: IComponent> ComponentBundle for T {
+    fn add_to_entity(self, world: &World, entity: EntityHandle) {
+        world.add_component(entity, self);
+    }
+}
+
+// 为元组实现
+impl<T1, T2> ComponentBundle for (T1, T2)
+where
+    T1: IComponent,
+    T2: IComponent,
+{
+    fn add_to_entity(self, world: &World, entity: EntityHandle) {
+        world.add_component(entity, self.0);
+        world.add_component(entity, self.1);
+    }
+}
+
+impl<T1, T2, T3> ComponentBundle for (T1, T2, T3)
+where
+    T1: IComponent,
+    T2: IComponent,
+    T3: IComponent,
+{
+    fn add_to_entity(self, world: &World, entity: EntityHandle) {
+        world.add_component(entity, self.0);
+        world.add_component(entity, self.1);
+        world.add_component(entity, self.2);
+    }
 }

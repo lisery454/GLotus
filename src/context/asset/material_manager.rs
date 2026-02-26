@@ -40,7 +40,10 @@ impl MaterialManager {
 
     pub fn insert_uniform(&mut self, handle: MaterialHandle, name: &str, value: UniformValue) {
         let Some(material) = self.get_mut(handle) else {
-            warn!("can not find material of handle: {:?} when insert uniform", handle);
+            warn!(
+                "can not find material of handle: {:?} when insert uniform",
+                handle
+            );
             return;
         };
 
@@ -49,5 +52,33 @@ impl MaterialManager {
 
     pub fn remove(&mut self, handle: MaterialHandle) {
         self.materials.remove(handle);
+    }
+
+    pub fn get_builder(
+        &mut self,
+        shader_handle: ShaderHandle,
+    ) -> Result<MaterialBuilder<'_>, MaterialError> {
+        let material = self.create(shader_handle)?;
+        Ok(MaterialBuilder {
+            material_manager: self,
+            material,
+        })
+    }
+}
+
+pub struct MaterialBuilder<'a> {
+    material_manager: &'a mut MaterialManager,
+    material: MaterialHandle,
+}
+
+impl<'a> MaterialBuilder<'a> {
+    pub fn with(self, name: &str, value: UniformValue) -> MaterialBuilder<'a> {
+        self.material_manager
+            .insert_uniform(self.material, name, value);
+        self
+    }
+
+    pub fn build(self) -> Result<MaterialHandle, MaterialError> {
+        Ok(self.material)
     }
 }

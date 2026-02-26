@@ -9,56 +9,59 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     app.borrow().build(|context| {
-        let shader_1 = context.borrow().create_shader(ShaderConfig::new_vert_frag(
-            ShaderInput::Source(include_str!("./assets/shaders/normal.vert").to_string()),
-            ShaderInput::Source(include_str!("./assets/shaders/normal.frag").to_string()),
-        ))?;
-        let shader_2 = context.borrow().create_shader(ShaderConfig::new_vert_frag(
-            ShaderInput::Source(include_str!("./assets/shaders/outline.vert").to_string()),
-            ShaderInput::Source(include_str!("./assets/shaders/outline.frag").to_string()),
-        ))?;
+        let shader_1 = context.borrow().with_sdr_mgr(|m| {
+            m.create(ShaderConfig::new_vert_frag(
+                ShaderInput::Source(include_str!("./assets/shaders/normal.vert").to_string()),
+                ShaderInput::Source(include_str!("./assets/shaders/normal.frag").to_string()),
+            ))
+        })?;
 
-        let material_1 = context.borrow().create_material(shader_1)?;
-        let material_2 = context.borrow().create_material(shader_2)?;
+        let shader_2 = context.borrow().with_sdr_mgr(|m| {
+            m.create(ShaderConfig::new_vert_frag(
+                ShaderInput::Source(include_str!("./assets/shaders/outline.vert").to_string()),
+                ShaderInput::Source(include_str!("./assets/shaders/outline.frag").to_string()),
+            ))
+        })?;
 
-        let mesh = context
-            .borrow()
-            .create_mesh_from_obj_in_bytes(include_bytes!("./assets/meshes/sphere.obj"))?;
+        let material_1 = context.borrow().with_mat_mgr(|m| m.create(shader_1))?;
+        let material_2 = context.borrow().with_mat_mgr(|m| m.create(shader_2))?;
 
-        let mesh2 = context
-            .borrow()
-            .create_mesh_from_obj_in_bytes(include_bytes!(
-                "./assets/meshes/sphere_no_smooth.obj"
-            ))?;
+        let mesh = context.borrow().with_msh_mgr(|m| {
+            m.create_from_obj_bytes(include_bytes!("./assets/meshes/sphere.obj"))
+        })?;
+
+        let mesh2 = context.borrow().with_msh_mgr(|m| {
+            m.create_from_obj_bytes(include_bytes!("./assets/meshes/sphere_no_smooth.obj"))
+        })?;
 
         let mesh3 = context
             .borrow()
-            .create_mesh_from_obj_in_bytes(include_bytes!("./assets/meshes/box.obj"))?;
+            .with_msh_mgr(|m| m.create_from_obj_bytes(include_bytes!("./assets/meshes/box.obj")))?;
 
-        context.borrow().spawn_entity_with((
-            Renderable::new(mesh)
-                .with_material(DefaultPipeline::main_pass(), material_1)
-                .with_material(DefaultPipeline::outline_pass(), material_2),
-            Transform::from_position(0.0, 0.0, 0.0),
-        ));
+        context.borrow().with_world(|w| {
+            w.spawn_entity_with((
+                Renderable::new(mesh)
+                    .with_material(DefaultPipeline::main_pass(), material_1)
+                    .with_material(DefaultPipeline::outline_pass(), material_2),
+                Transform::from_position(0.0, 0.0, 0.0),
+            ));
 
-        context.borrow().spawn_entity_with((
-            Renderable::new(mesh2)
-                .with_material(DefaultPipeline::main_pass(), material_1)
-                .with_material(DefaultPipeline::outline_pass(), material_2),
-            Transform::from_position(3.0, 0.0, 0.0),
-        ));
+            w.spawn_entity_with((
+                Renderable::new(mesh2)
+                    .with_material(DefaultPipeline::main_pass(), material_1)
+                    .with_material(DefaultPipeline::outline_pass(), material_2),
+                Transform::from_position(3.0, 0.0, 0.0),
+            ));
 
-        context.borrow().spawn_entity_with((
-            Renderable::new(mesh3)
-                .with_material(DefaultPipeline::main_pass(), material_1)
-                .with_material(DefaultPipeline::outline_pass(), material_2),
-            Transform::from_position(1.5, 0.0, 3.0),
-        ));
+            w.spawn_entity_with((
+                Renderable::new(mesh3)
+                    .with_material(DefaultPipeline::main_pass(), material_1)
+                    .with_material(DefaultPipeline::outline_pass(), material_2),
+                Transform::from_position(1.5, 0.0, 3.0),
+            ));
 
-        context
-            .borrow()
-            .spawn_entity_with((Transform::from_position(1.5, 0.0, 6.0), Camera::new(true)));
+            w.spawn_entity_with((Transform::from_position(1.5, 0.0, 6.0), Camera::new(true)));
+        });
 
         Ok(())
     })?;

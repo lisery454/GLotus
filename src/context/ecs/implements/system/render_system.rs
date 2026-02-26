@@ -382,21 +382,23 @@ impl RenderSystem {
         }
 
         // 创建全屏四边形
-        let quad = app_context.create_mesh_from_positions_uvs(
-            vec![0, 1, 2, 0, 2, 3],
-            vec![
-                -1.0, 1.0, 0.0, // 左上
-                -1.0, -1.0, 0.0, // 左下
-                1.0, -1.0, 0.0, // 右下
-                1.0, 1.0, 0.0, // 右上
-            ],
-            vec![
-                0.0, 1.0, // 左上 UV
-                0.0, 0.0, // 左下 UV
-                1.0, 0.0, // 右下 UV
-                1.0, 1.0, // 右上 UV
-            ],
-        )?;
+        let quad = app_context.with_msh_mgr(|m| {
+            m.create_from_positions_uvs(
+                vec![0, 1, 2, 0, 2, 3],
+                vec![
+                    -1.0, 1.0, 0.0, // 左上
+                    -1.0, -1.0, 0.0, // 左下
+                    1.0, -1.0, 0.0, // 右下
+                    1.0, 1.0, 0.0, // 右上
+                ],
+                vec![
+                    0.0, 1.0, // 左上 UV
+                    0.0, 0.0, // 左下 UV
+                    1.0, 0.0, // 右下 UV
+                    1.0, 1.0, // 右上 UV
+                ],
+            )
+        })?;
 
         self.fullscreen_quad = Some(quad);
         Ok(())
@@ -560,11 +562,14 @@ impl RenderSystem {
         }
 
         // 不存在就创建新的
-        let texture_config = TextureConfig::new()
-            .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
-            .with_filtering(FilteringMode::Linear, FilteringMode::Linear);
 
-        let fb = context.create_framebuffer_multi_sample(resolution, anti_pixel, texture_config)?;
+        let fb = context.with_fbr_mgr(|m| {
+            let texture_config = TextureConfig::new()
+                .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
+                .with_filtering(FilteringMode::Linear, FilteringMode::Linear);
+            m.create_multi_sample(resolution, anti_pixel, texture_config)
+        })?;
+
         self.camera_temp_framebuffers.insert(camera_entity, fb);
         Ok(fb)
     }
@@ -584,7 +589,7 @@ impl RenderSystem {
             // 删除旧的
             for fb_opt in &self.ping_pong_framebuffers {
                 if let Some(fb) = fb_opt {
-                    context.remove_framebuffer(*fb)?;
+                    context.with_fbr_mgr(|m| m.remove(*fb))?;
                 }
             }
 
@@ -593,16 +598,14 @@ impl RenderSystem {
                 .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
                 .with_filtering(FilteringMode::Linear, FilteringMode::Linear);
 
-            self.ping_pong_framebuffers[0] = Some(context.create_framebuffer_multi_sample(
-                resolution,
-                anti_pixel,
-                texture_config,
-            )?);
-            self.ping_pong_framebuffers[1] = Some(context.create_framebuffer_multi_sample(
-                resolution,
-                anti_pixel,
-                texture_config,
-            )?);
+            self.ping_pong_framebuffers[0] =
+                Some(context.with_fbr_mgr(|m| {
+                    m.create_multi_sample(resolution, anti_pixel, texture_config)
+                })?);
+            self.ping_pong_framebuffers[1] =
+                Some(context.with_fbr_mgr(|m| {
+                    m.create_multi_sample(resolution, anti_pixel, texture_config)
+                })?);
 
             self.ping_pong_size = resolution;
         }
@@ -625,7 +628,7 @@ impl RenderSystem {
 
         // 获取源纹理
         let source_texture = match source_target {
-            RenderTarget::Framebuffer(fb) => context.get_texture_of_framebuffer(fb)?,
+            RenderTarget::Framebuffer(fb) => context.with_fbr_mgr(|m| m.get_color_texture(fb))?,
             RenderTarget::Screen => {
                 error!("Cannot apply postprocess from screen");
                 return Ok(());
@@ -672,7 +675,7 @@ impl RenderSystem {
             // 更新 source
             if !is_last {
                 let fb = self.ping_pong_framebuffers[i % 2].unwrap();
-                current_source = context.get_texture_of_framebuffer(fb)?;
+                current_source = context.with_fbr_mgr(|m| m.get_color_texture(fb))?;
             }
         }
 

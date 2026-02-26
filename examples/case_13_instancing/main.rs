@@ -12,53 +12,59 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
 
     app.borrow().build(|context| {
-        let shader = context.borrow().create_shader(ShaderConfig::new_vert_frag(
-            ShaderInput::Source(include_str!("./assets/shaders/vs.vert").to_string()),
-            ShaderInput::Source(include_str!("./assets/shaders/fs.frag").to_string()),
-        ))?;
+        let shader = context.borrow().with_sdr_mgr(|m| {
+            m.create(ShaderConfig::new_vert_frag(
+                ShaderInput::Source(include_str!("./assets/shaders/vs.vert").to_string()),
+                ShaderInput::Source(include_str!("./assets/shaders/fs.frag").to_string()),
+            ))
+        })?;
 
-        let texture = context.borrow().create_texture_2d_from_bytes(
-            include_bytes!("./assets/textures/rock.png"),
-            TextureConfig::new()
-                .with_wrapping(WrappingMode::Repeat, WrappingMode::Repeat)
-                .with_filtering(FilteringMode::LinearMipmapLinear, FilteringMode::Linear),
-        )?;
+        let texture = context.borrow().with_tex_mgr(|m| {
+            m.create_from_bytes(
+                include_bytes!("./assets/textures/rock.png"),
+                TextureConfig::new()
+                    .with_wrapping(WrappingMode::Repeat, WrappingMode::Repeat)
+                    .with_filtering(FilteringMode::LinearMipmapLinear, FilteringMode::Linear),
+            )
+        })?;
 
-        let material = context
-            .borrow()
-            .get_material_builder(shader)?
-            .with("texture_diffuse1", UniformValue::Texture(0, texture))
-            .build();
+        let material = context.borrow().with_mat_mgr(|m| {
+            m.get_builder(shader)?
+                .with("texture_diffuse1", UniformValue::Texture(0, texture))
+                .build()
+        })?;
 
-        let mesh = context
-            .borrow()
-            .create_mesh_from_obj_in_bytes(include_bytes!("./assets/meshes/rock.obj"))?;
+        let mesh = context.borrow().with_msh_mgr(|m| {
+            m.create_from_obj_bytes(include_bytes!("./assets/meshes/rock.obj"))
+        })?;
 
-        let mut rng = rand::rng();
-        for i in 0..10000 {
-            let s = rng.random_range(0.1..0.4);
-            let r1 = rng.random_range(0.0..360.0);
-            let r2 = rng.random_range(0.0..360.0);
-            let r3 = rng.random_range(0.0..360.0);
-            context.borrow().spawn_entity_with((
-                Renderable::new(mesh).with_material(DefaultPipeline::main_pass(), material),
+        context.borrow().with_world(|w| {
+            let mut rng = rand::rng();
+            for i in 0..10000 {
+                let s = rng.random_range(0.1..0.4);
+                let r1 = rng.random_range(0.0..360.0);
+                let r2 = rng.random_range(0.0..360.0);
+                let r3 = rng.random_range(0.0..360.0);
+                w.spawn_entity_with((
+                    Renderable::new(mesh).with_material(DefaultPipeline::main_pass(), material),
+                    Transform::new(
+                        Default::default(),
+                        Rotation::new(r1, r2, r3),
+                        Scaling::new(s, s, s),
+                    ),
+                    Scriptable::new().with(RockMove::new(i)),
+                ));
+            }
+
+            w.spawn_entity_with((
                 Transform::new(
-                    Default::default(),
-                    Rotation::new(r1, r2, r3),
-                    Scaling::new(s, s, s),
+                    Translation::new(0.0, 80.0, 0.0),
+                    Rotation::new(-90.0, 0.0, 0.0),
+                    Scaling::default(),
                 ),
-                Scriptable::new().with(RockMove::new(i)),
+                Camera::new(true).with_far_plane(200.0),
             ));
-        }
-
-        context.borrow().spawn_entity_with((
-            Transform::new(
-                Translation::new(0.0, 80.0, 0.0),
-                Rotation::new(-90.0, 0.0, 0.0),
-                Scaling::default(),
-            ),
-            Camera::new(true).with_far_plane(200.0),
-        ));
+        });
 
         Ok(())
     })?;
