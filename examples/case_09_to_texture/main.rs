@@ -31,6 +31,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             WrappingMode::ClampToEdge,
             FilteringMode::Nearest,
             FilteringMode::Nearest,
+            FormatType::SRGBA,
         );
         let texture_resolution = Resolution::new(tex_size, tex_size);
 

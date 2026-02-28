@@ -555,10 +555,10 @@ impl RenderSystem {
         }
 
         // 不存在就创建新的
-
         let fb = context.with_fbr_mgr(|m| {
-            let texture_config = TextureConfig::default();
-            m.create_multi_sample(resolution, anti_pixel, texture_config)
+            let texture_config_2d = TextureConfig::default();
+            let texture_config_msaa = TextureConfig::MultiSample { anti_pixel, format_type: FormatType::SRGBA };
+            m.create_multi_sample(resolution, texture_config_msaa, texture_config_2d)
         })?;
 
         self.camera_temp_framebuffers.insert(camera_entity, fb);
@@ -585,15 +585,15 @@ impl RenderSystem {
             }
 
             // 创建新的
-            let texture_config = TextureConfig::default();
-
+            let texture_config_2d = TextureConfig::default();
+            let texture_config_msaa = TextureConfig::MultiSample { anti_pixel, format_type: FormatType::SRGBA };
             self.ping_pong_framebuffers[0] =
                 Some(context.with_fbr_mgr(|m| {
-                    m.create_multi_sample(resolution, anti_pixel, texture_config)
+                    m.create_multi_sample(resolution, texture_config_msaa, texture_config_2d)
                 })?);
             self.ping_pong_framebuffers[1] =
                 Some(context.with_fbr_mgr(|m| {
-                    m.create_multi_sample(resolution, anti_pixel, texture_config)
+                    m.create_multi_sample(resolution, texture_config_msaa, texture_config_2d)
                 })?);
 
             self.ping_pong_size = resolution;

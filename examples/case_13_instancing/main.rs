@@ -5,7 +5,7 @@ use rand::Rng;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let app = App::new_with_config(AppConfig {
-        anti_pixel: AntiPixel::MSAA4,
+        anti_pixel: AntiPixel::NONE,
         instancing: true,
         bg_color: Color::BLACK,
         ..Default::default()
@@ -27,6 +27,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     WrappingMode::Repeat,
                     FilteringMode::LinearMipmapLinear,
                     FilteringMode::Linear,
+                    FormatType::SRGBA,
                 ),
             )
         })?;

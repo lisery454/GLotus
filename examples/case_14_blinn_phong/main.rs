@@ -24,6 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     WrappingMode::Repeat,
                     FilteringMode::LinearMipmapLinear,
                     FilteringMode::Linear,
+                    FormatType::SRGBA,
                 ),
             )
         })?;

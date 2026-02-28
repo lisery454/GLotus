@@ -57,12 +57,7 @@ pub struct Texture {
 impl Texture {
     pub fn empty(resolution: Resolution, config: TextureConfig) -> Self {
         match config {
-            TextureConfig::Common {
-                wrapping_s: _,
-                wrapping_t: _,
-                min_filter: _,
-                mag_filter: _,
-            } => {
+            TextureConfig::Common { format_type, .. } => {
                 let mut texture_id: GLuint = 0;
 
                 unsafe {
@@ -76,11 +71,11 @@ impl Texture {
                     gl::TexImage2D(
                         gl::TEXTURE_2D,
                         0,
-                        gl::RGBA as i32,
+                        format_type.as_gl_internal_format(),
                         resolution.width as i32,
                         resolution.height as i32,
                         0,
-                        gl::RGBA,
+                        format_type.as_gl_format(),
                         gl::UNSIGNED_BYTE,
                         std::ptr::null() as *const _,
                     );
@@ -94,7 +89,10 @@ impl Texture {
                     resolution,
                 }
             }
-            TextureConfig::MultiSample { anti_pixel } => {
+            TextureConfig::MultiSample {
+                anti_pixel,
+                format_type,
+            } => {
                 let mut texture_id: GLuint = 0;
                 let samples = anti_pixel.samples();
                 unsafe {
@@ -105,7 +103,7 @@ impl Texture {
                     gl::TexImage2DMultisample(
                         gl::TEXTURE_2D_MULTISAMPLE,
                         samples as i32,
-                        gl::RGBA8,
+                        format_type.as_gl_internal_format() as u32,
                         resolution.width as i32,
                         resolution.height as i32,
                         gl::TRUE, // fixedsamplelocations
@@ -121,12 +119,7 @@ impl Texture {
                     resolution,
                 }
             }
-            TextureConfig::Cube {
-                wrapping_s: _,
-                wrapping_t: _,
-                min_filter: _,
-                mag_filter: _,
-            } => {
+            TextureConfig::Cube { .. } => {
                 let mut texture_id: GLuint = 0;
 
                 unsafe {
@@ -165,7 +158,7 @@ impl Texture {
 
     pub fn from_file(path: &str, config: TextureConfig) -> Result<Self, TextureError> {
         let img = image::open(path).map_err(|_| TextureError::FileReadError(path.to_string()))?;
-        Ok(Self::load_from_image(img, config))
+        Self::load_from_image(img, config)
     }
 
     /// 从六个文件加载立方体贴图
@@ -179,12 +172,12 @@ impl Texture {
             images.push(img);
         }
 
-        Ok(Self::load_from_images(images.try_into().unwrap(), config))
+        Self::load_from_images(images.try_into().unwrap(), config)
     }
 
     pub fn from_bytes(data: &[u8], config: TextureConfig) -> Result<Self, TextureError> {
         let img = image::load_from_memory(data).map_err(|_| TextureError::ByteReadError)?;
-        Ok(Self::load_from_image(img, config))
+        Self::load_from_image(img, config)
     }
 
     /// 从六个字节数组加载立方体贴图
@@ -199,38 +192,36 @@ impl Texture {
 
         let images = images?;
 
-        Ok(Self::load_from_images(images.try_into().unwrap(), config))
+        Self::load_from_images(images.try_into().unwrap(), config)
     }
 
     pub fn resize(&mut self, new_resolution: Resolution) -> Result<(), TextureError> {
         unsafe {
             match self.config {
-                TextureConfig::Common {
-                    wrapping_s: _,
-                    wrapping_t: _,
-                    min_filter: _,
-                    mag_filter: _,
-                } => {
+                TextureConfig::Common { format_type, .. } => {
                     gl::BindTexture(gl::TEXTURE_2D, self.id);
                     gl::TexImage2D(
                         gl::TEXTURE_2D,
                         0,
-                        gl::RGBA8 as i32, // 这里应使用创建时的 internal_format
+                        format_type.as_gl_internal_format(), // 这里应使用创建时的 internal_format
                         new_resolution.width as i32,
                         new_resolution.height as i32,
                         0,
-                        gl::RGBA,
+                        format_type.as_gl_format(),
                         gl::UNSIGNED_BYTE,
                         std::ptr::null(), // 重新分配空间，不传数据
                     );
                     gl::BindTexture(gl::TEXTURE_2D, 0);
                 }
-                TextureConfig::MultiSample { anti_pixel } => {
+                TextureConfig::MultiSample {
+                    anti_pixel,
+                    format_type,
+                } => {
                     gl::BindTexture(gl::TEXTURE_2D_MULTISAMPLE, self.id);
                     gl::TexImage2DMultisample(
                         gl::TEXTURE_2D_MULTISAMPLE,
                         anti_pixel.samples() as i32,
-                        gl::RGBA8, // 这里应使用创建时的 internal_format
+                        format_type.as_gl_internal_format() as u32,
                         new_resolution.width as i32,
                         new_resolution.height as i32,
                         gl::TRUE,
@@ -253,132 +244,143 @@ impl Texture {
         }
     }
 
-    fn load_from_image(img: DynamicImage, config: TextureConfig) -> Self {
-        let img = img.flipv();
-        let rgba = img.to_rgba8();
-        let (width, height) = rgba.dimensions();
+    fn load_from_image(img: DynamicImage, config: TextureConfig) -> Result<Self, TextureError> {
+        if let TextureConfig::Common { format_type, .. } = config {
+            let img = img.flipv();
+            let rgba = img.to_rgba8();
+            let (width, height) = rgba.dimensions();
 
-        let mut texture_id: GLuint = 0;
-        unsafe {
-            gl::GenTextures(1, &mut texture_id);
-            gl::BindTexture(gl::TEXTURE_2D, texture_id);
+            let mut texture_id: GLuint = 0;
+            unsafe {
+                gl::GenTextures(1, &mut texture_id);
+                gl::BindTexture(gl::TEXTURE_2D, texture_id);
 
-            // 统一设置参数
-            Self::apply_config(config);
+                // 统一设置参数
+                Self::apply_config(config);
 
-            gl::TexImage2D(
-                gl::TEXTURE_2D,
-                0,
-                gl::RGBA as i32,
-                width as i32,
-                height as i32,
-                0,
-                gl::RGBA,
-                gl::UNSIGNED_BYTE,
-                rgba.as_ptr() as *const _,
-            );
+                gl::TexImage2D(
+                    gl::TEXTURE_2D,
+                    0,
+                    format_type.as_gl_internal_format(),
+                    width as i32,
+                    height as i32,
+                    0,
+                    format_type.as_gl_format(),
+                    gl::UNSIGNED_BYTE,
+                    rgba.as_ptr() as *const _,
+                );
 
-            gl::GenerateMipmap(gl::TEXTURE_2D);
-            gl::BindTexture(gl::TEXTURE_2D, 0);
-        }
+                gl::GenerateMipmap(gl::TEXTURE_2D);
+                gl::BindTexture(gl::TEXTURE_2D, 0);
+            }
 
-        Self {
-            id: texture_id,
-            config,
-            resolution: Resolution { height, width },
+            Ok(Self {
+                id: texture_id,
+                config,
+                resolution: Resolution { height, width },
+            })
+        } else {
+            Err(TextureError::ConfigNotMatch)
         }
     }
 
     /// 从六个图像加载立方体贴图
-    fn load_from_images(images: [DynamicImage; 6], config: TextureConfig) -> Self {
-        let (width, height) = images[0].dimensions();
+    fn load_from_images(
+        images: [DynamicImage; 6],
+        config: TextureConfig,
+    ) -> Result<Self, TextureError> {
+        if let TextureConfig::MultiSample { .. } = config {
+            let (width, height) = images[0].dimensions();
 
-        let mut texture_id: GLuint = 0;
-        unsafe {
-            gl::GenTextures(1, &mut texture_id);
-            gl::BindTexture(gl::TEXTURE_CUBE_MAP, texture_id);
+            let mut texture_id: GLuint = 0;
+            unsafe {
+                gl::GenTextures(1, &mut texture_id);
+                gl::BindTexture(gl::TEXTURE_CUBE_MAP, texture_id);
 
-            // 加载六个面
-            for (i, img) in images.iter().enumerate() {
-                let (w, h) = img.dimensions();
+                // 加载六个面
+                for (i, img) in images.iter().enumerate() {
+                    let (w, h) = img.dimensions();
 
-                // 确保所有面的尺寸相同
-                assert_eq!(w, width, "all cube map tex should have equal width");
-                assert_eq!(h, height, "all cube map tex should have equal height");
+                    // 确保所有面的尺寸相同
+                    assert_eq!(w, width, "all cube map tex should have equal width");
+                    assert_eq!(h, height, "all cube map tex should have equal height");
 
-                let face = CubeFace::all()[i];
+                    let face = CubeFace::all()[i];
 
-                match img {
-                    DynamicImage::ImageRgba8(data) => {
-                        gl::TexImage2D(
-                            face.to_gl_enum(),
-                            0,
-                            gl::RGBA as i32,
-                            width as i32,
-                            height as i32,
-                            0,
-                            gl::RGBA,
-                            gl::UNSIGNED_BYTE,
-                            data.as_ptr() as *const _,
-                        );
-                    }
-                    DynamicImage::ImageRgb8(data) => {
-                        gl::TexImage2D(
-                            face.to_gl_enum(),
-                            0,
-                            gl::RGB as i32,
-                            width as i32,
-                            height as i32,
-                            0,
-                            gl::RGB,
-                            gl::UNSIGNED_BYTE,
-                            data.as_ptr() as *const _,
-                        );
-                    }
-                    DynamicImage::ImageRgba16(data) => {
-                        gl::TexImage2D(
-                            face.to_gl_enum(),
-                            0,
-                            gl::RGBA16 as i32,
-                            width as i32,
-                            height as i32,
-                            0,
-                            gl::RGBA,
-                            gl::UNSIGNED_SHORT,
-                            data.as_ptr() as *const _,
-                        );
-                    }
-                    _ => {
-                        // 不常见格式才转换
-                        let rgba = img.to_rgba8();
-                        gl::TexImage2D(
-                            face.to_gl_enum(),
-                            0,
-                            gl::RGBA as i32,
-                            width as i32,
-                            height as i32,
-                            0,
-                            gl::RGBA,
-                            gl::UNSIGNED_BYTE,
-                            rgba.as_ptr() as *const _,
-                        );
+                    match img {
+                        DynamicImage::ImageRgba8(data) => {
+                            gl::TexImage2D(
+                                face.to_gl_enum(),
+                                0,
+                                gl::RGBA as i32,
+                                width as i32,
+                                height as i32,
+                                0,
+                                gl::RGBA,
+                                gl::UNSIGNED_BYTE,
+                                data.as_ptr() as *const _,
+                            );
+                        }
+                        DynamicImage::ImageRgb8(data) => {
+                            gl::TexImage2D(
+                                face.to_gl_enum(),
+                                0,
+                                gl::RGB as i32,
+                                width as i32,
+                                height as i32,
+                                0,
+                                gl::RGB,
+                                gl::UNSIGNED_BYTE,
+                                data.as_ptr() as *const _,
+                            );
+                        }
+                        DynamicImage::ImageRgba16(data) => {
+                            gl::TexImage2D(
+                                face.to_gl_enum(),
+                                0,
+                                gl::RGBA16 as i32,
+                                width as i32,
+                                height as i32,
+                                0,
+                                gl::RGBA,
+                                gl::UNSIGNED_SHORT,
+                                data.as_ptr() as *const _,
+                            );
+                        }
+                        _ => {
+                            // 不常见格式才转换
+                            let rgba = img.to_rgba8();
+                            gl::TexImage2D(
+                                face.to_gl_enum(),
+                                0,
+                                gl::RGBA as i32,
+                                width as i32,
+                                height as i32,
+                                0,
+                                gl::RGBA,
+                                gl::UNSIGNED_BYTE,
+                                rgba.as_ptr() as *const _,
+                            );
+                        }
                     }
                 }
+
+                // 应用纹理配置
+                Self::apply_config(config);
+
+                // 生成 mipmap（如果需要）
+                gl::GenerateMipmap(gl::TEXTURE_CUBE_MAP);
+
+                gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0);
             }
 
-            // 应用纹理配置
-            Self::apply_config(config);
-
-            // 生成 mipmap（如果需要）
-            gl::GenerateMipmap(gl::TEXTURE_CUBE_MAP);
-
-            gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0);
-        }
-
-        Self {
-            id: texture_id,
-            config,
-            resolution: Resolution { width, height },
+            Ok(Self {
+                id: texture_id,
+                config,
+                resolution: Resolution { width, height },
+            })
+        } else {
+            Err(TextureError::ConfigNotMatch)
         }
     }
 
@@ -468,6 +470,7 @@ impl Texture {
                 wrapping_t,
                 min_filter,
                 mag_filter,
+                ..
             } => unsafe {
                 let set_wrap = |target, mode| match mode {
                     WrappingMode::Repeat => {
@@ -507,7 +510,7 @@ impl Texture {
                 set_filter(gl::TEXTURE_MIN_FILTER, min_filter);
                 set_filter(gl::TEXTURE_MAG_FILTER, mag_filter);
             },
-            TextureConfig::MultiSample { anti_pixel: _ } => return,
+            TextureConfig::MultiSample { .. } => return,
             TextureConfig::Cube {
                 wrapping_s,
                 wrapping_t,
@@ -566,27 +569,17 @@ impl Texture {
 
     pub fn bind(&self, slot: &usize) -> Result<(), TextureError> {
         match self.config {
-            TextureConfig::Common {
-                wrapping_s: _,
-                wrapping_t: _,
-                min_filter: _,
-                mag_filter: _,
-            } => unsafe {
+            TextureConfig::Common { .. } => unsafe {
                 gl::ActiveTexture(gl::TEXTURE0 + *slot as u32);
                 gl::BindTexture(gl::TEXTURE_2D, self.id());
             },
-            TextureConfig::Cube {
-                wrapping_s: _,
-                wrapping_t: _,
-                min_filter: _,
-                mag_filter: _,
-            } => unsafe {
+            TextureConfig::Cube { .. } => unsafe {
                 gl::ActiveTexture(gl::TEXTURE0 + *slot as u32);
                 gl::BindTexture(gl::TEXTURE_CUBE_MAP, self.id());
             },
-            TextureConfig::MultiSample { anti_pixel: _ } => {
-                return Err(TextureError::NotSupportBind)
-            },
+            TextureConfig::MultiSample { .. } => {
+                return Err(TextureError::NotSupportBind);
+            }
         }
         Ok(())
     }

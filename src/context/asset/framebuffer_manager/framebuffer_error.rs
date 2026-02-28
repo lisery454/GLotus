@@ -16,4 +16,6 @@ pub enum FramebufferError {
     TextureManagerBorrowFail,
     #[error("NotFoundTexture")]
     NotFoundTexture,
+    #[error("InvalidTextureConfig")]
+    InvalidTextureConfig,
 }

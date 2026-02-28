@@ -14,4 +14,6 @@ pub enum TextureError {
     NotSupportResize,
     #[error("not support bind")]
     NotSupportBind,
+    #[error("texture config does not match")]
+    ConfigNotMatch,
 }

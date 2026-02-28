@@ -224,6 +224,10 @@ impl App {
             }
         }
 
+        unsafe {
+            gl::Enable(gl::FRAMEBUFFER_SRGB);
+        }
+
         // 初始化视口
         unsafe {
             gl::Viewport(0, 0, width as i32, height as i32);

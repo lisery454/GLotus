@@ -8,7 +8,7 @@ use std::{cell::RefCell, rc::Weak};
 
 use slotmap::{SecondaryMap, SlotMap, new_key_type};
 
-use crate::{AntiPixel, Resolution, TextureConfig, TextureHandle, TextureManager};
+use crate::{Resolution, TextureConfig, TextureHandle, TextureManager};
 
 new_key_type! {
     pub struct FramebufferHandle;
@@ -65,42 +65,50 @@ impl FramebufferManager {
     pub fn create_multi_sample(
         &mut self,
         resolution: Resolution,
-        anti_pixel_for_ms: AntiPixel,
+        config_for_ms: TextureConfig,
         config_for_2d: TextureConfig,
     ) -> Result<FramebufferHandle, FramebufferError> {
-        // get tex mgr
-        let texture_manager = self
-            .texture_manager
-            .upgrade()
-            .ok_or(FramebufferError::TextureManagerBorrowFail)?;
-        let mut texture_manager = texture_manager.borrow_mut();
+        if let TextureConfig::MultiSample { anti_pixel, .. } = config_for_ms {
+            // get tex mgr
+            let texture_manager = self
+                .texture_manager
+                .upgrade()
+                .ok_or(FramebufferError::TextureManagerBorrowFail)?;
+            let mut texture_manager = texture_manager.borrow_mut();
 
-        // create new tex
-        let texture_handle = texture_manager.create_empty(resolution, config_for_2d)?;
-        let mass_texture_handle =
-            texture_manager.create_empty_multi_sample(resolution, anti_pixel_for_ms)?;
+            // create new tex
+            let texture_handle = texture_manager.create_empty(resolution, config_for_2d)?;
+            let mass_texture_handle =
+                texture_manager.create_empty_multi_sample(resolution, config_for_ms)?;
 
-        // get tex id
-        let tex_id = texture_manager
-            .get(texture_handle)
-            .map(|t| t.id())
-            .ok_or(FramebufferError::NotFoundTexture)?;
-        let mass_tex_id = texture_manager
-            .get(mass_texture_handle)
-            .map(|t| t.id())
-            .ok_or(FramebufferError::NotFoundTexture)?;
+            // get tex id
+            let tex_id = texture_manager
+                .get(texture_handle)
+                .map(|t| t.id())
+                .ok_or(FramebufferError::NotFoundTexture)?;
+            let mass_tex_id = texture_manager
+                .get(mass_texture_handle)
+                .map(|t| t.id())
+                .ok_or(FramebufferError::NotFoundTexture)?;
 
-        // create fb
-        let framebuffer =
-            Framebuffer::new_multi_sample(resolution, mass_tex_id, tex_id, anti_pixel_for_ms.samples())?;
+            // create fb
+            let framebuffer = Framebuffer::new_multi_sample(
+                resolution,
+                mass_tex_id,
+                tex_id,
+                anti_pixel.samples(),
+            )?;
 
-        // insert slotmap
-        let framebuffer_handle = self.framebuffers.insert(framebuffer);
-        self.fbo_textures.insert(framebuffer_handle, texture_handle);
-        self.msaa_fbo_textures
-            .insert(framebuffer_handle, mass_texture_handle);
+            // insert slotmap
+            let framebuffer_handle = self.framebuffers.insert(framebuffer);
+            self.fbo_textures.insert(framebuffer_handle, texture_handle);
+            self.msaa_fbo_textures
+                .insert(framebuffer_handle, mass_texture_handle);
 
-        Ok(framebuffer_handle)
+            Ok(framebuffer_handle)
+        } else {
+            return Err(FramebufferError::InvalidTextureConfig);
+        }
     }
 
     pub fn remove(&mut self, handle: FramebufferHandle) -> Result<(), FramebufferError> {

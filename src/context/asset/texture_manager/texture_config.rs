@@ -1,6 +1,6 @@
 use crate::AntiPixel;
 
-use super::{FilteringMode, WrappingMode};
+use super::{FilteringMode, FormatType, WrappingMode};
 
 #[derive(Debug, Clone, Copy)]
 pub enum TextureConfig {
@@ -9,6 +9,7 @@ pub enum TextureConfig {
         wrapping_t: WrappingMode,
         min_filter: FilteringMode,
         mag_filter: FilteringMode,
+        format_type: FormatType,
     },
     Cube {
         wrapping_s: WrappingMode,
@@ -18,6 +19,7 @@ pub enum TextureConfig {
     },
     MultiSample {
         anti_pixel: AntiPixel,
+        format_type: FormatType,
     },
 }
 
@@ -27,12 +29,14 @@ impl TextureConfig {
         wrapping_t: WrappingMode,
         min_filter: FilteringMode,
         mag_filter: FilteringMode,
+        format_type: FormatType,
     ) -> Self {
         Self::Common {
             wrapping_s,
             wrapping_t,
             min_filter,
             mag_filter,
+            format_type,
         }
     }
 
@@ -50,8 +54,11 @@ impl TextureConfig {
         }
     }
 
-    pub fn multi_sample(anti_pixel: AntiPixel) -> Self {
-        Self::MultiSample { anti_pixel }
+    pub fn multi_sample(anti_pixel: AntiPixel, format_type: FormatType) -> Self {
+        Self::MultiSample {
+            anti_pixel,
+            format_type,
+        }
     }
 }
 
@@ -62,6 +69,7 @@ impl Default for TextureConfig {
             WrappingMode::ClampToEdge,
             FilteringMode::Linear,
             FilteringMode::Linear,
+            FormatType::SRGBA,
         )
     }
 }

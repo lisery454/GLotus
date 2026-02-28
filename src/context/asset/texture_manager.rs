@@ -5,11 +5,10 @@ mod texture_mode;
 
 pub use texture::*;
 pub use texture_config::*;
-pub use texture_error::TextureError;
-pub use texture_mode::FilteringMode;
-pub use texture_mode::WrappingMode;
+pub use texture_error::*;
+pub use texture_mode::*;
 
-use crate::{AntiPixel, Resolution};
+use crate::Resolution;
 use slotmap::{SlotMap, new_key_type};
 
 new_key_type! {
@@ -59,9 +58,9 @@ impl TextureManager {
     pub fn create_empty_multi_sample(
         &mut self,
         resolution: Resolution,
-        anti_pixel: AntiPixel,
+        config: TextureConfig,
     ) -> Result<TextureHandle, TextureError> {
-        let texture = Texture::empty(resolution, TextureConfig::MultiSample { anti_pixel });
+        let texture = Texture::empty(resolution, config);
         Ok(self.textures.insert(texture))
     }
 
