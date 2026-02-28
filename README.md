@@ -46,4 +46,7 @@ cargo run --example case_12_visual_normal
 
 # 使用实例化技术优化渲染
 cargo run --example case_13_instancing
+
+# 使用blinn phong 模型
+cargo run --example case_14_blinn_phong
 ```
