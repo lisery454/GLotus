@@ -34,6 +34,8 @@ pub enum RenderError {
     Framebuffer(#[from] FramebufferError),
     #[error("TransformError")]
     Transform(#[from] TransformError),
+    #[error("TextureError")]
+    TextureError(#[from] TextureError),
 }
 
 #[derive(Default)]
@@ -278,7 +280,7 @@ impl RenderSystem {
     fn bind_material(
         asset_manager: &AssetManager,
         material_handle: MaterialHandle,
-    ) -> Result<(), MaterialError> {
+    ) -> Result<(), RenderError> {
         let material_manager = &asset_manager.material_manager.borrow();
         let texture_manager = &asset_manager.texture_manager.borrow();
         let shader_manager = &asset_manager.shader_manager.borrow();
@@ -309,16 +311,7 @@ impl RenderSystem {
                         .get(*texture_handle)
                         .ok_or(MaterialError::FindTextureFail)?;
 
-                    match texture {
-                        Texture::Texture2D(_) => unsafe {
-                            gl::ActiveTexture(gl::TEXTURE0 + *slot as u32);
-                            gl::BindTexture(gl::TEXTURE_2D, texture.id());
-                        },
-                        Texture::CubeMap(_) => unsafe {
-                            gl::ActiveTexture(gl::TEXTURE0 + *slot as u32);
-                            gl::BindTexture(gl::TEXTURE_CUBE_MAP, texture.id());
-                        },
-                    }
+                    texture.bind(slot)?;
 
                     Ok(())
                 }
@@ -564,9 +557,7 @@ impl RenderSystem {
         // 不存在就创建新的
 
         let fb = context.with_fbr_mgr(|m| {
-            let texture_config = TextureConfig::new()
-                .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
-                .with_filtering(FilteringMode::Linear, FilteringMode::Linear);
+            let texture_config = TextureConfig::default();
             m.create_multi_sample(resolution, anti_pixel, texture_config)
         })?;
 
@@ -594,9 +585,7 @@ impl RenderSystem {
             }
 
             // 创建新的
-            let texture_config = TextureConfig::new()
-                .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
-                .with_filtering(FilteringMode::Linear, FilteringMode::Linear);
+            let texture_config = TextureConfig::default();
 
             self.ping_pong_framebuffers[0] =
                 Some(context.with_fbr_mgr(|m| {

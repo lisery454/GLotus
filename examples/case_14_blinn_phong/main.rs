@@ -19,9 +19,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         let texture = context.borrow().with_tex_mgr(|m| {
             m.create_from_bytes(
                 include_bytes!("./assets/textures/wood.png"),
-                TextureConfig::new()
-                    .with_wrapping(WrappingMode::Repeat, WrappingMode::Repeat)
-                    .with_filtering(FilteringMode::LinearMipmapLinear, FilteringMode::Linear),
+                TextureConfig::common(
+                    WrappingMode::Repeat,
+                    WrappingMode::Repeat,
+                    FilteringMode::LinearMipmapLinear,
+                    FilteringMode::Linear,
+                ),
             )
         })?;
 

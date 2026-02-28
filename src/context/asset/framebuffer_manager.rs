@@ -10,7 +10,6 @@ use slotmap::{SecondaryMap, SlotMap, new_key_type};
 
 use crate::{AntiPixel, Resolution, TextureConfig, TextureHandle, TextureManager};
 
-
 new_key_type! {
     pub struct FramebufferHandle;
 }
@@ -66,8 +65,8 @@ impl FramebufferManager {
     pub fn create_multi_sample(
         &mut self,
         resolution: Resolution,
-        anti_pixel: AntiPixel,
-        config: TextureConfig,
+        anti_pixel_for_ms: AntiPixel,
+        config_for_2d: TextureConfig,
     ) -> Result<FramebufferHandle, FramebufferError> {
         // get tex mgr
         let texture_manager = self
@@ -77,9 +76,9 @@ impl FramebufferManager {
         let mut texture_manager = texture_manager.borrow_mut();
 
         // create new tex
-        let texture_handle = texture_manager.create_empty(resolution, config)?;
+        let texture_handle = texture_manager.create_empty(resolution, config_for_2d)?;
         let mass_texture_handle =
-            texture_manager.create_empty_multi_sample(resolution, anti_pixel)?;
+            texture_manager.create_empty_multi_sample(resolution, anti_pixel_for_ms)?;
 
         // get tex id
         let tex_id = texture_manager
@@ -93,7 +92,7 @@ impl FramebufferManager {
 
         // create fb
         let framebuffer =
-            Framebuffer::new_multi_sample(resolution, mass_tex_id, tex_id, anti_pixel.samples())?;
+            Framebuffer::new_multi_sample(resolution, mass_tex_id, tex_id, anti_pixel_for_ms.samples())?;
 
         // insert slotmap
         let framebuffer_handle = self.framebuffers.insert(framebuffer);

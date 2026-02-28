@@ -1,46 +1,67 @@
+use crate::AntiPixel;
+
 use super::{FilteringMode, WrappingMode};
 
 #[derive(Debug, Clone, Copy)]
-pub struct TextureConfig {
-    pub wrapping_s: WrappingMode,
-    pub wrapping_t: WrappingMode,
-    pub min_filter: FilteringMode,
-    pub mag_filter: FilteringMode,
+pub enum TextureConfig {
+    Common {
+        wrapping_s: WrappingMode,
+        wrapping_t: WrappingMode,
+        min_filter: FilteringMode,
+        mag_filter: FilteringMode,
+    },
+    Cube {
+        wrapping_s: WrappingMode,
+        wrapping_t: WrappingMode,
+        min_filter: FilteringMode,
+        mag_filter: FilteringMode,
+    },
+    MultiSample {
+        anti_pixel: AntiPixel,
+    },
 }
 
 impl TextureConfig {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn common(
+        wrapping_s: WrappingMode,
+        wrapping_t: WrappingMode,
+        min_filter: FilteringMode,
+        mag_filter: FilteringMode,
+    ) -> Self {
+        Self::Common {
+            wrapping_s,
+            wrapping_t,
+            min_filter,
+            mag_filter,
+        }
     }
 
-    /// 修改循环模式（同时修改 S 和 T 轴）
-    pub fn with_wrapping(mut self, mode_s: WrappingMode, mode_t: WrappingMode) -> Self {
-        self.wrapping_s = mode_s;
-        self.wrapping_t = mode_t;
-        self
+    pub fn cube(
+        wrapping_s: WrappingMode,
+        wrapping_t: WrappingMode,
+        min_filter: FilteringMode,
+        mag_filter: FilteringMode,
+    ) -> Self {
+        Self::Cube {
+            wrapping_s,
+            wrapping_t,
+            min_filter,
+            mag_filter,
+        }
     }
 
-    /// 修改过滤模式
-    pub fn with_filtering(mut self, min: FilteringMode, mag: FilteringMode) -> Self {
-        self.min_filter = min;
-        self.mag_filter = mag;
-        self
-    }
-
-    pub fn simple() -> Self {
-        Self::new()
-            .with_wrapping(WrappingMode::Repeat, WrappingMode::Repeat)
-            .with_filtering(FilteringMode::LinearMipmapLinear, FilteringMode::Linear)
+    pub fn multi_sample(anti_pixel: AntiPixel) -> Self {
+        Self::MultiSample { anti_pixel }
     }
 }
 
 impl Default for TextureConfig {
     fn default() -> Self {
-        Self {
-            wrapping_s: WrappingMode::ClampToEdge,
-            wrapping_t: WrappingMode::ClampToEdge,
-            min_filter: FilteringMode::Linear,
-            mag_filter: FilteringMode::Linear,
-        }
+        Self::common(
+            WrappingMode::ClampToEdge,
+            WrappingMode::ClampToEdge,
+            FilteringMode::Linear,
+            FilteringMode::Linear,
+        )
     }
 }

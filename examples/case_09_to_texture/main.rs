@@ -26,9 +26,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             ))
         })?;
 
-        let texture_config = TextureConfig::new()
-            .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
-            .with_filtering(FilteringMode::Nearest, FilteringMode::Nearest);
+        let texture_config = TextureConfig::common(
+            WrappingMode::ClampToEdge,
+            WrappingMode::ClampToEdge,
+            FilteringMode::Nearest,
+            FilteringMode::Nearest,
+        );
         let texture_resolution = Resolution::new(tex_size, tex_size);
 
         let topview_framebuffer = context

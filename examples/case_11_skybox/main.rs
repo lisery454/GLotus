@@ -20,9 +20,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                     include_bytes!("./assets/textures/front.png"),
                     include_bytes!("./assets/textures/back.png"),
                 ],
-                TextureConfig::new()
-                    .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
-                    .with_filtering(FilteringMode::LinearMipmapLinear, FilteringMode::Linear),
+                TextureConfig::common(
+                    WrappingMode::ClampToEdge,
+                    WrappingMode::ClampToEdge,
+                    FilteringMode::LinearMipmapLinear,
+                    FilteringMode::Linear,
+                ),
             )
         })?;
 

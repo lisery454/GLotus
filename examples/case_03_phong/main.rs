@@ -19,14 +19,24 @@ fn main() -> Result<(), Box<dyn Error>> {
         let texture_diffuse = context.borrow().with_tex_mgr(|m| {
             m.create_from_bytes(
                 include_bytes!("./assets/textures/texture_diffuse.png"),
-                TextureConfig::simple(),
+                TextureConfig::common(
+                    WrappingMode::Repeat,
+                    WrappingMode::Repeat,
+                    FilteringMode::LinearMipmapLinear,
+                    FilteringMode::Linear,
+                ),
             )
         })?;
 
         let texture_specular = context.borrow().with_tex_mgr(|m| {
             m.create_from_bytes(
                 include_bytes!("./assets/textures/texture_specular.png"),
-                TextureConfig::simple(),
+                TextureConfig::common(
+                    WrappingMode::Repeat,
+                    WrappingMode::Repeat,
+                    FilteringMode::LinearMipmapLinear,
+                    FilteringMode::Linear,
+                ),
             )
         })?;
 

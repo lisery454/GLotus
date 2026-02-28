@@ -26,18 +26,24 @@ fn main() -> Result<(), Box<dyn Error>> {
         let grass_texture = context.borrow().with_tex_mgr(|m| {
             m.create_from_bytes(
                 include_bytes!("./assets/textures/grass.png"),
-                TextureConfig::new()
-                    .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
-                    .with_filtering(FilteringMode::LinearMipmapLinear, FilteringMode::Linear),
+                TextureConfig::common(
+                    WrappingMode::ClampToEdge,
+                    WrappingMode::ClampToEdge,
+                    FilteringMode::LinearMipmapLinear,
+                    FilteringMode::Linear,
+                ),
             )
         })?;
 
         let window_texture = context.borrow().with_tex_mgr(|m| {
             m.create_from_bytes(
                 include_bytes!("./assets/textures/window.png"),
-                TextureConfig::new()
-                    .with_wrapping(WrappingMode::ClampToEdge, WrappingMode::ClampToEdge)
-                    .with_filtering(FilteringMode::LinearMipmapLinear, FilteringMode::Linear),
+                TextureConfig::common(
+                    WrappingMode::ClampToEdge,
+                    WrappingMode::ClampToEdge,
+                    FilteringMode::LinearMipmapLinear,
+                    FilteringMode::Linear,
+                ),
             )
         })?;
 

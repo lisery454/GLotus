@@ -10,4 +10,8 @@ pub enum TextureError {
     InvalidHandle,
     #[error("resolution is invalid")]
     InvalidResolution,
+    #[error("not support resize")]
+    NotSupportResize,
+    #[error("not support bind")]
+    NotSupportBind,
 }
